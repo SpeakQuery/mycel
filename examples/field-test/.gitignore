@@ -6,3 +6,4 @@ scale/
 mycel.lock
 results.json
 scale.json
+.playwright-mcp/

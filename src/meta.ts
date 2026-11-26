@@ -74,7 +74,7 @@ export function META_TOOLS(m: Mycel): MetaTool[] {
         const id = a.id as string;
         switch (a.action) {
           case "list":
-            return m.jobs.list().slice(0, 30).map((j) => ({ id: j.id, tool: j.tool, status: j.status, progress: j.progress, total: j.total, createdAt: j.createdAt }));
+            return m.jobs.list().slice(0, 30).map((j) => ({ id: j.id, tool: j.tool, status: j.status, progress: j.progress, total: j.total, createdAt: j.createdAt, costUsd: j.costUsd, costEstimated: j.costEstimated }));
           case "status":
             return m.jobView(must(m.jobs.get(id), id));
           case "wait":

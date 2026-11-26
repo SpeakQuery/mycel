@@ -9,6 +9,63 @@ import { inferContract, type ToolAnnotations } from "./contracts.js";
 import type { SecretVault } from "./secrets.js";
 import { FileOAuthProvider } from "./oauth.js";
 
+/**
+ * Did the provider possibly accept the call?
+ *  - "rejected": definitely not accepted (could not connect, not connected, failed before the request
+ *    was sent, JSON-RPC/MCP error response, tool result isError). Safe to fall back / retry.
+ *  - "unknown": timeout, connection closed or reset after sending, abort, or anything we cannot
+ *    positively classify as rejected. The provider may have accepted (and charged for) the call.
+ */
+export type CallDisposition = "rejected" | "unknown";
+
+export class CallError extends Error {
+  /** Contract cost to charge as an estimate when the disposition is "unknown" (set by the job runner). */
+  estimatedCostUsd?: number;
+  constructor(
+    message: string,
+    public disposition: CallDisposition,
+    options?: { cause?: unknown },
+  ) {
+    super(message, options);
+    this.name = "CallError";
+  }
+}
+
+const REFUSED_CODES = new Set(["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "ENETUNREACH", "EHOSTUNREACH", "ENOENT", "EACCES"]);
+const MCP_CONNECTION_CLOSED = -32000;
+const MCP_REQUEST_TIMEOUT = -32001;
+
+/** Disposition of an arbitrary error: only positively identified rejections are "rejected". */
+export function dispositionOf(e: unknown): CallDisposition {
+  if (e instanceof CallError) return e.disposition;
+  return classify(e) ?? "unknown";
+}
+
+function classify(e: unknown): CallDisposition | undefined {
+  if (!e || typeof e !== "object") return undefined;
+  const err = e as { code?: unknown; name?: string; message?: string; cause?: unknown };
+  const d = (err as { disposition?: unknown }).disposition;
+  if (d === "rejected" || d === "unknown") return d;
+  if (typeof err.code === "string" && REFUSED_CODES.has(err.code)) return "rejected";
+  if (err.name === "AbortError") return "unknown";
+  if (typeof err.code === "number") {
+    // MCP/JSON-RPC: the server answered with an error, except the SDK's own timeout / closed markers.
+    if (err.code === MCP_CONNECTION_CLOSED || err.code === MCP_REQUEST_TIMEOUT) return "unknown";
+    return err.name === "McpError" || /^MCP error/.test(err.message ?? "") ? "rejected" : undefined;
+  }
+  if (/^Not connected$/i.test(err.message ?? "")) return "rejected";
+  if (err.cause) return classify(err.cause);
+  return undefined;
+}
+
+/** Tag an error from a provider call with its disposition. */
+export function tagCallError(e: unknown, signal?: AbortSignal): CallError {
+  if (e instanceof CallError) return e;
+  const msg = e instanceof Error ? e.message : String(e);
+  const disposition: CallDisposition = signal?.aborted ? "unknown" : dispositionOf(e);
+  return new CallError(msg, disposition, { cause: e });
+}
+
 export interface UpstreamToolResult {
   content: Array<Record<string, unknown>>;
   structuredContent?: unknown;
@@ -113,7 +170,7 @@ export async function connectMcp(name: string, cfg: ServerConfig, vault: SecretV
       authProvider: oauthFor(name, cfg, vault, opts),
     });
   }
-  const client = new Client({ name: `mycel:${name}`, version: "0.1.1" }, { capabilities: {} });
+  const client = new Client({ name: `mycel:${name}`, version: "0.1.2" }, { capabilities: {} });
   await client.connect(transport);
   return new McpProvider(client);
 }
@@ -139,8 +196,12 @@ export class ProviderUpstream implements Upstream {
     return this;
   }
 
-  call(tool: string, args: Record<string, unknown>, opts: Parameters<Upstream["call"]>[2] = {}) {
-    return this.provider.callTool(tool, args, opts);
+  async call(tool: string, args: Record<string, unknown>, opts: Parameters<Upstream["call"]>[2] = {}) {
+    try {
+      return await this.provider.callTool(tool, args, opts);
+    } catch (e) {
+      throw tagCallError(e, opts.signal);
+    }
   }
 
   async close() {

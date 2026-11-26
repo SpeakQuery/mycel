@@ -29,6 +29,8 @@ const home = mkdtempSync(join(tmpdir(), "mycel-full-scale-"));
 const t0 = Date.now();
 const client = new Client({ name: "full-scale-count", version: "1" });
 let mycelTools, instructions;
+const loadedIds = new Set();
+const wanted = dumps.flatMap((d) => d.tools.map((t) => `${d.server}.${t.name}`));
 try {
   await client.connect(new StdioClientTransport({
     command: process.execPath,
@@ -39,6 +41,13 @@ try {
   }));
   mycelTools = (await client.listTools()).tools;
   instructions = client.getInstructions() ?? "";
+  // What did the gateway actually load? Ask it about every tool id from the dumps (mycel_describe, 10 per call).
+  const parse = (r) => JSON.parse(r.content?.find((c) => c.type === "text")?.text ?? "null");
+  for (let i = 0; i < wanted.length; i += 10) {
+    const chunk = wanted.slice(i, i + 10);
+    const res = parse(await client.callTool({ name: "mycel_describe", arguments: { tools: chunk } }));
+    for (const r of Array.isArray(res) ? res : []) if (r && !r.error && wanted.includes(r.tool)) loadedIds.add(r.tool);
+  }
 } finally {
   await client.close().catch(() => {});
   rmSync(home, { recursive: true, force: true });
@@ -57,10 +66,18 @@ console.log(`${pad(`Mycel (${mycelTools.length} tools + instructions)`, 44)}${nu
 console.log("\ndirect tokens = name+description+inputSchema+annotations; full payload also counts outputSchema (not sent to the model by typical clients).");
 console.log(`Mycel is ${pct.toFixed(2)}% of direct (${(100 - pct).toFixed(1)}% saved, ${(directTokens / mycelTokens).toFixed(0)}x smaller). Startup ${startupMs} ms.`);
 
-const ok = pct < 5;
+const missing = wanted.filter((id) => !loadedIds.has(id));
+const missingServers = [...new Set(missing.map((id) => id.slice(0, id.indexOf("."))))];
+if (missing.length) {
+  console.error(`\nFAIL: Mycel did not load ${missing.length} of ${wanted.length} tools from the dumps (${loadedIds.size} loaded).`);
+  console.error(`  servers with missing tools: ${missingServers.map((s) => `${s} (${missing.filter((id) => id.startsWith(s + ".")).length}/${dumps.find((d) => d.server === s).tools.length})`).join(", ")}`);
+  console.error(`  e.g. ${missing.slice(0, 5).join(", ")}${missing.length > 5 ? ", …" : ""}`);
+}
+const ok = pct < 5 && !missing.length;
 writeFileSync(join(here, "results.json"), JSON.stringify({
   servers: rows, totalTools, directTokens, fullPayloadTokens,
   mycel: { exposedTools: mycelTools.length, toolTokens: tok(mycelTools), instructionTokens: tok(instructions), tokens: mycelTokens },
   mycelPercentOfDirect: +pct.toFixed(2), tokenEstimate: "chars/4", pass: ok,
 }, null, 2) + "\n");
-if (!ok) { console.error("FAIL: Mycel footprint is not < 5% of direct."); process.exit(1); }
+if (pct >= 5) console.error("FAIL: Mycel footprint is not < 5% of direct.");
+if (!ok) process.exit(1);

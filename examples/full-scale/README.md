@@ -9,7 +9,7 @@ npm ci && npm run build
 cd examples/full-scale && npm test        # or: node count.mjs
 ```
 
-Takes about 3 seconds. It exits 1 if the Mycel side is not below 5% of the direct side. Results are also written to `results.json`.
+Takes about 3 seconds. It exits 1 if the Mycel side is not below 5% of the direct side. The gate fails if any server or tool from the dumps is not loaded by the gateway, as well as when Mycel's share is not under 5%. Results are also written to `results.json`.
 
 ## What is measured
 

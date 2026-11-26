@@ -16,6 +16,16 @@ Please report privately. Do not open a public issue.
 
 We aim to acknowledge reports within a few days and will coordinate a fix and disclosure with you.
 
+## Supported deployment
+
+Mycel is supported as a **single-user, local** gateway.
+
+- The HTTP (`/mcp`) and A2A endpoints are **not** a multi-user isolation boundary. There is no isolation between users who share one gateway: they share policy, refs, secrets, jobs and the recorder.
+- Policy parity across all execution paths (direct call, Code Mode, jobs, A2A) and secret/taint leak rates are **not independently tested**.
+- There has been **no third-party penetration test** yet.
+
+Do not expose a shared gateway to mutually untrusting users.
+
 ## Threat model summary
 
 Mycel **reduces and exposes** risk; it does not "solve" prompt injection.

@@ -44,7 +44,7 @@ const program = new Command();
 program
   .name("mycel")
   .description("The connective layer for AI agents — MCP gateway + A2A mesh.")
-  .version("0.1.1")
+  .version("0.1.2")
   .option("-c, --config <path>", "path to mycel.yaml");
 
 program
@@ -158,6 +158,11 @@ program
     ok(!!loaded.path, `config ${loaded.path ?? "(none)"}`, "run mycel init");
     const m = await new Mycel(loaded, { log: () => {} }).start();
     for (const u of m.upstreams.values()) ok(u.status === "ready", `${u.name}: ${u.status === "ready" ? `${u.tools.length} tools` : u.error}`, /unauthori[sz]ed|\b401\b/i.test(u.error ?? "") && !/mycel login/.test(u.error ?? "") ? `run: mycel login ${u.name}` : "");
+    const failed = [...m.upstreams.values()].filter((u) => u.status === "error");
+    if (failed.length) {
+      out(`\n  ${c.y("✗")} ${failed.length} upstream${failed.length > 1 ? "s" : ""} failed to start: ${failed.map((u) => u.name).join(", ")} — their tools are NOT available through Mycel.`);
+      process.exitCode = 1;
+    }
     ok(m.drift.changed.length === 0, `manifest pinning: ${m.drift.changed.length} changed, ${m.drift.added.length} new`, `review with mycel pin`);
     const fp = m.contextFootprint();
     out(`\n  Context: ${fp.tools} tools would cost ≈${fp.directTokens} tokens; through Mycel ≈${fp.mycelTokens}.\n`);
@@ -186,7 +191,7 @@ program
     const cb = waitForCallback(port, () => provider.expectedState());
     await cb.ready;
     const connect = async () => {
-      const client = new Client({ name: `mycel:${name}`, version: "0.1.1" }, { capabilities: {} });
+      const client = new Client({ name: `mycel:${name}`, version: "0.1.2" }, { capabilities: {} });
       const transport = new StreamableHTTPClientTransport(new URL(cfg.url), { requestInit: { headers: m.vault.inject(cfg.headers) }, authProvider: provider });
       await client.connect(transport);
       return { client, transport };

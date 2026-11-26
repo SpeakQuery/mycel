@@ -40,7 +40,7 @@ Language: TypeScript (Node ≥ 20). License: Apache-2.0. Repo: github.com/SpeakQ
 | 14 | **Capability Tokens** | Attenuable, expiring, macaroon-style delegation tokens: a sub-agent can only narrow its permissions (tools, effects, budget, expiry), never widen. | `mycel token mint/attenuate` |
 | 15 | **Model Router** | Tiered model routing (`fast` / `balanced` / `deep`) to any OpenAI-compatible or Anthropic endpoint, for sub-tasks and digests. | `mycel_ask` |
 | 16 | **Universal import** | Reads Claude Desktop, Claude Code, Cursor, VS Code, Windsurf configs. | `mycel init` |
-| 17 | **Both transports** | Serve over stdio (desktop clients) or Streamable HTTP (remote / teams). Upstreams over stdio or HTTP. | `mycel serve [--http]` |
+| 17 | **Both transports** | Serve over stdio (desktop clients) or Streamable HTTP (remote clients; single-user, not a multi-tenant boundary). Upstreams over stdio or HTTP. | `mycel serve [--http]` |
 | 18 | **Python client** | `pip install mycel-client`: call tools, refs, jobs and A2A from Python. | `python/` |
 | 19 | **Benchmark** | Reproducible: same tool catalog, direct MCP vs Mycel – context tokens and round trips. | `mycel bench` |
 | 20 | **Plugin adapters** | A provider adapter (e.g. a new video model) is ~50 lines. | `examples/` |
@@ -69,7 +69,7 @@ Language: TypeScript (Node ≥ 20). License: Apache-2.0. Repo: github.com/SpeakQ
 Direct MCP with 12 servers / 180 tools vs Mycel meta-tools: tool-definition tokens, a 6-step task's round trips, and bytes through context.
 
 ## Design principles
-- **Drop-in**: standard MCP clients need zero changes.
+- **Drop-in**: standard MCP clients need no changes for tools (resources and prompts parity is not yet verified).
 - **Local-first**: no account, no cloud, no telemetry.
 - **Optional depth**: a 10-line config works; every advanced feature is opt-in.
 - **Honest security**: Mycel reduces and exposes risk; it doesn't claim to "solve" prompt injection.

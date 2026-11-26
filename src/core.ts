@@ -7,7 +7,7 @@ import { PolicyEngine, ApprovalQueue, ManifestLock, type DriftReport } from "./p
 import { JobQueue, Budget, BudgetExceeded, type Job } from "./jobs.js";
 import { Recorder, newId, round } from "./recorder.js";
 import { runScript, type RunResult } from "./sandbox.js";
-import { connectAll, ProviderUpstream, type ToolProvider, type UpstreamToolResult } from "./upstream.js";
+import { connectAll, ProviderUpstream, CallError, tagCallError, type ToolProvider, type UpstreamToolResult } from "./upstream.js";
 import { verify, type CapabilityClaims } from "./tokens.js";
 import { ModelRouter } from "./models.js";
 import { A2AClient } from "./a2a-client.js";
@@ -38,7 +38,7 @@ export type CallOutcome =
   | { status: "ok"; tool: string; result: unknown; tainted: boolean; costUsd: number; durationMs: number }
   | { status: "error"; tool: string; error: string; tainted?: boolean }
   | { status: "denied"; tool: string; reason: string }
-  | { status: "approval_required"; tool: string; approval: string; reason: string; how: string }
+  | { status: "approval_required"; tool: string; approval: string; reason: string; how: string; /** false when no approver (MCP elicitation) exists in this client. */ approverAvailable: boolean }
   | { status: "job"; tool: string; job: JobView }
   | { status: "estimate"; tool: string; effect: string; costUsd: number; latencyMs: number | null; async: boolean; decision: string; reason: string; budget: { spentToday: number; perDayUsd?: number; perTaskUsd?: number } };
 
@@ -51,6 +51,8 @@ export interface JobView {
   result?: unknown;
   error?: string;
   usedTool?: string;
+  costUsd?: number;
+  costEstimated?: boolean;
   hint?: string;
 }
 
@@ -106,23 +108,27 @@ export class Mycel {
     this.budget = new Budget(c.budget, join(this.home, "budget.json"));
     this.jobs = new JobQueue(
       async (tool, args, jctx) => {
-        const t = this.mustTool(tool);
+        const t = this.jobTool(tool);
         const t0 = Date.now();
         const traceId = jctx.job.traceId ?? newId();
         try {
           const out = await this.execute(t, args, { signal: jctx.signal, onProgress: (p) => jctx.progress(p.progress, p.total, p.message), traceId });
-          if (out.isError) throw new Error(typeof out.result === "string" ? out.result : JSON.stringify(out.result));
+          if (out.isError) throw new CallError(typeof out.result === "string" ? out.result : JSON.stringify(out.result), "rejected");
           // Jobs are charged when they actually finish, even if nobody is waiting.
           this.budget.charge(out.costUsd, traceId, jctx.job.tokenId);
           this.recorder.record({ traceId, kind: "call", tool: t.id, server: t.server, ok: true, durationMs: Date.now() - t0, costUsd: out.costUsd, tokensSaved: out.rawTokens, bytesOffloaded: out.bytesOffloaded, meta: { job: jctx.job.id } });
           return { result: out.result, costUsd: out.costUsd };
         } catch (e) {
           this.recorder.record({ traceId, kind: "call", tool: t.id, server: t.server, ok: false, durationMs: Date.now() - t0, error: this.vault.scrub((e as Error).message), meta: { job: jctx.job.id } });
-          throw e;
+          // Outcome unknown: the provider may have charged. Hand the contract cost to the queue as an estimate.
+          const ce = tagCallError(e, jctx.signal);
+          if (ce.disposition === "unknown") ce.estimatedCostUsd = t.contract.costUsd;
+          throw ce;
         }
       },
-      { file: join(this.home, "jobs.json"), concurrency: c.jobs.concurrency },
+      { file: join(this.home, "jobs.json"), concurrency: c.jobs.concurrency, deferStart: true },
     );
+    this.jobs.on("estimatedCharge", (j: Job, usd: number) => this.budget.charge(usd, j.traceId, j.tokenId));
     this.models = new ModelRouter(c.models, this.vault);
     this.peers = new A2AClient(c.a2a.peers, this.vault);
   }
@@ -135,6 +141,7 @@ export class Mycel {
     }
     for (const u of ups) this.upstreams.set(u.name, u);
     this.rebuildCatalog();
+    this.jobs.ready((id) => this.catalog.get(id)?.contract.costUsd);
     this.recorder.record({ traceId: this.sessionId, kind: "session", ok: true, meta: { servers: ups.length, tools: this.catalog.size } });
     return this;
   }
@@ -222,6 +229,16 @@ export class Mycel {
     return t;
   }
 
+  /** Resolve a queued job's tool; if it is missing after startup, say which upstream is not connected. */
+  private jobTool(id: string): ToolEntry {
+    const t = this.catalog.get(id);
+    if (t) return t;
+    const server = [...this.upstreams.keys()].find((n) => id.startsWith(`${n}.`)) ?? id.split(".")[0];
+    const up = this.upstreams.get(server);
+    const why = !up ? `server "${server}" is not configured` : up.status !== "ready" ? `server "${server}" is not connected${up.error ? ` (${up.error})` : ""}` : `server "${server}" no longer provides it`;
+    throw new CallError(`Cannot run job: tool "${id}" is not in the catalog; its upstream is not connected: ${why}.`, "rejected");
+  }
+
   // ------------------------------------------------------------------ call
   async call(id: string, args: Record<string, unknown> = {}, ctx: CallContext = {}): Promise<CallOutcome> {
     const traceId = ctx.traceId ?? newId();
@@ -263,18 +280,25 @@ export class Mycel {
     if (decision.action === "approve") {
       const pre = ctx.approval && this.approvals.consume(ctx.approval, tool.id, args);
       let ok = !!pre;
+      if (!ok && ctx.approval && this.approvals.get(ctx.approval)?.status === "denied") {
+        this.recorder.record({ traceId, spanId, kind: "approval", tool: tool.id, ok: false, decision: "denied-by-human", meta: { approval: ctx.approval }, agent: ctx.agent });
+        return { status: "denied", tool: tool.id, reason: `Denied by the user: approval ${ctx.approval} for ${tool.id} was declined.` };
+      }
+      let elicitFailed = false;
       if (!ok && ctx.elicit) {
         const ans = await ctx.elicit(`Mycel needs your approval to run ${tool.id} (${tool.contract.effect}).\nReason: ${decision.reason}\nArguments: ${JSON.stringify(args).slice(0, 800)}`);
         ok = ans === true;
+        elicitFailed = ans === undefined;
         if (ans === false) {
           this.recorder.record({ traceId, spanId, kind: "approval", tool: tool.id, ok: false, decision: "denied-by-human", agent: ctx.agent });
-          return { status: "denied", tool: tool.id, reason: "A human declined this action." };
+          return { status: "denied", tool: tool.id, reason: "Denied by the user: a human declined this action." };
         }
       }
       if (!ok) {
         const a = this.approvals.request(tool.id, args, decision.reason);
-        this.recorder.record({ traceId, spanId, kind: "approval", tool: tool.id, ok: true, decision: "pending", meta: { approval: a.id }, agent: ctx.agent, args });
-        return { status: "approval_required", tool: tool.id, approval: a.id, reason: decision.reason, how: `Ask the user to approve (\`mycel approve ${a.id}\` or the dashboard), then call again with "approval": "${a.id}".` };
+        const approverAvailable = !!ctx.elicit && !elicitFailed;
+        this.recorder.record({ traceId, spanId, kind: "approval", tool: tool.id, ok: true, decision: "pending", meta: { approval: a.id, approver: approverAvailable ? "available" : ctx.elicit ? "prompt-failed" : "none (non-interactive client)" }, agent: ctx.agent, args });
+        return { status: "approval_required", tool: tool.id, approval: a.id, reason: decision.reason, how: approvalHow(a.id, tool, decision.rule, approverAvailable, !!ctx.elicit), approverAvailable };
       }
       this.recorder.record({ traceId, spanId, kind: "approval", tool: tool.id, ok: true, decision: "approved", agent: ctx.agent });
     }
@@ -295,7 +319,7 @@ export class Mycel {
       this.recorder.record({ traceId, spanId, kind: "job", tool: tool.id, server: tool.server, ok: true, meta: { job: job.id }, agent: ctx.agent });
       const waitMs = mode === "async" ? 0 : this.config.jobs.asyncThresholdMs;
       const done = waitMs ? await this.jobs.wait(job.id, waitMs) : job;
-      if (done.status === "failed" || done.status === "interrupted") {
+      if (done.status === "failed" || done.status === "interrupted" || done.status === "unknown") {
         return { status: "error", tool: done.usedTool ?? tool.id, error: done.error ?? `job ${done.status}`, tainted: tool.trust === "untrusted" };
       }
       if (done.status === "succeeded") {
@@ -335,8 +359,13 @@ export class Mycel {
    */
   private async execute(tool: ToolEntry, args: Record<string, unknown>, ctx: CallContext) {
     const up = this.upstreams.get(tool.server);
-    if (!up || up.status !== "ready") throw new Error(`Server ${tool.server} is not connected${up?.error ? `: ${up.error}` : ""}`);
-    const injected = this.vault.inject(args);
+    if (!up || up.status !== "ready") throw new CallError(`Server ${tool.server} is not connected${up?.error ? `: ${up.error}` : ""}`, "rejected");
+    let injected: Record<string, unknown>;
+    try {
+      injected = this.vault.inject(args);
+    } catch (e) {
+      throw new CallError((e as Error).message, "rejected", { cause: e });
+    }
     let res: UpstreamToolResult | undefined;
     let lastErr: unknown;
     const attempts = 1 + (tool.contract.idempotent ? tool.contract.retries : 0);
@@ -350,7 +379,7 @@ export class Mycel {
         if (i + 1 < attempts) await new Promise((r) => setTimeout(r, 300 * 2 ** i));
       }
     }
-    if (!res) throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+    if (!res) throw tagCallError(lastErr, ctx.signal);
     const scrubbed = this.vault.scrub(res);
     const rawTokens = estimateTokens(scrubbed.structuredContent ?? scrubbed.content);
     const { value, bytesOffloaded } = this.toValue(scrubbed, tool);
@@ -417,6 +446,8 @@ export class Mycel {
       ...(j.status === "succeeded" ? { result: this.present(j.result, this.catalog.get(j.usedTool ?? j.tool)) } : {}),
       error: j.error,
       usedTool: j.usedTool,
+      ...(j.costUsd ? { costUsd: j.costUsd } : {}),
+      ...(j.costEstimated ? { costEstimated: true } : {}),
       hint: j.status === "queued" || j.status === "running" ? `Still running. Check later with mycel_job {"action":"status","id":"${j.id}"} or wait with {"action":"wait"}.` : undefined,
     };
   }
@@ -515,6 +546,21 @@ export class Mycel {
   refView(meta: RefMeta) {
     return this.refs.handle(meta);
   }
+}
+
+/** Tell the caller exactly how to get past an approval: approve this call, or pre-approve it in policy. */
+export function approvalHow(id: string, tool: ToolEntry, rule: number | undefined, approverAvailable: boolean, hadElicit: boolean): string {
+  const why = approverAvailable
+    ? "A human must approve this."
+    : hadElicit
+      ? "Approval required: the client's approval prompt could not be shown."
+      : "Approval required: no approver is available in this client (non-interactive), so nobody can approve inline.";
+  const place = rule !== undefined ? `above policy rule #${rule + 1}` : "at the top of the policy list";
+  return [
+    why,
+    `To approve this one call: a human runs \`mycel approve ${id}\` (or uses the dashboard), then call again with "approval": "${id}".`,
+    `To pre-approve without a human in the loop, add a rule to \`policy:\` in mycel.yaml ${place} (first match wins): \`- match: { tool: "${tool.id}" }\` + \`action: allow\` for this tool, or \`- match: { server: "${tool.server}", effect: ${tool.contract.effect} }\` + \`action: allow\` for every ${tool.contract.effect} tool on that server.`,
+  ].join(" ");
 }
 
 function tryJson(text: string): unknown {

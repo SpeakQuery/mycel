@@ -11,7 +11,8 @@ export type Effect = (typeof EFFECTS)[number];
 export const Trust = z.enum(["trusted", "untrusted"]);
 export type Trust = z.infer<typeof Trust>;
 
-const ContractOverride = z.object({
+const CONTRACT_KEYS = ["effect", "idempotent", "costUsd", "cost", "latencyMs", "async", "fallback", "retries"];
+const ContractOverrideShape = z.object({
   effect: z.enum(EFFECTS).optional(),
   idempotent: z.boolean().optional(),
   costUsd: z.number().nonnegative().optional(),
@@ -20,7 +21,18 @@ const ContractOverride = z.object({
   fallback: z.array(z.string()).optional(),
   retries: z.number().int().min(0).max(10).optional(),
 });
-export type ContractOverride = z.infer<typeof ContractOverride>;
+const ContractOverride = z.preprocess((v, ctx) => {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return v;
+  const o = { ...(v as Record<string, unknown>) };
+  const unknown = Object.keys(o).filter((k) => !CONTRACT_KEYS.includes(k));
+  if (unknown.length) ctx.addIssue({ code: "custom", message: `Unknown tool contract key${unknown.length > 1 ? "s" : ""} ${unknown.map((k) => `"${k}"`).join(", ")}. Allowed: ${CONTRACT_KEYS.filter((k) => k !== "cost").join(", ")} (cost is an alias of costUsd).` });
+  if ("cost" in o) {
+    if (o.costUsd === undefined) o.costUsd = o.cost;
+    delete o.cost;
+  }
+  return o;
+}, ContractOverrideShape);
+export type ContractOverride = z.infer<typeof ContractOverrideShape>;
 
 const StdioServer = z.object({
   command: z.string(),

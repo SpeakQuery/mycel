@@ -1040,7 +1040,7 @@ footer .mono { font-size: 11.5px; }
     if (!prev) { S.jobs.set(v.id, { ...v, createdAt: new Date().toISOString() }); loadJobsSoon(); }
     else {
       const next = { ...prev, ...v };
-      if (["succeeded", "failed", "cancelled", "interrupted"].includes(v.status) && !prev.finishedAt) next.finishedAt = new Date().toISOString();
+      if (["succeeded", "failed", "cancelled", "interrupted", "unknown"].includes(v.status) && !prev.finishedAt) next.finishedAt = new Date().toISOString();
       if (v.status === "queued" || v.status === "running") next.finishedAt = undefined;
       S.jobs.set(v.id, next);
     }
@@ -1088,7 +1088,7 @@ footer .mono { font-size: 11.5px; }
       c.addEventListener("click", () => jobAction(j, "cancel", c));
       acts.append(c);
     }
-    if (["failed", "interrupted", "cancelled"].includes(j.status)) {
+    if (["failed", "interrupted", "cancelled", "unknown"].includes(j.status)) {
       const r = h("button", { type: "button", class: "btn sm", "aria-label": "Retry job " + j.id }, "Retry");
       r.addEventListener("click", () => jobAction(j, "retry", r));
       acts.append(r);
@@ -1101,7 +1101,7 @@ footer .mono { font-size: 11.5px; }
     row._patch = (j) => {
       const hasTotal = typeof j.total === "number" && j.total > 0;
       const p = hasTotal ? Math.min(100, ((j.progress || 0) / j.total) * 100) : (j.status === "succeeded" ? 100 : 0);
-      bar.className = "bar" + (j.status === "failed" ? " red" : j.status === "interrupted" || j.status === "cancelled" ? " amber" : "") + (j.status === "running" && !hasTotal ? " indet" : "");
+      bar.className = "bar" + (j.status === "failed" ? " red" : j.status === "interrupted" || j.status === "cancelled" || j.status === "unknown" ? " amber" : "") + (j.status === "running" && !hasTotal ? " indet" : "");
       bar.setAttribute("aria-valuenow", String(Math.round(p)));
       fill.style.width = p + "%";
       const elapsed = j.createdAt ? ((j.finishedAt ? Date.parse(j.finishedAt) : Date.now()) - Date.parse(j.createdAt)) : NaN;

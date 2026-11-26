@@ -6,6 +6,7 @@ import { RefStore, jsonPath, sniffMime } from "../src/refs.js";
 import { SecretVault } from "../src/secrets.js";
 import { PolicyEngine, ApprovalQueue, ManifestLock } from "../src/policy.js";
 import { mint, attenuate, verify, inspect, newRootKey, parseDuration } from "../src/tokens.js";
+import { CallError } from "../src/upstream.js";
 import { JobQueue, Budget, BudgetExceeded } from "../src/jobs.js";
 import { runScript } from "../src/sandbox.js";
 import { toMycelYaml } from "../src/importer.js";
@@ -284,7 +285,7 @@ describe("jobs & budget", () => {
     const seen: number[] = [];
     const q = new JobQueue(
       async (tool, _a, ctx) => {
-        if (tool === "bad.tool") throw new Error("provider down");
+        if (tool === "bad.tool") throw new CallError("provider down", "rejected");
         for (let i = 1; i <= 3; i++) {
           if (ctx.signal.aborted) throw new Error("aborted");
           ctx.progress(i, 3);
@@ -357,6 +358,33 @@ describe("config & import", () => {
     expect(r.yaml).not.toContain("abc");
     expect(r.skipped[0]).toMatch(/Mycel itself/);
     expect(() => parseConfig(r.yaml)).not.toThrow();
+  });
+});
+
+describe("importer self-detection", () => {
+  const imp = (servers: Record<string, Record<string, unknown>>) => toMycelYaml([{ client: "c", path: "/x", servers }]);
+  it("imports servers whose path or name merely contains mycel", () => {
+    expect(imp({ tools: { command: "node", args: ["/home/u/projects/mycel-tools/server.js"] } }).servers).toBe(1);
+    expect(imp({ "mycel-notes": { command: "node", args: ["notes.js"] } }).servers).toBe(1);
+    expect(imp({ x: { command: "/Users/u/mycel/node_modules/.bin/foo", args: [] } }).servers).toBe(1);
+  });
+  it("skips Mycel itself and says why", () => {
+    for (const s of [{ command: "npx", args: ["-y", "@speakquery/mycel", "serve"] }, { command: "mycel", args: ["serve", "--config", "x"] }, { command: "node", args: ["/a/mycel/dist/cli.js", "serve"] }]) {
+      const r = imp({ m: s });
+      expect(r.servers).toBe(0);
+      expect(r.skipped[0]).toMatch(/m \(that's Mycel itself: .+\)/);
+    }
+  });
+});
+
+describe("config contract overrides", () => {
+  const cfg = (tool: string) => `servers:\n  a:\n    command: node\n    tools:\n      t: ${tool}\n`;
+  it("accepts cost as an alias of costUsd", () => {
+    const c = parseConfig(cfg("{ cost: 0.4 }"));
+    expect((c.servers.a as { tools: Record<string, { costUsd?: number }> }).tools.t.costUsd).toBe(0.4);
+  });
+  it("rejects unknown keys listing the allowed ones", () => {
+    expect(() => parseConfig(cfg("{ costt: 1 }"))).toThrow(/costt.*costUsd/s);
   });
 });
 

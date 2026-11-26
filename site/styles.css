@@ -417,3 +417,14 @@ p { margin: 0 0 12px; }
   .seg { display: flex; width: 100%; } .seg-btn { flex: 1; padding: 0 8px; }
 }
 .ring svg { overflow: visible; }
+
+/* who it's for */
+.who-grid { margin-top: 24px; }
+@media (min-width: 860px) { .who-grid { grid-template-columns: repeat(2, 1fr); } }
+.who-badge { display: inline-block; margin: 0 0 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line-strong); font-size: .82rem; }
+.wb-ok { color: var(--accent); }
+.wb-warn { color: var(--amber); }
+.who-steps { margin: 12px 0 0; padding-left: 20px; color: var(--text-2); font-size: .95rem; }
+.who-steps li { margin: 4px 0; }
+.real-run { margin: 32px 0 8px; }
+.real-run h3 { margin: 0 0 8px; }

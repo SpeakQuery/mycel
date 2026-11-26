@@ -85,11 +85,13 @@ All fields are optional. Declared values win over values inferred from MCP annot
 |---|---|---|---|
 | `effect` | `read`, `write`, `external` or `destructive` | inferred | Effect class used by the policy engine. |
 | `idempotent` | boolean | inferred | Safe to retry or resume without double effects. |
-| `costUsd` | number >= 0 | none | Estimated cost per call, used for budgets and `dryRun`. |
+| `costUsd` (alias: `cost`) | number >= 0 | none | Estimated cost per call, used for budgets and `dryRun`. |
 | `latencyMs` | number >= 0 | none | Expected latency in milliseconds. |
 | `async` | boolean | inferred | Always run as a background job. |
 | `fallback` | string[] | none | Ordered tool ids to try when this tool fails (for example `["backup.generate_video"]`). |
 | `retries` | integer 0 to 10 | none | Retry count with backoff. |
+
+Unknown keys in a tool contract override are an error; `cost` is an alias of `costUsd`.
 
 ## `policy`
 
@@ -112,6 +114,8 @@ If no rule matches, two built-in defaults apply, in this order:
 2. If the tool's effect is `destructive`, the call requires approval.
 
 Everything else is allowed. Capability tokens held by delegated agents are checked before the rules and can only narrow what is permitted. Because user rules run first, a rule such as `{ match: { effect: destructive }, action: allow }` overrides the defaults; use it with care.
+
+In non-interactive clients (no MCP elicitation) nobody can approve inline. Pre-approve with a rule above the approving rule, e.g. `policy: [{ match: { tool: "github.add_label" }, action: allow }]` or `{ match: { server: "github", effect: write }, action: allow }`. Rules are first-match-wins.
 
 ## `budget`
 

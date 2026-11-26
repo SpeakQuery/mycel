@@ -55,6 +55,24 @@ export function discover(cwd?: string): FoundConfig[] {
   return out;
 }
 
+/**
+ * Is this client entry Mycel itself? Only true when the command is the mycel binary,
+ * or the args name the Mycel package/bin together with `serve`. A path or server name that merely
+ * contains "mycel" (a repo folder called mycel-tools, a server named mycel-notes) is not Mycel.
+ */
+export function isMycelItself(command: unknown, args: unknown): string | null {
+  if (typeof command !== "string") return null;
+  const base = (x: string) => x.replace(/\\/g, "/").split("/").pop()!.toLowerCase();
+  if (/^mycel(\.cmd|\.exe)?$/.test(base(command))) return `command is the mycel binary`;
+  const a = Array.isArray(args) ? args.map(String) : [];
+  if (!a.includes("serve")) return null;
+  const hit = a.find((x) => {
+    const n = x.replace(/\\/g, "/");
+    return /^(@speakquery\/)?mycel(@[^/]*)?$/i.test(n) || /^@speakquery\/mycel(@[^/]*)?$/i.test(n) || /(^|\/)mycel\/dist\/cli\.js$/i.test(n) || /^mycel(\.cmd|\.exe)?$/i.test(base(n));
+  });
+  return hit ? `args run ${hit} serve` : null;
+}
+
 const SECRETISH = /(key|token|secret|password|pass|auth|credential|bearer)/i;
 
 /**
@@ -68,8 +86,9 @@ export function toMycelYaml(found: FoundConfig[]): { yaml: string; servers: numb
   for (const f of found) {
     for (const [rawName, s] of Object.entries(f.servers)) {
       const name = rawName.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
-      if (name === "mycel" || (typeof s.command === "string" && /mycel/.test(String(s.command) + JSON.stringify(s.args ?? [])))) {
-        skipped.push(`${rawName} (that's Mycel itself)`);
+      const self = isMycelItself(s.command, s.args);
+      if (self) {
+        skipped.push(`${rawName} (that's Mycel itself: ${self})`);
         continue;
       }
       if (servers[name]) continue;

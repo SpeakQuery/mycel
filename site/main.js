@@ -340,7 +340,7 @@ window.MycelModel = (function () {
     $("c-est").hidden = !p.est;
     $("c-note").textContent = p.heavy
       ? "Reproducible offline: examples/full-scale. 15 servers including Canva and Higgsfield, 420 tools. About 204k tool-definition tokens direct, 1.2k through Mycel. In a client that sends every definition, direct MCP fills the whole 200k window before the first message."
-      : saved <= 0 ? "With " + v.servers + (v.servers === 1 ? " server" : " servers") + " Mycel's meta-tools cost about as much as your tool list, so there is no gain. Skip it unless you want Code Mode, refs or the safety layer."
+      : saved <= 0 ? "With " + v.servers + (v.servers === 1 ? " server" : " servers") + " Mycel's meta-tools cost about as much as your tool list, so there is no gain and it can cost more context (about 58% more on a 4-tool catalog with a real tokenizer). Don't use it for that; use it for Code Mode, refs or the safety layer."
       : p.est ? "Estimate: beyond 8 measured servers we assume about 2.2k extra tokens per server (direct) and about 28 (Mycel). Heavy real setups are larger."
       : "Measured with real open-source MCP servers.";
   }

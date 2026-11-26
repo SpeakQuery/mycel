@@ -51,7 +51,7 @@ export class A2AServer {
       name: this.m.config.a2a.name,
       description: this.m.config.a2a.description,
       url: new URL("/a2a", baseUrl).toString(),
-      version: "0.1.1",
+      version: "0.1.2",
       preferredTransport: "JSONRPC",
       capabilities: { streaming: false, pushNotifications: false },
       defaultInputModes: ["application/json", "text/plain"],
@@ -157,7 +157,7 @@ export class A2AServer {
     const j = this.m.jobs.get(t.job);
     if (!j) return;
     if (j.status === "succeeded") this.complete(t.task, this.m.jobView(j).result);
-    else if (j.status === "failed" || j.status === "interrupted") this.fail(t.task, j.error ?? "job failed");
+    else if (j.status === "failed" || j.status === "interrupted" || j.status === "unknown") this.fail(t.task, j.error ?? "job failed");
     else if (j.status === "cancelled") this.setState(t.task, "canceled");
     else this.setState(t.task, "working", { text: `Job ${j.id}: ${j.status}${j.progress !== undefined ? ` ${j.progress}/${j.total ?? "?"}` : ""}${j.message ? ` — ${j.message}` : ""}` });
   }

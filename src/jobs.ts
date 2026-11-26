@@ -3,8 +3,9 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { EventEmitter } from "node:events";
 import { round } from "./recorder.js";
+import { dispositionOf, CallError } from "./upstream.js";
 
-export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled" | "interrupted";
+export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled" | "interrupted" | "unknown";
 
 export interface Job {
   id: string;
@@ -26,6 +27,11 @@ export interface Job {
   /** Capability token that submitted the job; its budget is charged on completion. */
   tokenId?: string;
   costUsd: number;
+  /** True when costUsd is the tool contract's estimate (outcome unknown / interrupted after dispatch), not a confirmed charge. */
+  costEstimated?: boolean;
+  /** Set (and persisted) just before the call is sent to a provider; cleared if the provider definitely rejected it. */
+  dispatchedAt?: string;
+  dispatchedTool?: string;
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;
@@ -43,16 +49,20 @@ export type JobRunner = (
  * and falls back to alternative providers when one fails.
  */
 export class JobQueue extends EventEmitter {
+  /** Jobs do not run until ready() is called (when opts.deferStart is set). */
+  private started: boolean;
   private jobs = new Map<string, Job>();
   private controllers = new Map<string, AbortController>();
   private running = 0;
 
   constructor(
     private runner: JobRunner,
-    private opts: { file?: string; concurrency: number; backoffMs?: number },
+    private opts: { file?: string; concurrency: number; backoffMs?: number; deferStart?: boolean },
   ) {
     super();
+    this.started = !opts.deferStart;
     this.load();
+    if (this.started) queueMicrotask(() => this.pump());
   }
 
   private load() {
@@ -69,7 +79,34 @@ export class JobQueue extends EventEmitter {
       }
       this.jobs.set(j.id, j);
     }
-    queueMicrotask(() => this.pump());
+  }
+
+  /**
+   * Start running jobs. Core calls this once the tool catalog is built, so resumed jobs never race
+   * the upstream connections. `costOf` maps a tool id to its contract cost: interrupted jobs that
+   * had already been sent to a provider are charged that estimate (emitted as "estimatedCharge").
+   */
+  ready(costOf?: (tool: string) => number | undefined) {
+    this.started = true;
+    let dirty = false;
+    for (const j of this.jobs.values()) {
+      if (j.status !== "interrupted" || !j.dispatchedAt || j.costEstimated) continue;
+      const usd = costOf?.(j.dispatchedTool ?? j.tool) ?? 0;
+      j.error = `${j.error} The request had already been sent to the provider, so it may have been accepted and charged.`;
+      if (usd > 0) {
+        this.chargeEstimate(j, usd);
+        j.error += ` Mycel charged the estimated cost ($${usd}) to the budget; check the provider before re-submitting.`;
+      } else j.error += " The tool declares no cost, so nothing was charged to the budget; check the provider before re-submitting.";
+      dirty = true;
+    }
+    if (dirty) this.persist();
+    this.pump();
+  }
+
+  private chargeEstimate(j: Job, usd: number) {
+    j.costUsd = round(j.costUsd + usd);
+    j.costEstimated = true;
+    this.emit("estimatedCharge", j, usd);
   }
 
   private persist() {
@@ -127,8 +164,8 @@ export class JobQueue extends EventEmitter {
   retry(id: string): Job {
     const j = this.jobs.get(id);
     if (!j) throw new Error(`No job ${id}`);
-    if (!["failed", "interrupted", "cancelled"].includes(j.status)) throw new Error(`Job ${id} is ${j.status}`);
-    Object.assign(j, { status: "queued", attempts: 0, error: undefined, finishedAt: undefined, startedAt: undefined });
+    if (!["failed", "interrupted", "cancelled", "unknown"].includes(j.status)) throw new Error(`Job ${id} is ${j.status}`);
+    Object.assign(j, { status: "queued", attempts: 0, error: undefined, finishedAt: undefined, startedAt: undefined, dispatchedAt: undefined, dispatchedTool: undefined });
     this.persist();
     this.emit("update", j);
     this.pump();
@@ -155,6 +192,7 @@ export class JobQueue extends EventEmitter {
   }
 
   private pump() {
+    if (!this.started) return;
     while (this.running < this.opts.concurrency) {
       const next = [...this.jobs.values()].find((j) => j.status === "queued");
       if (!next) return;
@@ -178,10 +216,14 @@ export class JobQueue extends EventEmitter {
     };
     try {
       let lastErr: unknown;
+      let unknownErr: CallError | undefined;
       outer: for (const tool of job.chain) {
         for (let attempt = 0; attempt < job.maxAttempts; attempt++) {
           if (ac.signal.aborted) break outer;
           job.attempts++;
+          job.dispatchedAt = new Date().toISOString();
+          job.dispatchedTool = tool;
+          this.persist();
           try {
             const { result, costUsd } = await this.runner(tool, job.args, { signal: ac.signal, progress, job });
             if (ac.signal.aborted) break outer;
@@ -194,13 +236,28 @@ export class JobQueue extends EventEmitter {
           } catch (e) {
             lastErr = e;
             if (ac.signal.aborted) break outer;
+            if (dispositionOf(e) === "unknown") {
+              // The provider may have accepted this. Never fall back; only an idempotent tool may be retried.
+              unknownErr = e instanceof CallError ? e : new CallError(e instanceof Error ? e.message : String(e), "unknown");
+              if (!job.idempotent) break outer;
+            } else {
+              unknownErr = undefined;
+              job.dispatchedAt = undefined;
+              job.dispatchedTool = undefined;
+            }
             if (attempt + 1 < job.maxAttempts) await sleep((this.opts.backoffMs ?? 500) * 2 ** attempt, ac.signal);
           }
         }
+        if (unknownErr) break; // retries exhausted on an unknown outcome: do not fall back
       }
       if (job.status === "running") {
         if (ac.signal.aborted) job.status = "cancelled";
-        else {
+        else if (unknownErr) {
+          job.status = "unknown";
+          const est = unknownErr.estimatedCostUsd ?? 0;
+          if (est > 0) this.chargeEstimate(job, est);
+          job.error = `The provider may have accepted this job; check the provider before retrying. Mycel did not fall back to avoid paying twice.${est > 0 ? ` Estimated cost $${est} was charged to the budget.` : ""} (${unknownErr.message})`;
+        } else {
           job.status = "failed";
           job.error = lastErr instanceof Error ? lastErr.message : String(lastErr);
         }
@@ -217,7 +274,7 @@ export class JobQueue extends EventEmitter {
 }
 
 export function isTerminal(s: JobStatus) {
-  return s === "succeeded" || s === "failed" || s === "cancelled" || s === "interrupted";
+  return s === "succeeded" || s === "failed" || s === "cancelled" || s === "interrupted" || s === "unknown";
 }
 
 function sleep(ms: number, signal?: AbortSignal) {

@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -30,6 +30,7 @@
         <ul class="nav-links">
           <li><a href="#why">Why</a></li>
           <li><a href="#savings">Savings</a></li>
+          <li><a href="#who">Who it's for</a></li>
           <li><a href="#fit">Do I need it?</a></li>
           <li><a href="#architecture">Architecture</a></li>
           <li><a href="#features">Features</a></li>
@@ -91,7 +92,7 @@
             <p class="muted">In the meantime, read the code on <a href="https://github.com/SpeakQuery/mycel" rel="noopener">GitHub</a>.</p>
           </div>
         </div>
-        <p class="fine video-note">The film is a dramatization. Its 500 MB video example with transcript uses illustrative data (video/data.json); today the built-in video digest returns metadata and keyframe refs, no transcript. The command shown as <code>npx mycel init</code> is <code>npx @speakquery/mycel init</code> (the package is published as @speakquery/mycel).</p>
+        <p class="fine video-note">The film is a dramatization. Its 500 MB video example with transcript uses illustrative data (video/data.json); today the built-in video digest returns metadata and keyframe refs, no transcript. The film's final frame shows an outdated command; the correct one is <code>npx @speakquery/mycel init</code> (the package is published as @speakquery/mycel).</p>
       </div>
     </section>
 
@@ -174,7 +175,21 @@
             </ul>
           </article>
         </div>
-        <p class="fine">Reproduce it yourself: <code>mycel bench</code>. Numbers vary with your catalog and task.</p>
+        <div class="real-run">
+          <h3>Measured in a real Claude Code session (single run, n=1)</h3>
+          <p class="section-lede">Big MCP results stay local: the agent reads the line it needs and passes the file to the next tool by reference. Task: "find the one rare row in a 20,000-row CSV". Both arms found the right row. Claude Code 2.1.316, model <code>claude-haiku-5-5</code>, built-in tools off.</p>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="Real session results">
+            <table class="vs fit-table">
+              <thead><tr><th scope="col">Condition</th><th scope="col">Direct MCP</th><th scope="col" class="vs-m">Through Mycel</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Cache off</th><td>12 turns · 34.5 s · 124,770 in + 5,219 out tokens (CLI est. $0.0151)</td><td class="vs-m">4 turns · 6.6 s · 25,915 in + 574 out (CLI est. $0.0029)</td></tr>
+                <tr><th scope="row">Cache on</th><td>7 turns · 22.6 s</td><td class="vs-m">5 turns · 7.0 s</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="fine">One run per cell, not a statistical result. Honestly: on small-file tasks Mycel took about one extra turn (e.g. "find a decision in a small file", cache on: direct 3 turns / 5.2 s vs Mycel 4 / 6.0 s), and write tasks stopped for approval in a non-interactive client, by design (pre-approve writes for headless use: see Configuration → policy in the docs). Protocol: <code>docs/benchmark-protocol.md</code>.</p>
+        </div>
+        <p class="fine">Reproduce it yourself: <code>mycel bench</code>. Numbers vary with your catalog and task. The direct round-trip count in this bench is computed, not a recorded session.</p>
       </div>
     </section>
 
@@ -183,7 +198,7 @@
     <section class="section" id="savings" aria-labelledby="savings-title">
       <div class="wrap">
         <p class="kicker">How much do you save?</p>
-        <h2 class="mega" id="savings-title">Nothing at 2 servers. <span class="glow">Real money at 8.</span></h2>
+        <h2 class="mega" id="savings-title">Costs more at 2 servers. <span class="glow">Real money at 8.</span></h2>
         <p class="section-lede big">A client that sends every tool definition on every turn re-sends them all. Mycel stays flat at about 1k tokens. Set your own numbers and watch the gap.</p>
 
         <div class="calc" id="calc" role="group" aria-labelledby="calc-title">
@@ -242,7 +257,7 @@
           <li class="sv-card">
             <p class="sv-tag">All 15 servers, 420 tools</p>
             <p class="sv-big"><span class="sv-from">204k</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">1.2k</span></p>
-            <p class="sv-sub">tool-definition tokens per turn (~4 chars per token), reproducible offline: examples/full-scale. A client that sends every definition exceeds a 200k context window before the first message.</p>
+            <p class="sv-sub">tool-definition tokens per turn (~4 chars per token), reproducible offline: examples/full-scale. Technical: this is for 420 tools loaded up front. Real tokenizers agree (cl100k 200,624 → 1,188 = 99.41%; o200k 202,905 → 1,216 = 99.40%). On a 135-tool catalog (no Canva/Higgsfield) o200k gives 29,129 → 1,147 (96.1%), and chars/4 overstates that one by about 19%. Not measured on Claude Code or Cursor, which load tools on demand.</p>
           </li>
           <li class="sv-card">
             <p class="sv-tag">Read a 20,000-row CSV</p>
@@ -257,6 +272,61 @@
         </ul>
 
         <p class="fine">Estimates for 9–15 servers assume about 2.2k tokens per extra server for direct MCP and about 28 for Mycel, so they are far lower than the heavy 15-server setup (420 tools, ~204k vs ~1.2k) measured above (tool-definition tokens (~4 chars per token), reproducible offline: examples/full-scale). Money figures are before prompt caching and depend on your model and price.</p>
+      </div>
+    </section>
+
+    <!-- WHO IT'S FOR -->
+    <section class="section" id="who" aria-labelledby="who-title">
+      <div class="wrap">
+        <p class="kicker">Who it's for</p>
+        <h2 id="who-title">Four kinds of users, <span class="glow">each with an honest status.</span></h2>
+        <p class="section-lede">Only the last two have measurements behind them.</p>
+        <ul class="reasons who-grid" aria-label="Personas">
+          <li class="reason">
+            <h3><span aria-hidden="true">🎬</span> AI video, voice-over and content creators</h3>
+            <p class="who-badge wb-warn">Designed for; end-to-end not yet tested. Pilot wanted.</p>
+            <p><strong>Pain:</strong> base64 media in the prompt, renders that time out mid-call, every agent holding every key, runaway spend.</p>
+            <ol class="who-steps">
+              <li>Servers: Higgsfield, Canva, a TTS server, storage. 5–6 agents: script, image, video, voice, edit.</li>
+              <li>Image results come back as <code>ref://</code> with a keyframe digest, not base64.</li>
+              <li>Renders run as jobs; a per-job budget cap and approval gate paid calls.</li>
+              <li>Each agent gets a capability token with only its tools. A lost-reply job is marked <code>unknown</code>: no double pay.</li>
+            </ol>
+          </li>
+          <li class="reason">
+            <h3><span aria-hidden="true">📣</span> AI editors and content/marketing teams</h3>
+            <p class="who-badge wb-warn">Partly tested (Canva read calls through OAuth); publishing flows not yet tested.</p>
+            <p><strong>Pain:</strong> designs, docs and brand assets across many tools, and agents that can publish or send unseen.</p>
+            <ol class="who-steps">
+              <li>Servers: Canva, docs, storage.</li>
+              <li>The agent finds designs with <code>mycel_search</code> and reads assets by ref.</li>
+              <li>Publish or send is an external effect: approval first (inline or <code>mycel approve</code>), per-day budget cap.</li>
+              <li>The flight recorder shows what went out.</li>
+            </ol>
+          </li>
+          <li class="reason">
+            <h3><span aria-hidden="true">🔬</span> Researchers and data/science work</h3>
+            <p class="who-badge wb-ok">Measured (CSV, n=1).</p>
+            <p><strong>Pain:</strong> big CSV/SQL results and PDFs flowing through the prompt.</p>
+            <ol class="who-steps">
+              <li>Measured: find the rare row in a 20,000-row CSV, real Claude Code session, cache off: direct 12 turns / 34.5 s vs Mycel 4 turns / 6.6 s.</li>
+              <li>The agent greps the ref and reads only the line it needs.</li>
+              <li>Designed, not measured: arXiv search, papers read by ref.</li>
+            </ol>
+          </li>
+          <li class="reason">
+            <h3><span aria-hidden="true">🧑‍💻</span> Developers with many MCP servers</h3>
+            <p class="who-badge wb-ok">Measured (field test, 8 servers, CI).</p>
+            <p><strong>Pain:</strong> git, filesystem, Playwright, a database and docs (e.g. context7) in a client or framework that sends every definition up front.</p>
+            <ol class="who-steps">
+              <li>8 servers, 80 tools: 17.8k → 1.0k definition tokens (chars/4).</li>
+              <li>"Read 15 files, decide, write" as one Code Mode script.</li>
+              <li>An untrusted page's <code>write_file</code> is blocked pending approval.</li>
+              <li><strong>Not for you</strong> if you run 1–2 small servers, or use Claude Code/Cursor only for definition savings.</li>
+            </ol>
+          </li>
+        </ul>
+        <p class="fine">Run one of these and tell us: open an issue with your numbers (see <code>docs/benchmark-protocol.md</code>).</p>
       </div>
     </section>
 
@@ -291,8 +361,8 @@
               <tr><th scope="col">MCP servers</th><th scope="col">Tools</th><th scope="col">Tool definitions, direct</th><th scope="col" class="vs-m">Through Mycel</th><th scope="col">Context saved</th></tr>
             </thead>
             <tbody>
-              <tr><th scope="row">1</th><td>3</td><td>1.1k tokens</td><td class="vs-m">1.1k</td><td class="fit-neg">−4%</td></tr>
-              <tr><th scope="row">2</th><td>4</td><td>1.5k</td><td class="vs-m">1.5k</td><td class="fit-neg">−3%</td></tr>
+              <tr><th scope="row">1</th><td>3</td><td>1.1k tokens</td><td class="vs-m">1.1k</td><td class="fit-neg">−4% (costs more)</td></tr>
+              <tr><th scope="row">2</th><td>4</td><td>1.5k</td><td class="vs-m">1.5k</td><td class="fit-neg">−3% (costs more)</td></tr>
               <tr><th scope="row">3</th><td>18</td><td>4.7k</td><td class="vs-m">3.8k</td><td>19%</td></tr>
               <tr class="fit-break"><th scope="row">4</th><td>32</td><td>6.7k</td><td class="vs-m">0.9k</td><td class="fit-pos">86%</td></tr>
               <tr><th scope="row">6</th><td>42</td><td>10.6k</td><td class="vs-m">1.0k</td><td class="fit-pos">91%</td></tr>
@@ -315,12 +385,12 @@
             <h3 id="fit-no">Skip it if</h3>
             <ul class="fit-list">
               <li>You run <strong>1–2 small servers</strong> and only make short, read-only calls. Your client is fine on its own.</li>
-              <li>You don't need a safety layer, refs or Code Mode. Even then Mycel's <code>auto</code> mode costs only ~3% here: with few tools it shows them directly.</li>
+              <li>You don't need a safety layer, refs or Code Mode. Mycel uses <strong>more</strong> context there: on a 4-tool catalog (time + fetch) a real tokenizer (o200k) counts 902 tokens direct vs 1,424 through Mycel, about 58% more. Don't use it for 1–2 small servers.</li>
               <li><strong>Your client matters too.</strong> Claude Code already loads tool definitions on demand, so there Mycel is mainly for Code Mode, refs for big results, safety and A2A. Cursor (recent versions, "dynamic context discovery") also loads tools on demand. Other clients and frameworks may send definitions up front: check your client. Definition savings in on-demand clients are smaller and not yet measured.</li>
             </ul>
           </article>
         </div>
-        <p class="fine">Run it on your machine: <code>examples/field-test</code> in the repo (10 checks, macOS / Linux / Windows). Per-call overhead: about +0.4 ms on a Mac, +1 ms in CI (Ubuntu, Windows); median of 15 local calls. The offline index is English-only today: a reviewer's 8 Turkish queries found 0/8 in the top 3. Models usually search in English; non-English queries are not yet supported.</p>
+        <p class="fine">Run it on your machine: <code>examples/field-test</code> in the repo (10 checks, macOS / Linux / Windows). Per-call overhead: about +0.4 ms on a Mac, +1 ms in CI (Ubuntu, Windows); median of 15 local calls. Search quality: field test top-3 is 15/16 (CI and local), top-1 12/16 in the latest runs (the old 10/16 was an earlier run). On an independent 32-pair EN/TR set, raw BM25 gets the right tool in the top 3 for 20/32 English and 3/32 Turkish queries; with a small model (Haiku) choosing and allowed one query rewrite, 27/32 English and 25/32 Turkish are correct. The offline index is English-only. The table above uses the chars/4 estimator, which understates Mycel's overhead at 1–2 servers.</p>
       </div>
     </section>
 
@@ -344,7 +414,7 @@
               <g class="a-node">
                 <rect x="60" y="20" width="420" height="60" rx="12"/>
                 <text x="270" y="47" class="a-t">Claude · Cursor · ChatGPT · local LLM</text>
-                <text x="270" y="66" class="a-s">any MCP client, zero changes</text>
+                <text x="270" y="66" class="a-s">any MCP client (tools), no client changes</text>
               </g>
               <g class="a-node">
                 <rect x="600" y="20" width="300" height="60" rx="12"/>
@@ -448,7 +518,7 @@
           <li><span class="f-n">13</span><h4>A2A Bridge</h4><p>Mycel is an A2A agent with an Agent Card, and calls remote A2A agents as tools. MCP and A2A in one layer.</p><code>mycel_delegate</code></li>
           <li><span class="f-n">15</span><h4>Model Router</h4><p>Tiered routing (fast, balanced, deep) to any OpenAI-compatible or Anthropic endpoint for sub-tasks and digests.</p><code>mycel_ask</code></li>
           <li><span class="f-n">16</span><h4>Universal import</h4><p>Reads Claude Desktop, Claude Code, Cursor, VS Code and Windsurf configs.</p><code>mycel init</code></li>
-          <li><span class="f-n">17</span><h4>Both transports</h4><p>Serve over stdio for desktop clients or Streamable HTTP for teams. Upstreams over either.</p><code>mycel serve --http</code></li>
+          <li><span class="f-n">17</span><h4>Both transports</h4><p>Serve over stdio for desktop clients or Streamable HTTP for remote clients — single-user; not a multi-tenant boundary. Upstreams over either.</p><code>mycel serve --http</code></li>
           <li><span class="f-n">18</span><h4>Python client</h4><p>Call tools, refs, jobs and A2A agents from Python.</p><code>pip install mycel-client</code></li>
           <li><span class="f-n">20</span><h4>Plugin adapters</h4><p>A provider adapter, for example a new video model, is about 50 lines.</p><code>examples/</code></li>
         </ul>
@@ -579,11 +649,11 @@
         <div class="faq">
           <details>
             <summary>Is Mycel a new protocol?</summary>
-            <p>No. Mycel is a drop-in layer. To your client it is a standard MCP server; to other agents it is a standard A2A agent. Your existing MCP servers and clients keep working with zero changes.</p>
+            <p>No. Mycel is a drop-in layer. To your client it is a standard MCP server; to other agents it is a standard A2A agent. Your existing MCP servers and clients keep working without changes for tools; resources and prompts parity is not yet verified.</p>
           </details>
           <details>
             <summary>I only use one or two MCP servers. Do I need it?</summary>
-            <p>Probably not, at least not for context savings: with 1–2 small servers Mycel adds about 3%. It starts paying off around 4 servers, or with one large server like Playwright or GitHub. With fewer, you'd use it for Code Mode, refs for big results, the safety layer or A2A. See "Do you need Mycel?" above.</p>
+            <p>Probably not, and not for context savings: with 1–2 small servers Mycel uses more context (about 58% more on a 4-tool catalog with a real tokenizer), so don't use it for that. It starts paying off around 4 servers, or with one large server like Playwright or GitHub. With fewer, you'd use it for Code Mode, refs for big results, the safety layer or A2A. See "Do you need Mycel?" above.</p>
           </details>
           <details>
             <summary>Does it run on Windows?</summary>
@@ -636,7 +706,7 @@
     </div>
   </footer>
 
-  <script src="main.js?v=6" defer></script>
+  <script src="main.js?v=7" defer></script>
   <script type="module" src="assets/scene.js?v=4"></script>
 </body>
 </html>

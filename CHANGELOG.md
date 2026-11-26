@@ -1,9 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 — 2026-11-27
 
 - `examples/full-scale`: the 15-server figure (420 tools, 203.5k → 1.2k tokens) is now reproducible offline from recorded tool lists; runs in CI.
 - Docs: corrected client claims (Claude Code and Cursor load tools on demand), round-trip framing, overhead range, English-only search note, film disclosure; mycel_search asks for English queries.
+- Fixed: jobs resumed after a restart no longer run before the tool catalog is built. A resumed job whose server is not connected fails with a message naming the server and tool.
+- Fixed: a lost provider reply (timeout, connection closed or reset after sending, abort) is no longer treated as a rejection. Fallback providers are tried only after a definite rejection (could not connect, MCP error response, tool error result); otherwise the job ends as `unknown`.
+- Added: job status `unknown`; `costUsd` and `costEstimated` on jobs. The contract cost is charged to the budget as an estimate for `unknown` jobs and for non-idempotent jobs interrupted by a restart after dispatch.
+- Changed: `approval_required` says whether an approver is available and shows how to pre-approve via `policy:`; a decline is reported as "Denied by the user".
+- Fixed: `mycel init` skipped any server whose path or args contained "mycel"; it now skips only Mycel itself and prints each skipped entry with the reason.
+- Fixed: tool contract `cost` was silently ignored. `cost` is now an alias of `costUsd`, and unknown contract keys are an error.
+- Changed: `mycel doctor` exits 1 when any upstream fails to start.
+- Fixed: the full-scale gate now fails if any server or tool from the recorded dumps is not loaded by the gateway.
+- Docs: who-it's-for personas with status badges; real Claude Code session (n=1); single-user trust boundary in SECURITY.md; docs/benchmark-protocol.md (draft 0.1).
 
 ## 0.1.1 — 2026-11-26
 

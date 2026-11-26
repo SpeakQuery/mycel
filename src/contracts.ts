@@ -22,6 +22,7 @@ export interface Contract {
 }
 
 const DESTRUCTIVE = /\b(delete|remove|drop|destroy|purge|truncate|wipe|kill|revoke|terminate|uninstall|reset|force[_-]?push|unsafe|exec|execute|eval|evaluate|shell)\b/i;
+const EXEC = /\b(shell|terminal|spawn|command|start process|interact with process)\b/i;
 const WRITE = /\b(create|update|write|set|add|put|post|edit|insert|upsert|move|rename|merge|commit|push|upload|patch|apply|enable|disable|label|assign|close|open|archive)\b/i;
 const EXTERNAL = /\b(send|email|mail|message|notify|publish|tweet|post_to|sms|call|pay|charge|transfer|invite|share|deploy)\b/i;
 const READ = /\b(get|list|read|search|find|fetch|query|describe|show|view|count|stat|lookup|inspect|download)\b/i;
@@ -57,16 +58,16 @@ export function inferContract(
     else if (annotations.destructiveHint) {
       // Many servers mark every non-read tool destructive (e.g. a browser "hover").
       // Unless the name corroborates it, treat it as an outside-world action instead.
-      const corroborated = DESTRUCTIVE.test(n) || WRITE.test(n);
+      const corroborated = DESTRUCTIVE.test(n) || EXEC.test(n) || WRITE.test(n);
       effect = annotationMode === "strict" || corroborated ? "destructive" : annotations.openWorldHint === false ? "write" : "external";
     }
     else if (annotations.openWorldHint) effect = "external";
     else effect = "write";
-  } else if (DESTRUCTIVE.test(n)) effect = "destructive";
+  } else if (DESTRUCTIVE.test(n) || EXEC.test(n)) effect = "destructive";
   else if (EXTERNAL.test(n)) effect = "external";
   else if (WRITE.test(n)) effect = "write";
   else if (READ.test(n)) effect = "read";
-  else if (DESTRUCTIVE.test(text)) effect = "destructive";
+  else if (DESTRUCTIVE.test(text) || EXEC.test(text)) effect = "destructive";
   else effect = "write"; // unknown → assume it changes something
 
   const contract: Contract = {

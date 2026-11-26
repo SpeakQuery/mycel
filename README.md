@@ -102,6 +102,8 @@ Mycel's own footprint stays flat at ~1k tokens. Direct MCP grows with every serv
 
 **Plus a real remote server with OAuth:** after `mycel login canva`, Canva's 44 tools work through Mycel, and the tokens refresh automatically. With Canva added, the lab holds 126 tools: **44.5k tokens of definitions direct, 1.05k through Mycel (−97.6%)**.
 
+**At full scale:** 15 servers including Canva and Higgsfield (241 tools on its own), 414 tools in all. The tool definitions cost about **204k tokens direct and 1.2k through Mycel (−99.4%)**. Direct, that would fill most of a model's context window before the first message.
+
 The field test found four real bugs before launch. All are fixed and covered by tests:
 - Playwright marks even `hover` as destructive. Mycel now cross-checks that label against the tool's name (`annotations: strict` opts out).
 - A big text result that came wrapped in JSON lost its table digest.

@@ -72,6 +72,7 @@ const SYNONYMS: Record<string, string[]> = {
   pr: ["pull", "request"], repo: ["repository"], message: ["chat", "send"], calendar: ["event", "meeting"],
   remember: ["create", "add", "store", "memory"], save: ["create", "write", "store"], store: ["create", "save"], note: ["create", "observation"],
   history: ["log"], changes: ["diff"], uncommitted: ["unstaged", "diff"], screenshot: ["screenshot", "capture"], open: ["navigate"], go: ["navigate"], visit: ["navigate"],
+  shell: ["process", "command", "terminal", "execute"], terminal: ["process", "command", "shell"], command: ["process", "execute"], execute: ["run", "process", "start"], run: ["execute", "start"], web: ["internet", "online", "search"], edit: ["replace", "modify", "update"],
 };
 
 /**
@@ -172,7 +173,9 @@ export class Catalog {
       }
       if (score > 0) results.push({ tool, score });
     }
-    if (!base.length) return this.all().slice(0, limit).map((tool) => ({ tool, score: 0 }));
+    const listServer = () => this.all().filter((t) => t.server === opts.server && (!opts.effect || t.contract.effect === opts.effect)).slice(0, limit).map((tool) => ({ tool, score: 0 }));
+    if (!base.length) return opts.server ? listServer() : this.all().slice(0, limit).map((tool) => ({ tool, score: 0 }));
+    if (!results.length && opts.server) return listServer();
     return results.sort((a, b2) => b2.score - a.score).slice(0, limit);
   }
 

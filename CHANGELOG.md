@@ -9,7 +9,10 @@ Found by running Mycel in front of 8 real open-source MCP servers ([field test](
 - Big text results wrapped in JSON (`{content: "…"}`) are stored as text, so a CSV gets a table digest and grep works line by line.
 - `mycel_ref` grep shows a window around the match on very long lines instead of the whole line.
 - Verified with the real Canva MCP server: `mycel login canva`, 44 tools, read calls through Mycel. With Canva, 126 tools cost 44.5k tokens direct and 1.05k through Mycel.
-- Better search synonyms (list/search, remember, save, history, uncommitted, open/visit → navigate, …). Field-test top-3 accuracy is now 16/16.
+- Shell and process execution (`start_process`, `run_command`, …) is always classified `destructive`. Fixes a gap where balanced mode demoted it to `external`.
+- `mycel_search` with `server` and no hits lists that server's tools. `mycel_describe` accepts `tool: "x"` and gives a clear error otherwise.
+- At full scale: 15 servers and 414 tools cost about 204k tokens direct vs 1.2k through Mycel.
+- Better search synonyms (shell/terminal/command, web, edit, list/search, remember, save, history, uncommitted, open/visit → navigate, …). Field-test top-3 accuracy is now 16/16.
 - Install with `npm install -g github:SpeakQuery/mycel`. `mycel init` now writes client snippets that call the installed `mycel` command.
 - CI runs on Linux, macOS and Windows.
 - New: a "Do you need Mycel?" guide with measured break-even numbers, plus the `examples/field-test` suite.

@@ -10,6 +10,7 @@ import { JobQueue, Budget, BudgetExceeded } from "../src/jobs.js";
 import { runScript } from "../src/sandbox.js";
 import { toMycelYaml } from "../src/importer.js";
 import { parseConfig } from "../src/config.js";
+import { META_TOOLS } from "../src/meta.js";
 import { tmp } from "./helpers.js";
 import type { ToolEntry } from "../src/catalog.js";
 
@@ -65,6 +66,34 @@ describe("catalog search", () => {
   });
   it("filters by effect", () => {
     expect(cat.search("issue", { effect: "read" }).every((h) => h.tool.contract.effect === "read")).toBe(true);
+  });
+});
+
+describe("field-test fixes", () => {
+  const ann = { readOnlyHint: false, destructiveHint: true, openWorldHint: true };
+  it("treats shell/process execution as destructive", () => {
+    expect(inferContract("start_process", "", ann, undefined).effect).toBe("destructive");
+    expect(inferContract("interact_with_process", "", ann, undefined).effect).toBe("destructive");
+    expect(inferContract("run_command", "", undefined, undefined).effect).toBe("destructive");
+    expect(inferContract("browser_hover", "", ann, undefined).effect).toBe("external");
+    expect(inferContract("list_processes", "", { readOnlyHint: true }, undefined).effect).toBe("read");
+  });
+  it("finds shell tools via synonyms", () => {
+    const c = new Catalog([entry("dc", "start_process", "Start a process"), entry("dc", "read_file", "Read a file")]);
+    expect(c.search("run a shell")[0].tool.id).toBe("dc.start_process");
+  });
+  it("lists a server's tools when the query has no hits or is empty", () => {
+    const c = new Catalog([entry("a", "foo", "Foo thing"), entry("a", "bar", "Bar thing"), entry("b", "baz", "Baz thing")]);
+    expect(c.search("zzzqqq", { server: "a" }).map((h) => h.tool.id).sort()).toEqual(["a.bar", "a.foo"]);
+    expect(c.search("", { server: "b" }).map((h) => h.tool.id)).toEqual(["b.baz"]);
+    expect(c.search("zzzqqq")).toEqual([]);
+  });
+  it("mycel_describe accepts tool: string and errors clearly", async () => {
+    const m = { describe: (ids: string[]) => ids, peers: { names: () => [] }, models: { configured: false } } as any;
+    const d = META_TOOLS(m).find((t) => t.name === "mycel_describe")!;
+    expect(await d.handler({ tool: "x.y" }, {} as any)).toEqual(["x.y"]);
+    expect(await d.handler({ tools: ["x.y"] }, {} as any)).toEqual(["x.y"]);
+    await expect(d.handler({}, {} as any)).rejects.toThrow('mycel_describe needs tools: ["server.tool", ...]');
   });
 });
 

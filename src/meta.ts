@@ -26,9 +26,13 @@ export function META_TOOLS(m: Mycel): MetaTool[] {
     {
       name: "mycel_describe",
       description: "Get full input schemas and contracts (effect, cost, latency, async) for tool ids.",
-      inputSchema: obj({ tools: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 10 } }, ["tools"]),
+      inputSchema: obj({ tools: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 10 }, tool: { type: "string", description: "Shorthand for tools: [tool]" } }, []),
       annotations: { readOnlyHint: true },
-      handler: async (a) => m.describe(a.tools as string[]),
+      handler: async (a) => {
+        const tools = Array.isArray(a.tools) ? (a.tools as string[]) : typeof a.tool === "string" ? [a.tool] : typeof a.tools === "string" ? [a.tools] : undefined;
+        if (!tools) throw new Error('mycel_describe needs tools: ["server.tool", ...]');
+        return m.describe(tools);
+      },
     },
     {
       name: "mycel_call",

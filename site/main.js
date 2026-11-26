@@ -208,3 +208,44 @@ const STATS = {toolsDirect:167, toolsMycel:8, tokensDirect:"34.8k", tokensMycel:
     }, 200);
   });
 })();
+
+// ---- Savings calculator (measured 1-8, estimated beyond) -----------------------
+(function () {
+  "use strict";
+  var range = document.getElementById("sv-range");
+  if (!range) return;
+  // Measured tokens of tool definitions per turn, 1..8 servers (real open-source servers).
+  var DIRECT = [1089, 1451, 4729, 6658, 9424, 10585, 12498, 17798];
+  var MYCEL = [1128, 1498, 3832, 919, 951, 962, 995, 1032];
+  // Estimate beyond 8 servers: ~2.2k tokens per extra server direct, ~28 tokens for Mycel.
+  function pt(n) {
+    if (n <= 8) return { d: DIRECT[n - 1], m: MYCEL[n - 1], est: false };
+    return { d: DIRECT[7] + 2200 * (n - 8), m: MYCEL[7] + 28 * (n - 8), est: true };
+  }
+  function fmt(v) {
+    if (v >= 100000) return Math.round(v / 1000) + "k";
+    if (v >= 1000) return (v / 1000).toFixed(1) + "k";
+    return String(Math.round(v));
+  }
+  var el = function (id) { return document.getElementById(id); };
+  function render() {
+    var n = parseInt(range.value, 10) || 1;
+    var p = pt(n);
+    var pct = Math.round((1 - p.m / p.d) * 100);
+    el("sv-count").textContent = n + (n === 1 ? " server" : " servers");
+    el("sv-d1").textContent = fmt(p.d);
+    el("sv-m1").textContent = fmt(p.m);
+    el("sv-d30").textContent = fmt(p.d * 30);
+    el("sv-m30").textContent = fmt(p.m * 30);
+    el("sv-pct").textContent = pct < 0 ? "\u2212" + Math.abs(pct) + "%" : pct + "%";
+    var maxD = pt(15).d;
+    el("sv-bar-d").style.width = (p.d / maxD * 100).toFixed(1) + "%";
+    el("sv-bar-m").style.width = (p.m / maxD * 100).toFixed(1) + "%";
+    el("sv-note").textContent = p.est
+      ? "Estimate: beyond 8 servers we assume ~2.2k tokens per extra server. Real heavy setups are larger (15 servers with 414 tools measured ~204k vs ~1.2k)."
+      : "Measured with real open-source MCP servers" + (n <= 2 ? ". With 1\u20132 servers Mycel saves nothing, so skip it." : ".");
+    range.setAttribute("aria-valuetext", n + " servers, " + pct + "% saved" + (p.est ? " (estimate)" : " (measured)"));
+  }
+  range.addEventListener("input", render);
+  render();
+})();

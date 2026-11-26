@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 400" width="860" height="400" role="img" aria-labelledby="t d">
+<title id="t">Tool-definition tokens: direct MCP vs Mycel at 8, 9 and 15 servers</title>
+<desc id="d">Horizontal bars. 8 servers: 17.8k vs 1.0k. 9 servers with Canva: 44.5k vs 1.05k. 15 servers, 414 tools: about 204k vs 1.2k, which exceeds a 200k context window.</desc>
+<rect width="860" height="400" rx="16" fill="#07110D"/>
+<rect x="1" y="1" width="858" height="398" rx="15" fill="none" stroke="#3DFFB0" stroke-opacity=".18"/>
+<text x="30" y="38" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="20" fill="#E6F2EC"  font-weight="700">Bigger setups: the gap explodes</text>
+<text x="30" y="62" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13" fill="#8FB0A2"  >Tokens of tool definitions sent every turn</text>
+<rect x="598" y="29" width="12" height="12" rx="3" fill="#FF6B5B"/><text x="616" y="40" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13" fill="#E6F2EC"  >Direct MCP</text>
+<rect x="716" y="29" width="12" height="12" rx="3" fill="#3DFFB0"/><text x="734" y="40" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13" fill="#E6F2EC"  >Through Mycel</text>
+<text x="30" y="116" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#E6F2EC"  font-weight="600">8 servers</text>
+<text x="30" y="136" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8FB0A2"  >80 tools</text>
+<rect x="250" y="100" width="41.39069767441862" height="26" rx="5" fill="#FF6B5B"/><text x="299.3906976744186" y="119" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#FFB4AA"  font-weight="700">17.8k</text>
+<rect x="250" y="132" width="3" height="26" rx="5" fill="#3DFFB0"/><text x="260.4" y="151" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#9BFFD6"  font-weight="700">1.0k</text>
+<text x="30" y="200" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#E6F2EC"  font-weight="600">9 servers incl. Canva</text>
+<text x="30" y="220" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8FB0A2"  >126 tools</text>
+<rect x="250" y="184" width="103.48837209302326" height="26" rx="5" fill="#FF6B5B"/><text x="361.48837209302326" y="203" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#FFB4AA"  font-weight="700">44.5k</text>
+<rect x="250" y="216" width="3" height="26" rx="5" fill="#3DFFB0"/><text x="260.4418604651163" y="235" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#9BFFD6"  font-weight="700">1.05k</text>
+<text x="30" y="278" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#E6F2EC"  font-weight="600">15 servers</text>
+<text x="30" y="295" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8FB0A2"  >incl. Canva + Higgsfield</text>
+<text x="30" y="311" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8FB0A2"  >414 tools</text>
+<rect x="250" y="268" width="474.4186046511628" height="26" rx="5" fill="#FF6B5B"/><text x="732.4186046511628" y="287" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#FFB4AA"  font-weight="700">204k</text>
+<rect x="250" y="300" width="3" height="26" rx="5" fill="#3DFFB0"/><text x="260.7906976744186" y="319" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="14" fill="#9BFFD6"  font-weight="700">1.2k</text>
+<line x1="715.1162790697674" x2="715.1162790697674" y1="82" y2="340" stroke="#FFD08A" stroke-dasharray="6 5" stroke-width="2"/><text x="715.1162790697674" y="76" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12.5" fill="#FFD08A" text-anchor="middle" font-weight="600">200k context window</text>
+<text x="30" y="362" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13" fill="#8FB0A2" text-anchor="start" >The 15-server setup already fills a 200k context window before the first message.</text>
+</svg>

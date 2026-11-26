@@ -29,6 +29,7 @@
       <nav aria-label="Primary">
         <ul class="nav-links">
           <li><a href="#problem">Problem</a></li>
+          <li><a href="#savings">Savings</a></li>
           <li><a href="#fit">Do I need it?</a></li>
           <li><a href="#architecture">Architecture</a></li>
           <li><a href="#features">Features</a></li>
@@ -137,6 +138,65 @@
           </article>
         </div>
         <p class="fine">Reproduce it yourself: <code>mycel bench</code>. Numbers vary with your catalog and task.</p>
+      </div>
+    </section>
+
+    <!-- SAVINGS -->
+    <section class="section" id="savings" aria-labelledby="savings-title">
+      <div class="wrap">
+        <p class="kicker">What you actually save</p>
+        <h2 id="savings-title">Nothing with 2 servers. 94% with 8. 99% with 15 servers and 414 tools.</h2>
+        <p class="section-lede">Direct MCP re-sends every tool definition on every turn. Mycel stays flat at about 1k tokens. So the gain grows with every server you add.</p>
+
+        <figure class="sv-chart">
+          <img src="assets/chart-scaling.svg" width="860" height="480" loading="lazy" alt="Line chart of tool-definition tokens per turn for 1 to 8 MCP servers. Direct MCP grows from 1.1k to 17.8k; Mycel stays near 1k. Break-even is around 3 servers.">
+          <figcaption class="fine">Measured with 8 real open-source MCP servers added one at a time. Break-even at about 3 servers.</figcaption>
+        </figure>
+
+        <ul class="sv-cards" aria-label="Worked examples">
+          <li class="sv-card">
+            <p class="sv-tag">Cursor, 8 servers, 30 turns</p>
+            <p class="sv-big"><span class="sv-from">534k</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">31k</span></p>
+            <p class="sv-sub">tokens of tool definitions per session (17.8k × 30 vs 1.0k × 30). Prompt caching lowers the price, not the context size.</p>
+          </li>
+          <li class="sv-card">
+            <p class="sv-tag">All 15 servers, 414 tools</p>
+            <p class="sv-big"><span class="sv-from">204k</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">1.2k</span></p>
+            <p class="sv-sub">tokens per turn. Direct MCP exceeds a 200k context window before the first message.</p>
+          </li>
+          <li class="sv-card">
+            <p class="sv-tag">Read a 20,000-row CSV</p>
+            <p class="sv-big"><span class="sv-from">131k</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">187</span></p>
+            <p class="sv-sub">tokens. The model gets a ref and a digest, not the file.</p>
+          </li>
+          <li class="sv-card">
+            <p class="sv-tag">A 17-step chore</p>
+            <p class="sv-big"><span class="sv-from">17</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">1</span></p>
+            <p class="sv-sub">round trips with Code Mode ("find stale notes and save a report"). Gateway overhead: +0.4 ms per call.</p>
+          </li>
+        </ul>
+
+        <div class="sv-calc" role="group" aria-labelledby="sv-calc-title">
+          <h3 id="sv-calc-title">How many MCP servers do you use?</h3>
+          <div class="sv-slider">
+            <label for="sv-range" class="sr-only">Number of MCP servers</label>
+            <input type="range" id="sv-range" min="1" max="15" value="8" step="1">
+            <output id="sv-count" for="sv-range" class="sv-count">8 servers</output>
+          </div>
+          <div class="sv-bars" aria-hidden="true">
+            <div class="sv-row"><span class="sv-lbl">Direct</span><span class="sv-track"><span class="sv-bar sv-bar-d" id="sv-bar-d"></span></span></div>
+            <div class="sv-row"><span class="sv-lbl">Mycel</span><span class="sv-track"><span class="sv-bar sv-bar-m" id="sv-bar-m"></span></span></div>
+          </div>
+          <dl class="sv-out" aria-live="polite">
+            <div><dt>Per turn, direct</dt><dd id="sv-d1">17.8k</dd></div>
+            <div><dt>Per turn, Mycel</dt><dd id="sv-m1" class="sv-good">1.0k</dd></div>
+            <div><dt>30-turn session, direct</dt><dd id="sv-d30">534k</dd></div>
+            <div><dt>30-turn session, Mycel</dt><dd id="sv-m30" class="sv-good">31k</dd></div>
+            <div><dt>Saved</dt><dd id="sv-pct" class="sv-good">94%</dd></div>
+          </dl>
+          <p class="fine" id="sv-note">Measured: 1–8 servers (real open-source servers), plus 9 servers with Canva and 15 servers with Canva and Higgsfield in the full-scale test.</p>
+        </div>
+        <p class="fine">Estimates for 9–15 servers assume about 2.2k tokens per extra server and about 30 tokens of growth for Mycel, so they are lower than the heavy 15-server setup (414 tools, ~204k) measured above. Dollar figures are not shown: they depend on your model and caching.</p>
       </div>
     </section>
 

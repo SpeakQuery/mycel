@@ -84,6 +84,8 @@ export class Catalog {
   private docs = new Map<string, Map<string, number>>();
   private lengths = new Map<string, number>();
   private df = new Map<string, number>();
+  /** Server-damped document count, so one huge server cannot dominate IDF. */
+  private nEff = 0;
   private avgLen = 0;
 
   constructor(entries: ToolEntry[] = []) {
@@ -126,6 +128,8 @@ export class Catalog {
     this.docs.clear();
     this.lengths.clear();
     this.df.clear();
+    const perServer = new Map<string, Map<string, number>>();
+    const sizes = new Map<string, number>();
     let total = 0;
     for (const t of this.tools.values()) {
       const props = Object.keys(((t.inputSchema as { properties?: object }).properties ?? {}) as object);
@@ -141,8 +145,16 @@ export class Catalog {
       this.docs.set(t.id, tf);
       this.lengths.set(t.id, terms.length);
       total += terms.length;
-      for (const w of tf.keys()) this.df.set(w, (this.df.get(w) ?? 0) + 1);
+      sizes.set(t.server, (sizes.get(t.server) ?? 0) + 1);
+      const ps = perServer.get(t.server) ?? new Map<string, number>();
+      for (const w of tf.keys()) ps.set(w, (ps.get(w) ?? 0) + 1);
+      perServer.set(t.server, ps);
     }
+    // A term used by 40 tools of one server counts as 1 + ln(40) documents, not 40.
+    const damp = (n: number) => Math.pow(n, 0.6);
+    for (const ps of perServer.values()) for (const [w, n] of ps) this.df.set(w, (this.df.get(w) ?? 0) + damp(n));
+    this.nEff = 0;
+    for (const n of sizes.values()) this.nEff += damp(n);
     this.avgLen = this.tools.size ? total / this.tools.size : 0;
   }
 
@@ -150,11 +162,14 @@ export class Catalog {
     const limit = opts.limit ?? 8;
     const base = tokenize(query);
     const q = new Map<string, number>();
+    // Synonyms are keyed by surface word ("changes"), the index by stem ("change"): try both.
+    const surface = query.toLowerCase().split(/[^a-z0-9]+/);
+    const synKeys = (w: string) => [...new Set([w, ...surface.filter((x) => tokenize(x)[0] === w)])];
     for (const w of base) {
       q.set(w, (q.get(w) ?? 0) + 1);
-      for (const s of SYNONYMS[w] ?? []) for (const t of tokenize(s)) if (!q.has(t)) q.set(t, 0.5);
+      for (const s of synKeys(w).flatMap((k) => SYNONYMS[k] ?? [])) for (const t of tokenize(s)) if (!q.has(t)) q.set(t, 0.3);
     }
-    const N = this.tools.size;
+    const N = this.nEff;
     const k1 = 1.2;
     const b = 0.75;
     const results: Array<{ tool: ToolEntry; score: number }> = [];
@@ -170,6 +185,14 @@ export class Catalog {
         const df = this.df.get(w) ?? 0;
         const idf = Math.log(1 + (N - df + 0.5) / (df + 0.5));
         score += weight * idf * ((f * (k1 + 1)) / (f + k1 * (1 - b + (b * len) / (this.avgLen || 1))));
+      }
+      if (score > 0) {
+        // Prefer tools whose whole name is explained by the query ("search" for "search the web")
+        // over tools that merely contain a query word ("search-folders").
+        const nameToks = new Set(tokenize(tool.name));
+        let hit = 0;
+        for (const w of nameToks) if (q.has(w)) hit++;
+        if (nameToks.size) score *= 1 + 0.4 * (hit / nameToks.size);
       }
       if (score > 0) results.push({ tool, score });
     }

@@ -69,6 +69,67 @@ describe("catalog search", () => {
   });
 });
 
+describe("catalog search across many servers", () => {
+  const canva: Array<[string, string]> = [
+    ["get-design-pages", "Get the pages of a design, including page numbers and thumbnails"],
+    ["search-folders", "Search the user's folders and projects in Canva by name"],
+    ["list-designs", "List the designs in the user's account with their titles"],
+    ["get-design", "Get the details of a design, including its owner and design URL"],
+    ["search-designs", "Search the user's designs and shared designs by keyword"],
+    ["list-folder-items", "List the designs, images and folders inside a folder"],
+    ["create-design", "Create a new design from a template, preset or custom size"],
+    ["edit-design", "Edit the content of a design, change pages, text and elements"],
+    ["export-design", "Export a design to PDF, PNG or another file format"],
+    ["get-export-formats", "Get the file formats a design can be exported to"],
+    ["resize-design", "Resize a design to new dimensions"],
+    ["copy-design", "Create a copy of a design"],
+    ["merge-designs", "Merge pages from several designs into one design"],
+    ["list-comments", "List the comments on a design page"],
+    ["comment-on-design", "Add a comment to a design"],
+    ["list-replies", "List the replies to a comment on a design"],
+    ["reply-to-comment", "Reply to a comment on a design"],
+    ["get-assets", "Get the assets, such as images, in the user's library"],
+    ["upload-asset-from-url", "Upload an asset to the user's library from a URL"],
+    ["create-upload-url", "Create a URL for uploading an asset"],
+    ["list-brand-kits", "List the brand kits available to the user"],
+    ["search-brand-templates", "Search the brand templates of the user's team"],
+    ["get-brand-template-dataset", "Get the dataset of a brand template"],
+    ["create-design-from-brand-template", "Create a design from a brand template and a dataset"],
+    ["publish-brand-template", "Publish a design as a brand template"],
+    ["get-design-dataset", "Get the autofill dataset of a design"],
+    ["autofill-design", "Autofill a design with data"],
+    ["generate-design", "Generate a design from a text prompt"],
+    ["generate-image", "Generate an image from a text prompt for use in a design"],
+    ["get-generate-image-job", "Get the status of an image generation job"],
+    ["create-video", "Create a video design from a prompt"],
+    ["get-video-generation-status", "Get the status of a video generation job"],
+    ["move-item-to-folder", "Move a design or asset to a folder"],
+    ["create-folder", "Create a new folder for designs"],
+    ["remove-background", "Remove the background of an image in a design"],
+    ["resolve-shortlink", "Resolve a short link to the design it points to"],
+    ["import-design-from-url", "Import a design from a URL"],
+    ["request-outline-review", "Request a review of the outline of a design"],
+    ["separate-image-layers", "Separate an image into layers"],
+    ["get-separate-image-layers-job", "Get the status of a layer separation job"],
+  ];
+  const cat = new Catalog([
+    ...canva.map(([n, d]) => entry("canva", n, d)),
+    entry("git", "git_diff_unstaged", "Shows changes in the working directory that are not yet staged"),
+    entry("git", "git_diff_staged", "Shows changes that are staged for commit"),
+    entry("git", "git_log", "Shows the commit logs"),
+    entry("git", "git_status", "Shows the working tree status"),
+    entry("fetch", "fetch", "Fetches a URL from the internet and extracts its contents as markdown"),
+    entry("duckduckgo", "search", "Search DuckDuckGo and return formatted results"),
+    entry("duckduckgo", "fetch_content", "Fetch and parse content from a webpage URL"),
+  ]);
+  const ids = (q: string) => cat.search(q, { limit: 3 }).map((h) => h.tool.id);
+  it("small specialised servers are not drowned by a big generic one", () => {
+    expect(ids("show uncommitted changes")[0]).toBe("git.git_diff_unstaged");
+    expect(ids("download a web page as markdown").slice(0, 2)).toContain("fetch.fetch");
+    expect(ids("search the web")[0]).toBe("duckduckgo.search");
+  });
+});
+
 describe("field-test fixes", () => {
   const ann = { readOnlyHint: false, destructiveHint: true, openWorldHint: true };
   it("treats shell/process execution as destructive", () => {

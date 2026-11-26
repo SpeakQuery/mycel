@@ -230,7 +230,7 @@ p { margin: 0 0 12px; }
 /* QUICKSTART */
 .qs { list-style: none; counter-reset: qs; margin: 0; padding: 0; display: grid; gap: 16px; grid-template-columns: 1fr; }
 @media (min-width: 900px) { .qs { grid-template-columns: repeat(3, 1fr); } }
-.qs li { counter-increment: qs; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); display: flex; flex-direction: column; }
+.qs li { counter-increment: qs; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); display: flex; flex-direction: column; min-width: 0; }
 .qs li::before { content: counter(qs); display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font: 700 .95rem var(--mono); margin-bottom: 14px; }
 .qs p { color: var(--text-2); flex: 1; }
 .cmd-block { display: flex; width: 100%; margin-top: 8px; }
@@ -279,3 +279,36 @@ p { margin: 0 0 12px; }
 .cmd code { min-width: 0; flex: 1 1 auto; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
 .cmd code::-webkit-scrollbar { display: none; }
 .cmd .copy { flex: 0 0 auto; }
+
+/* Savings */
+.sv-chart { margin: 0 0 28px; border: 1px solid var(--line); border-radius: 18px; background: var(--bg-2); padding: 10px; }
+.sv-chart img { display: block; width: 100%; height: auto; border-radius: 12px; }
+.sv-chart figcaption { margin: 10px 6px 4px; }
+.sv-cards { list-style: none; margin: 0 0 28px; padding: 0; display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .sv-cards { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1040px) { .sv-cards { grid-template-columns: repeat(4, 1fr); } }
+.sv-card { padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); transition: border-color .2s, box-shadow .2s; min-width: 0; }
+.sv-card:hover { border-color: var(--line-strong); box-shadow: 0 0 32px rgba(61,255,176,.08); }
+.sv-tag { font: 500 .78rem var(--mono); color: var(--text-3); text-transform: uppercase; letter-spacing: .1em; margin: 0 0 10px; }
+.sv-big { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; margin: 0 0 10px; font-family: var(--mono); line-height: 1.1; }
+.sv-from { font-size: clamp(1.3rem, 3.6vw, 1.7rem); color: #FF9A8D; text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: rgba(255,107,91,.55); }
+.sv-arrow { color: var(--text-3); }
+.sv-to { font-size: clamp(1.8rem, 5vw, 2.3rem); font-weight: 600; color: var(--accent); text-shadow: 0 0 24px rgba(61,255,176,.3); }
+.sv-sub { color: var(--text-2); font-size: .92rem; margin: 0; }
+.sv-calc { padding: 24px; border: 1px solid var(--line-strong); border-radius: 18px; background: var(--surface); box-shadow: 0 0 50px rgba(61,255,176,.06) inset; }
+.sv-calc h3 { font-family: var(--mono); font-size: .85rem; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); margin-bottom: 16px; }
+.sv-slider { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.sv-slider input { flex: 1; min-width: 0; accent-color: var(--accent); height: 32px; cursor: pointer; }
+.sv-count { flex: none; min-width: 6.5em; text-align: right; font: 600 1.05rem var(--mono); color: var(--text); }
+.sv-row { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; margin-bottom: 8px; }
+.sv-lbl { font: 500 .8rem var(--mono); color: var(--text-3); }
+.sv-track { display: block; height: 16px; border-radius: 8px; background: rgba(7,17,13,.7); overflow: hidden; }
+.sv-bar { display: block; height: 100%; border-radius: 8px; width: 0; min-width: 3px; transition: width .35s ease; }
+.sv-bar-d { background: #FF6B5B; }
+.sv-bar-m { background: var(--accent); }
+.sv-out { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 18px 0 0; }
+@media (min-width: 760px) { .sv-out { grid-template-columns: repeat(5, 1fr); } }
+.sv-out div { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(7,17,13,.55); min-width: 0; }
+.sv-out dt { font-size: .74rem; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; }
+.sv-out dd { margin: 4px 0 0; font: 500 1.3rem var(--mono); color: #FFB4AA; }
+.sv-out dd.sv-good { color: var(--accent); }

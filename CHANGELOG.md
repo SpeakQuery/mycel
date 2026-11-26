@@ -4,6 +4,7 @@
 
 Found by running Mycel in front of 8 real open-source MCP servers ([field test](examples/field-test)).
 
+- **Search ranking across many servers.** Server-damped IDF (a term used by 40 tools of one server counts as a few documents), synonyms keyed by surface word and weighted 0.3, and a bonus when a tool name is fully explained by the query. A 44-tool server no longer drowns git/fetch/duckduckgo.
 - **OAuth sign-in for remote MCP servers** (Canva, Higgsfield, Notion, Linear, …). `mycel login <server>` handles discovery, dynamic client registration, PKCE and refresh. Tokens are stored with mode 0600. `doctor` and `serve` tell you when a sign-in is missing.
 - **`annotations: balanced | strict`** per server. Playwright marks even `hover` as destructive, which made every browser step ask for approval. In balanced mode (the default), a destructive annotation needs the tool's name to agree.
 - Big text results wrapped in JSON (`{content: "…"}`) are stored as text, so a CSV gets a table digest and grep works line by line.

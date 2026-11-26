@@ -13,7 +13,7 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 [![Node ≥ 20](https://img.shields.io/badge/node-%E2%89%A520-3DFFB0?style=flat-square)](package.json)
 [![MCP compatible](https://img.shields.io/badge/MCP-compatible-3DFFB0?style=flat-square)](https://modelcontextprotocol.io)
 [![A2A v0.3](https://img.shields.io/badge/A2A-v0.3-3DFFB0?style=flat-square)](https://a2a-protocol.org)
-[![Tests](https://img.shields.io/badge/tests-42%20passing-3DFFB0?style=flat-square)](tests)
+[![Tests](https://img.shields.io/badge/tests-47%20passing-3DFFB0?style=flat-square)](tests)
 
 [**▶ Watch the 90-second film**](media/mycel-launch.mp4) · [Quickstart](#-quickstart) · [Benchmark](#-the-numbers) · [How it works](#-how-it-works) · [All 20 features](#-features) · [Docs](docs/)
 
@@ -57,9 +57,46 @@ Measured by `mycel bench` — a reproducible in-process benchmark with 12 realis
 
 <sub>Methodology & caveats: [`src/bench.ts`](src/bench.ts). "Direct" counts only what the model must read; it ignores prompt caching, which lowers cost (not context size) for the direct case.</sub>
 
+## 💰 What you actually save — worked examples
+
+Short version: **with 1–2 servers you save nothing; with 8 you save ~94%; with a big setup you save ~99%.** Direct MCP re-sends every tool definition on every turn, Mycel stays flat at ~1k tokens. All numbers below are measured (see [Do you need Mycel?](#-do-you-need-mycel) and the [field test](#-field-test-8-real-mcp-servers)), except the dollar line, which is an illustrative assumption.
+
+| | Scenario | Direct MCP | Through Mycel | Saved |
+|---|---|---:|---:|---:|
+| 🖱️ | 8 servers, 30-turn session (definitions only) | 534k tokens | ~31k | **~94%** |
+| 🧰 | All 15 servers / 414 tools, per turn | ~204k tokens | ~1.2k | **99.4%** |
+| 📄 | Read a 20,000-row CSV | 131k tokens | 187 | **>99.8%** |
+| 🔁 | "Find stale notes and save a report" | 17 round trips | 1 | **16 fewer** |
+
+### 🖱️ Example 1: Cursor with 8 MCP servers, 30-turn session
+
+You connect 8 servers (80 tools). Direct MCP sends all 80 definitions (**17.8k tokens**) with every turn, so a 30-turn session spends **17.8k × 30 = 534k tokens** on definitions alone. Through Mycel the model sees ~1.0k tokens per turn: **1.0k × 30 ≈ 31k**.
+
+<p align="center"><img src="media/chart-conversation.svg" alt="Cumulative tokens over a 30-turn conversation with 8 servers: 534k direct versus 31k through Mycel" width="860"></p>
+
+> 💵 *Illustrative assumption, not a measurement:* at $3 per million input tokens, before caching, that is about **$1.60 vs $0.09 per session**. Prompt caching lowers the price of the repeated definitions, but not the space they take in your context window.
+
+### 🧰 Example 2: All 15 servers, 414 tools
+
+Add Canva (44 tools) and Higgsfield (241 tools) to the others and direct MCP needs **~204k tokens of definitions**. That is more than a 200k context window **before you type the first message**. Mycel: **~1.2k**. At 9 servers with Canva (126 tools) it is already 44.5k vs 1.05k (−97.6%).
+
+<p align="center"><img src="media/chart-fullscale.svg" alt="Horizontal bars: 8 servers 17.8k vs 1.0k, 9 servers with Canva 44.5k vs 1.05k, 15 servers with 414 tools about 204k vs 1.2k, with a 200k context window line" width="860"></p>
+
+### 📄 Example 3: Reading a 20,000-row CSV
+
+Direct: the whole file flows through the model, **131k tokens**. Through Mycel the model gets a reference plus a digest (row count, columns, a sample): **187 tokens**. It can still ask for specific rows or pass the ref to another tool without ever reading the file.
+
+### 🔁 Example 4: A 17-step chore
+
+"Find stale notes and save a report" takes **17 round trips** when the model drives every call. With Code Mode the model writes one small script and Mycel runs it: **1 round trip**. Per-call overhead of the gateway: **+0.4 ms** median. And the safe default holds: an untrusted web page trying to trigger `write_file` is **blocked and needs approval**.
+
+**Where it does *not* help:** with 1–2 servers Mycel is break-even or slightly worse (−4% / −3%). Skip it there, unless you want the safety layer, refs or Code Mode.
+
 ## 🤔 Do you need Mycel?
 
 Honest answer: **it depends on how many MCP servers your agent uses.** Measured with 8 real open-source servers ([field test](examples/field-test)), adding them one at a time:
+
+<p align="center"><img src="media/chart-scaling.svg" alt="Line chart: direct MCP tool definitions grow from 1.1k to 17.8k tokens across 1 to 8 servers while Mycel stays near 1k; break-even is around 3 servers" width="860"></p>
 
 | MCP servers | Tools | Tool definitions, direct | Through Mycel | Context saved |
 |---:|---:|---:|---:|---:|
@@ -372,7 +409,7 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What i
 
 ## Contributing
 
-PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (42 tests) in a few seconds.
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (47 tests) in a few seconds.
 
 ## License
 

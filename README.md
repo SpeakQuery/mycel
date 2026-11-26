@@ -31,7 +31,7 @@ mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers 
 
 > **Is Mycel a new protocol?** No — and that's the point. Mycel speaks plain **MCP** to your client and plain **MCP** to your servers, so nothing has to change on either side. It also speaks **A2A** so other agents can use your tools under the same rules. Think of it as the missing middle layer both protocols assumed someone else would build.
 
-<p align="center"><img src="media/anim-counter.svg" alt="Measured results: -94% tool definitions with 8 servers, 204k to 1.2k tokens with 414 tools, 131k to 187 tokens for a 20,000-row CSV, 17 tool calls in 1 round trip" width="860"></p>
+<p align="center"><img src="media/anim-counter.svg" alt="Measured results: -94% tool definitions with 8 servers, 204k to 1.2k tokens with 420 tools, 131k to 187 tokens for a 20,000-row CSV, 17 tool calls in 1 round trip" width="860"></p>
 
 <p align="center"><b>▶ Try the interactive savings calculator and 3D view → <a href="https://mycel.speakquery.ai/#calculator">https://mycel.speakquery.ai/#calculator</a></b></p>
 <p align="center"><a href="https://mycel.speakquery.ai/#why"><img src="media/demo-3d.gif" width="49%" alt="3D view: direct MCP fills the context window, Mycel keeps it thin"></a> <a href="https://mycel.speakquery.ai/#calculator"><img src="media/demo-calculator.gif" width="49%" alt="Savings calculator: move the sliders, watch the savings"></a></p>
@@ -40,9 +40,9 @@ mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers 
 
 <h3 align="center">Because every agent with many tools drowns in its own plumbing.</h3>
 
-<p align="center"><img src="media/anim-context.svg" alt="Animated context window: adding servers fills the direct bar with red blocks up to 17.8k tokens; a 414-tool setup needs about 204k tokens and fills the 200k window, while Mycel stays a thin 1k slice" width="860"></p>
+<p align="center"><img src="media/anim-context.svg" alt="Animated context window: adding servers fills the direct bar with red blocks up to 17.8k tokens; a 420-tool setup needs about 204k tokens and fills the 200k window, while Mycel stays a thin 1k slice" width="860"></p>
 
-- 🧠 **Context bloat.** In clients that send every tool definition on every turn, that is 17.8k tokens for 8 servers and ~204k for 414 tools. Those are tool-definition tokens (~4 chars per token), measured in a local lab with remote servers signed in; not yet reproducible from the repo. Less room for your actual work, worse tool choice. Check your client: Claude Code and recent Cursor load tool descriptions on demand.
+- 🧠 **Context bloat.** In clients that send every tool definition on every turn, that is 17.8k tokens for 8 servers and ~204k for 420 tools. Those are tool-definition tokens (~4 chars per token), reproducible offline: [examples/full-scale](examples/full-scale). Less room for your actual work, worse tool choice. Check your client: Claude Code and recent Cursor load tool descriptions on demand.
 - 🚚 **Everything flows through the model.** 10,000 rows from tool A to tool B means 10,000 rows in the prompt.
 - 🔁 **Round-trip storms.** A 17-step chore means up to 17 inference turns when the client makes one tool call per turn.
 - 🎭 **Blind trust.** A web page can tell your agent to write to disk or send your keys; a server can silently rewrite a tool description.
@@ -68,7 +68,7 @@ mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers 
 <p align="center"><img src="media/chart-scaling.svg" alt="Line chart: direct MCP tool definitions grow from 1.1k to 17.8k tokens across 1 to 8 servers while Mycel stays near 1k; break-even is around 3 servers" width="860"></p>
 
 - 📉 **8 servers: 17.8k → 1.0k tokens per turn (−94%)**, and a 30-turn session drops from 534k to ~31k.
-- 🧰 **Big setups:** 9 servers with Canva is 44.5k → 1.05k; 15 servers / 414 tools is ~204k → ~1.2k (−99.4%). These are tool-definition tokens (~4 chars per token), measured in a local lab with remote servers signed in; not yet reproducible from the repo.
+- 🧰 **Big setups:** 9 servers with Canva is 44.5k → 1.05k; 15 servers / 420 tools is ~204k → ~1.2k (−99.4%). These are tool-definition tokens (~4 chars per token), reproducible offline: [examples/full-scale](examples/full-scale).
 - 🔁 **Reproducible:** the −94% with 8 servers is reproducible: examples/field-test (CI runs it on Ubuntu and Windows).
 - 📄 **Big results:** a 20,000-row CSV is 131k → 187 tokens.
 - ⚖️ **The honest part:** with 1–2 servers Mycel is break-even or slightly worse (−4% / −3%). Skip it there unless you want the safety layer, refs or Code Mode. Details: [Do you need Mycel?](#-do-you-need-mycel)
@@ -101,11 +101,11 @@ You connect 8 servers (80 tools). A client that sends all 80 definitions (**17.8
 
 > 💵 *Illustrative assumption, not a measurement:* at $3 per million input tokens, before caching, that is about **$1.60 vs $0.09 per session**. Prompt caching lowers the price of the repeated definitions, but not the space they take in your context window.
 
-### 🧰 Example 2: All 15 servers, 414 tools
+### 🧰 Example 2: All 15 servers, 420 tools
 
-Add Canva (44 tools) and Higgsfield (241 tools) to the others and direct MCP needs **~204k tokens of definitions** (tool-definition tokens (~4 chars per token), measured in a local lab with remote servers signed in; not yet reproducible from the repo). In a client that sends them all up front, that is more than a 200k context window **before you type the first message**. Mycel: **~1.2k**. At 9 servers with Canva (126 tools) it is already 44.5k vs 1.05k (−97.6%).
+Add Canva (44 tools) and Higgsfield (241 tools) to the others and direct MCP needs **~204k tokens of definitions** (tool-definition tokens (~4 chars per token), reproducible offline: [examples/full-scale](examples/full-scale)). In a client that sends them all up front, that is more than a 200k context window **before you type the first message**. Mycel: **~1.2k**. At 9 servers with Canva (126 tools) it is already 44.5k vs 1.05k (−97.6%).
 
-<p align="center"><img src="media/chart-fullscale.svg" alt="Horizontal bars: 8 servers 17.8k vs 1.0k, 9 servers with Canva 44.5k vs 1.05k, 15 servers with 414 tools about 204k vs 1.2k, with a 200k context window line" width="860"></p>
+<p align="center"><img src="media/chart-fullscale.svg" alt="Horizontal bars: 8 servers 17.8k vs 1.0k, 9 servers with Canva 44.5k vs 1.05k, 15 servers with 420 tools about 204k vs 1.2k, with a 200k context window line" width="860"></p>
 
 ### 📄 Example 3: Reading a 20,000-row CSV
 
@@ -166,7 +166,7 @@ The offline index is English-only today: a reviewer's 8 Turkish queries found 0/
 
 **Plus a real remote server with OAuth:** after `mycel login canva`, Canva's 44 tools work through Mycel, and the tokens refresh automatically. With Canva added, the lab holds 126 tools: **44.5k tokens of definitions direct, 1.05k through Mycel (−97.6%)**.
 
-**At full scale:** 15 servers including Canva and Higgsfield (241 tools on its own), 414 tools in all. The tool definitions cost about **204k tokens direct and 1.2k through Mycel (−99.4%)**. Direct, that would fill most of a model's context window before the first message. These are tool-definition tokens (~4 chars per token), measured in a local lab with remote servers signed in; not yet reproducible from the repo.
+**At full scale:** 15 servers including Canva and Higgsfield (241 tools on its own), 420 tools in all. The tool definitions cost about **204k tokens direct and 1.2k through Mycel (−99.4%)**. Direct, that would fill most of a model's context window before the first message. These are tool-definition tokens (~4 chars per token), reproducible offline: [examples/full-scale](examples/full-scale). Counted the way clients send tools to the model: name, description and input schema. Canva and Higgsfield also ship output schemas; counting everything `tools/list` returns gives ~400k direct.
 
 The field test found four real bugs before launch. All are fixed and covered by tests:
 - Playwright marks even `hover` as destructive. Mycel now cross-checks that label against the tool's name (`annotations: strict` opts out).

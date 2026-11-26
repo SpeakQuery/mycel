@@ -218,7 +218,7 @@ window.MycelModel = (function () {
   var MYCEL = [1128, 1498, 3832, 919, 951, 962, 995, 1032];
   var st = { n: 8, heavy: false, mode: "direct" };
   function point(n, heavy) {
-    if (heavy) return { d: 204000, m: 1200, est: false, heavy: true }; // measured: 15 servers incl. Canva + Higgsfield, 414 tools
+    if (heavy) return { d: 204000, m: 1200, est: false, heavy: true }; // measured: 15 servers incl. Canva + Higgsfield, 420 tools
     n = Math.max(1, Math.min(15, Math.round(n) || 1));
     if (n <= 8) return { d: DIRECT[n - 1], m: MYCEL[n - 1], est: false };
     return { d: DIRECT[7] + 2200 * (n - 8), m: MYCEL[7] + 28 * (n - 8), est: true };
@@ -266,13 +266,13 @@ window.MycelModel = (function () {
   function k(v) { return v >= 100000 ? Math.round(v / 1000) + "k" : v >= 1000 ? (v / 1000).toFixed(1) + "k" : String(Math.round(v)); }
   function render() {
     var s = M.state, p = M.point(s.n, s.heavy), mycel = s.mode === "mycel", tok = mycel ? p.m : p.d, pct = tok / M.CTX * 100;
-    range.value = s.n; $("gl-count").textContent = s.heavy ? "15 (414 tools)" : s.n;
+    range.value = s.n; $("gl-count").textContent = s.heavy ? "15 (420 tools)" : s.n;
     bD.setAttribute("aria-pressed", String(!mycel)); bM.setAttribute("aria-pressed", String(mycel));
     $("gl-mode").textContent = mycel ? "Through Mycel" : "Direct MCP";
     $("gl-mode").className = "gl-mode " + (mycel ? "ok" : "bad");
     $("gl-tok").textContent = k(tok) + " tokens";
     $("gl-pct").textContent = (pct >= 10 ? Math.round(pct) : pct.toFixed(1)) + "% of a 200k window" + (pct > 100 ? " (overflow)" : "");
-    $("gl-note").textContent = s.heavy ? "Measured in a local lab (remote servers signed in; not yet reproducible from the repo): 15 servers including Canva and Higgsfield, 414 tools. In a client that sends every definition, direct MCP overflows a 200k window before the first message."
+    $("gl-note").textContent = s.heavy ? "Reproducible offline: examples/full-scale. 15 servers including Canva and Higgsfield, 420 tools. In a client that sends every definition, direct MCP overflows a 200k window before the first message."
       : p.est ? "Estimate: beyond 8 servers we assume about 2.2k extra tokens per server (direct) and about 28 (Mycel). Real heavy setups are bigger."
       : "Measured with real open-source MCP servers." + (s.n <= 2 ? " With 1 to 2 servers Mycel saves nothing." : "");
     $("fb-fill").style.height = Math.min(100, Math.max(1.5, pct)) + "%";
@@ -339,7 +339,7 @@ window.MycelModel = (function () {
     gauge("d", p.d); gauge("m", p.m);
     $("c-est").hidden = !p.est;
     $("c-note").textContent = p.heavy
-      ? "Measured in a local lab (remote servers signed in; not yet reproducible from the repo): 15 servers including Canva and Higgsfield, 414 tools. About 204k tool-definition tokens direct, 1.2k through Mycel. In a client that sends every definition, direct MCP fills the whole 200k window before the first message."
+      ? "Reproducible offline: examples/full-scale. 15 servers including Canva and Higgsfield, 420 tools. About 204k tool-definition tokens direct, 1.2k through Mycel. In a client that sends every definition, direct MCP fills the whole 200k window before the first message."
       : saved <= 0 ? "With " + v.servers + (v.servers === 1 ? " server" : " servers") + " Mycel's meta-tools cost about as much as your tool list, so there is no gain. Skip it unless you want Code Mode, refs or the safety layer."
       : p.est ? "Estimate: beyond 8 measured servers we assume about 2.2k extra tokens per server (direct) and about 28 (Mycel). Heavy real setups are larger."
       : "Measured with real open-source MCP servers.";

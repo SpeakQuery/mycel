@@ -1,0 +1,121 @@
+{
+  "servers": [
+    {
+      "server": "arxiv",
+      "version": "0.8.2",
+      "tools": 19,
+      "directTokens": 4457,
+      "fullPayloadTokens": 4457
+    },
+    {
+      "server": "canva",
+      "version": "1.0.0",
+      "tools": 44,
+      "directTokens": 28518,
+      "fullPayloadTokens": 32834
+    },
+    {
+      "server": "context7",
+      "version": "4.9.0",
+      "tools": 2,
+      "directTokens": 1363,
+      "fullPayloadTokens": 1380
+    },
+    {
+      "server": "desktop-commander",
+      "version": "0.3.4",
+      "tools": 25,
+      "directTokens": 13124,
+      "fullPayloadTokens": 13396
+    },
+    {
+      "server": "duckduckgo",
+      "version": "",
+      "tools": 3,
+      "directTokens": 1037,
+      "fullPayloadTokens": 1143
+    },
+    {
+      "server": "everything",
+      "version": "1.0.0",
+      "tools": 13,
+      "directTokens": 1575,
+      "fullPayloadTokens": 1913
+    },
+    {
+      "server": "fetch",
+      "version": "2026.11.18",
+      "tools": 1,
+      "directTokens": 362,
+      "fullPayloadTokens": 362
+    },
+    {
+      "server": "filesystem",
+      "version": "1.0.0",
+      "tools": 14,
+      "directTokens": 2264,
+      "fullPayloadTokens": 3278
+    },
+    {
+      "server": "git",
+      "version": "2026.11.18",
+      "tools": 14,
+      "directTokens": 1929,
+      "fullPayloadTokens": 1929
+    },
+    {
+      "server": "higgsfield",
+      "version": "1.0.0",
+      "tools": 241,
+      "directTokens": 140319,
+      "fullPayloadTokens": 328204
+    },
+    {
+      "server": "memory",
+      "version": "1.0.0",
+      "tools": 9,
+      "directTokens": 1341,
+      "fullPayloadTokens": 2766
+    },
+    {
+      "server": "playwright",
+      "version": "1.66.0-alpha-2026-11-18",
+      "tools": 25,
+      "directTokens": 5300,
+      "fullPayloadTokens": 5300
+    },
+    {
+      "server": "sqlite",
+      "version": "0.1.0",
+      "tools": 6,
+      "directTokens": 321,
+      "fullPayloadTokens": 321
+    },
+    {
+      "server": "thinking",
+      "version": "1.0.0",
+      "tools": 1,
+      "directTokens": 1036,
+      "fullPayloadTokens": 1161
+    },
+    {
+      "server": "time",
+      "version": "2026.11.18",
+      "tools": 3,
+      "directTokens": 607,
+      "fullPayloadTokens": 1089
+    }
+  ],
+  "totalTools": 420,
+  "directTokens": 203547,
+  "fullPayloadTokens": 399528,
+  "mycel": {
+    "exposedTools": 6,
+    "toolTokens": 770,
+    "instructionTokens": 472,
+    "tokens": 1242
+  },
+  "mycelPercentOfDirect": 0.61,
+  "tokenEstimate": "chars/4",
+  "pass": true
+}

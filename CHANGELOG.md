@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `examples/full-scale`: the 15-server figure (420 tools, 203.5k → 1.2k tokens) is now reproducible offline from recorded tool lists; runs in CI.
 - Docs: corrected client claims (Claude Code and Cursor load tools on demand), round-trip framing, overhead range, English-only search note, film disclosure; mycel_search asks for English queries.
 
 ## 0.1.1 — 2026-11-26
@@ -18,7 +19,7 @@ Found by running Mycel in front of 8 real open-source MCP servers ([field test](
 - Verified with the real Canva MCP server: `mycel login canva`, 44 tools, read calls through Mycel. With Canva, 126 tools cost 44.5k tokens direct and 1.05k through Mycel.
 - Shell and process execution (`start_process`, `run_command`, …) is always classified `destructive`. Fixes a gap where balanced mode demoted it to `external`.
 - `mycel_search` with `server` and no hits lists that server's tools. `mycel_describe` accepts `tool: "x"` and gives a clear error otherwise.
-- At full scale: 15 servers and 414 tools cost about 204k tokens direct vs 1.2k through Mycel.
+- At full scale: 15 servers and 420 tools cost about 204k tokens direct vs 1.2k through Mycel.
 - Better search synonyms (shell/terminal/command, web, edit, list/search, remember, save, history, uncommitted, open/visit → navigate, …). Field-test top-3 accuracy is now 16/16.
 - Install with `npm install -g github:SpeakQuery/mycel`. `mycel init` now writes client snippets that call the installed `mycel` command.
 - CI runs on Linux, macOS and Windows.

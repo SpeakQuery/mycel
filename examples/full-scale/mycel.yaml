@@ -1,0 +1,48 @@
+# 15 replay servers: each serves the tools/list captured from a real MCP server (see dumps/).
+# Paths are relative to this file. No network, no logins.
+servers:
+  arxiv:
+    command: node
+    args: ["replay-server.mjs", "dumps/arxiv.json"]
+  canva:
+    command: node
+    args: ["replay-server.mjs", "dumps/canva.json"]
+  context7:
+    command: node
+    args: ["replay-server.mjs", "dumps/context7.json"]
+  desktop-commander:
+    command: node
+    args: ["replay-server.mjs", "dumps/desktop-commander.json"]
+  duckduckgo:
+    command: node
+    args: ["replay-server.mjs", "dumps/duckduckgo.json"]
+  everything:
+    command: node
+    args: ["replay-server.mjs", "dumps/everything.json"]
+  fetch:
+    command: node
+    args: ["replay-server.mjs", "dumps/fetch.json"]
+  filesystem:
+    command: node
+    args: ["replay-server.mjs", "dumps/filesystem.json"]
+  git:
+    command: node
+    args: ["replay-server.mjs", "dumps/git.json"]
+  higgsfield:
+    command: node
+    args: ["replay-server.mjs", "dumps/higgsfield.json"]
+  memory:
+    command: node
+    args: ["replay-server.mjs", "dumps/memory.json"]
+  playwright:
+    command: node
+    args: ["replay-server.mjs", "dumps/playwright.json"]
+  sqlite:
+    command: node
+    args: ["replay-server.mjs", "dumps/sqlite.json"]
+  thinking:
+    command: node
+    args: ["replay-server.mjs", "dumps/thinking.json"]
+  time:
+    command: node
+    args: ["replay-server.mjs", "dumps/time.json"]

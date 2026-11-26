@@ -1,0 +1,10 @@
+{
+  "name": "mycel-full-scale",
+  "private": true,
+  "type": "module",
+  "description": "Reproducible context-footprint measurement: 15 real MCP servers, direct vs through Mycel.",
+  "scripts": {
+    "test": "node count.mjs",
+    "dump": "node dump.mjs"
+  }
+}

@@ -60,6 +60,29 @@ jobs:
           name: field-test-${{ matrix.os }}
           path: examples/field-test/results.json
 
+  full-scale:
+    name: full scale · 15 servers, 420 tools (recorded) · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci && npm run build
+      - name: Count tool-definition tokens, direct vs Mycel (offline replay)
+        working-directory: examples/full-scale
+        run: npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: full-scale-${{ matrix.os }}
+          path: examples/full-scale/results.json
+
   python:
     runs-on: ubuntu-latest
     steps:

@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -91,6 +91,7 @@
             <p class="muted">In the meantime, read the code on <a href="https://github.com/SpeakQuery/mycel" rel="noopener">GitHub</a>.</p>
           </div>
         </div>
+        <p class="fine video-note">The film is a dramatization. Its 500 MB video example with transcript uses illustrative data (video/data.json); today the built-in video digest returns metadata and keyframe refs, no transcript. The command shown as <code>npx mycel init</code> is <code>npx @speakquery/mycel init</code> (the package is published as @speakquery/mycel).</p>
       </div>
     </section>
 
@@ -99,7 +100,7 @@
       <div class="wrap">
         <p class="kicker">Why would you use it?</p>
         <h2 class="mega" id="why-title">Your tools shouldn't eat your <span class="glow">context.</span></h2>
-        <p class="section-lede big">Every MCP server pushes its full tool list into every turn. Add servers and the stack climbs until it crowds out your real work. Drag the slider. Then flip the switch.</p>
+        <p class="section-lede big">In clients that send every tool definition on every turn, each MCP server adds its full tool list. Add servers and the stack climbs until it crowds out your real work. Drag the slider. Then flip the switch.</p>
 
         <div class="gl" id="gl">
           <figure class="gl-stage" id="gl-stage">
@@ -133,12 +134,12 @@
           <li class="reason">
             <p class="r-big" aria-hidden="true">−94%</p>
             <h3>−94% context with 8 servers</h3>
-            <p>17.8k tokens of tool definitions per turn become 1.0k. The model searches the catalog and loads a schema only when it needs one.</p>
+            <p>17.8k tokens of tool definitions per turn become 1.0k (reproducible: examples/field-test (CI runs it on Ubuntu and Windows)). The model searches the catalog and loads a schema only when it needs one.</p>
           </li>
           <li class="reason">
-            <p class="r-big" aria-hidden="true">17 → 1</p>
-            <h3>17 steps → 1 round trip</h3>
-            <p>With Code Mode the model writes one short script and a sandbox runs the calls. Only the result comes back. Gateway overhead: +0.4 ms per call.</p>
+            <p class="r-big" aria-hidden="true">17 calls, 1 trip</p>
+            <h3>17 calls, 1 round trip</h3>
+            <p>With Code Mode the model writes one short script and a sandbox runs the calls. Only the result comes back. 17 tool calls in 1 model round trip. A client that makes one tool call per turn needs 17 turns; an efficient direct path using batch tools (read_multiple_files) needs about 3. Code Mode assumes the model writes a working script first time; not yet measured with a live model. Gateway overhead: about +0.4 ms on a Mac, +1 ms in CI (Ubuntu, Windows); median of 15 local calls.</p>
           </li>
           <li class="reason r-warn">
             <p class="r-big" aria-hidden="true">Blocked</p>
@@ -183,7 +184,7 @@
       <div class="wrap">
         <p class="kicker">How much do you save?</p>
         <h2 class="mega" id="savings-title">Nothing at 2 servers. <span class="glow">Real money at 8.</span></h2>
-        <p class="section-lede big">Direct MCP re-sends every tool definition on every turn. Mycel stays flat at about 1k tokens. Set your own numbers and watch the gap.</p>
+        <p class="section-lede big">A client that sends every tool definition on every turn re-sends them all. Mycel stays flat at about 1k tokens. Set your own numbers and watch the gap.</p>
 
         <div class="calc" id="calc" role="group" aria-labelledby="calc-title">
           <h3 id="calc-title" class="sr-only">Savings calculator</h3>
@@ -203,7 +204,7 @@
             <div class="big-stat"><p class="bs-label">Saved per year</p><p class="bs-num" id="o-year">$0</p></div>
             <div class="big-stat bs-sm"><p class="bs-label">Tokens saved per month</p><p class="bs-num" id="o-tokens">0</p></div>
           </div>
-          <p class="fine calc-fine">Before prompt caching. Caching lowers the cost of repeated tokens, but not the size of your context. Based on 22 working days a month and tool definitions re-sent on every turn.</p>
+          <p class="fine calc-fine">Before prompt caching. Caching lowers the cost of repeated tokens, but not the size of your context. Based on 22 working days a month and a client that re-sends tool definitions on every turn; clients that load tools on demand will save less.</p>
 
           <div class="calc-turn">
             <div class="turn-card"><p class="bs-label">Tool-definition tokens per turn, direct</p><p class="turn-num t-d" id="o-d">0</p></div>
@@ -234,14 +235,14 @@
 
         <ul class="sv-cards" aria-label="Worked examples">
           <li class="sv-card">
-            <p class="sv-tag">Cursor, 8 servers, 30 turns</p>
+            <p class="sv-tag">A client that sends every tool definition each turn: 8 servers, 30 turns</p>
             <p class="sv-big"><span class="sv-from">534k</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">31k</span></p>
-            <p class="sv-sub">tokens of tool definitions per session (17.8k × 30 vs 1.0k × 30). Prompt caching lowers the price, not the context size.</p>
+            <p class="sv-sub">tokens of tool definitions per session (17.8k × 30 vs 1.0k × 30). This is arithmetic, not a recorded session. Prompt caching lowers the price, not the context size.</p>
           </li>
           <li class="sv-card">
             <p class="sv-tag">All 15 servers, 414 tools</p>
             <p class="sv-big"><span class="sv-from">204k</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">1.2k</span></p>
-            <p class="sv-sub">tokens per turn. Direct MCP exceeds a 200k context window before the first message.</p>
+            <p class="sv-sub">tool-definition tokens per turn (~4 chars per token), measured in a local lab with remote servers signed in; not yet reproducible from the repo. A client that sends every definition exceeds a 200k context window before the first message.</p>
           </li>
           <li class="sv-card">
             <p class="sv-tag">Read a 20,000-row CSV</p>
@@ -249,13 +250,13 @@
             <p class="sv-sub">tokens. The model gets a ref and a digest, not the file.</p>
           </li>
           <li class="sv-card">
-            <p class="sv-tag">A 17-step chore</p>
-            <p class="sv-big"><span class="sv-from">17</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">1</span></p>
-            <p class="sv-sub">round trips with Code Mode ("find stale notes and save a report"). Gateway overhead: +0.4 ms per call.</p>
+            <p class="sv-tag">17 calls, 1 round trip</p>
+            <p class="sv-big"><span class="sv-from">17 calls</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">1 trip</span></p>
+            <p class="sv-sub">with Code Mode ("find stale notes and save a report"). 17 tool calls in 1 model round trip. A client that makes one tool call per turn needs 17 turns; an efficient direct path using batch tools (read_multiple_files) needs about 3. Code Mode assumes the model writes a working script first time; not yet measured with a live model. Gateway overhead: about +0.4 ms on a Mac, +1 ms in CI (Ubuntu, Windows); median of 15 local calls.</p>
           </li>
         </ul>
 
-        <p class="fine">Estimates for 9–15 servers assume about 2.2k tokens per extra server for direct MCP and about 28 for Mycel, so they are far lower than the heavy 15-server setup (414 tools, ~204k vs ~1.2k) measured above. Money figures are before prompt caching and depend on your model and price.</p>
+        <p class="fine">Estimates for 9–15 servers assume about 2.2k tokens per extra server for direct MCP and about 28 for Mycel, so they are far lower than the heavy 15-server setup (414 tools, ~204k vs ~1.2k) measured above (tool-definition tokens (~4 chars per token), measured in a local lab with remote servers signed in; not yet reproducible from the repo). Money figures are before prompt caching and depend on your model and price.</p>
       </div>
     </section>
 
@@ -283,7 +284,7 @@
       <div class="wrap">
         <p class="kicker">Do you need Mycel?</p>
         <h2 id="fit-title">The more MCP servers you use, the more it pays off.</h2>
-        <p class="section-lede">Measured with 8 real open-source MCP servers (filesystem, git, fetch, time, memory, Playwright and more), added one at a time. Mycel's own footprint stays flat at about 1k tokens. Direct MCP grows with every server, and the model re-reads it on every turn.</p>
+        <p class="section-lede">Measured with 8 real open-source MCP servers (filesystem, git, fetch, time, memory, Playwright and more), added one at a time. Mycel's own footprint stays flat at about 1k tokens. Direct MCP grows with every server, and a client that sends every definition makes the model re-read it on every turn. Reproducible: examples/field-test (CI runs it on Ubuntu and Windows).</p>
         <div class="table-scroll" tabindex="0" role="region" aria-labelledby="fit-title">
           <table class="vs fit-table">
             <thead>
@@ -315,11 +316,11 @@
             <ul class="fit-list">
               <li>You run <strong>1–2 small servers</strong> and only make short, read-only calls. Your client is fine on its own.</li>
               <li>You don't need a safety layer, refs or Code Mode. Even then Mycel's <code>auto</code> mode costs only ~3% here: with few tools it shows them directly.</li>
-              <li><strong>Your client matters too.</strong> Claude Code already loads tool definitions on demand, so there Mycel is mainly for Code Mode, refs, safety and A2A. Cursor, Claude Desktop, VS Code and Windsurf send every definition on every turn, so there the savings apply in full.</li>
+              <li><strong>Your client matters too.</strong> Claude Code already loads tool definitions on demand, so there Mycel is mainly for Code Mode, refs for big results, safety and A2A. Cursor (recent versions, "dynamic context discovery") also loads tools on demand. Other clients and frameworks may send definitions up front: check your client. Definition savings in on-demand clients are smaller and not yet measured.</li>
             </ul>
           </article>
         </div>
-        <p class="fine">Run it on your machine: <code>examples/field-test</code> in the repo (10 checks, macOS / Linux / Windows). Per-call overhead measured at +0.4 ms.</p>
+        <p class="fine">Run it on your machine: <code>examples/field-test</code> in the repo (10 checks, macOS / Linux / Windows). Per-call overhead: about +0.4 ms on a Mac, +1 ms in CI (Ubuntu, Windows); median of 15 local calls. The offline index is English-only today: a reviewer's 8 Turkish queries found 0/8 in the top 3. Models usually search in English; non-English queries are not yet supported.</p>
       </div>
     </section>
 
@@ -635,7 +636,7 @@
     </div>
   </footer>
 
-  <script src="main.js?v=4" defer></script>
+  <script src="main.js?v=5" defer></script>
   <script type="module" src="assets/scene.js?v=4"></script>
 </body>
 </html>

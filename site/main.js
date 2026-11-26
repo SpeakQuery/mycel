@@ -272,7 +272,7 @@ window.MycelModel = (function () {
     $("gl-mode").className = "gl-mode " + (mycel ? "ok" : "bad");
     $("gl-tok").textContent = k(tok) + " tokens";
     $("gl-pct").textContent = (pct >= 10 ? Math.round(pct) : pct.toFixed(1)) + "% of a 200k window" + (pct > 100 ? " (overflow)" : "");
-    $("gl-note").textContent = s.heavy ? "Measured: 15 servers including Canva and Higgsfield, 414 tools. Direct MCP overflows a 200k window before the first message."
+    $("gl-note").textContent = s.heavy ? "Measured in a local lab (remote servers signed in; not yet reproducible from the repo): 15 servers including Canva and Higgsfield, 414 tools. In a client that sends every definition, direct MCP overflows a 200k window before the first message."
       : p.est ? "Estimate: beyond 8 servers we assume about 2.2k extra tokens per server (direct) and about 28 (Mycel). Real heavy setups are bigger."
       : "Measured with real open-source MCP servers." + (s.n <= 2 ? " With 1 to 2 servers Mycel saves nothing." : "");
     $("fb-fill").style.height = Math.min(100, Math.max(1.5, pct)) + "%";
@@ -339,7 +339,7 @@ window.MycelModel = (function () {
     gauge("d", p.d); gauge("m", p.m);
     $("c-est").hidden = !p.est;
     $("c-note").textContent = p.heavy
-      ? "Measured: 15 servers including Canva and Higgsfield, 414 tools. About 204k tokens direct, 1.2k through Mycel. Direct MCP fills the whole 200k window before the first message."
+      ? "Measured in a local lab (remote servers signed in; not yet reproducible from the repo): 15 servers including Canva and Higgsfield, 414 tools. About 204k tool-definition tokens direct, 1.2k through Mycel. In a client that sends every definition, direct MCP fills the whole 200k window before the first message."
       : saved <= 0 ? "With " + v.servers + (v.servers === 1 ? " server" : " servers") + " Mycel's meta-tools cost about as much as your tool list, so there is no gain. Skip it unless you want Code Mode, refs or the safety layer."
       : p.est ? "Estimate: beyond 8 measured servers we assume about 2.2k extra tokens per server (direct) and about 28 (Mycel). Heavy real setups are larger."
       : "Measured with real open-source MCP servers.";

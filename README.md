@@ -2,6 +2,8 @@
 
 <a href="https://mycel.speakquery.ai/#film"><img src="media/mycel-launch-preview.gif" alt="Mycel launch film — click to watch the full 90-second video" width="860"></a>
 
+<sub>The film is a dramatization. Its 500 MB video example with transcript uses illustrative data (video/data.json); today the built-in video digest returns metadata and keyframe refs, no transcript. The command shown as <code>npx mycel init</code> is <code>npx @speakquery/mycel init</code> (the package is published as @speakquery/mycel).</sub>
+
 # Mycel
 
 ### One layer between your agents and everything they touch.
@@ -29,7 +31,7 @@ mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers 
 
 > **Is Mycel a new protocol?** No — and that's the point. Mycel speaks plain **MCP** to your client and plain **MCP** to your servers, so nothing has to change on either side. It also speaks **A2A** so other agents can use your tools under the same rules. Think of it as the missing middle layer both protocols assumed someone else would build.
 
-<p align="center"><img src="media/anim-counter.svg" alt="Measured results: -94% tool definitions with 8 servers, 204k to 1.2k tokens with 414 tools, 131k to 187 tokens for a 20,000-row CSV, 17 round trips to 1" width="860"></p>
+<p align="center"><img src="media/anim-counter.svg" alt="Measured results: -94% tool definitions with 8 servers, 204k to 1.2k tokens with 414 tools, 131k to 187 tokens for a 20,000-row CSV, 17 tool calls in 1 round trip" width="860"></p>
 
 <p align="center"><b>▶ Try the interactive savings calculator and 3D view → <a href="https://mycel.speakquery.ai/#calculator">https://mycel.speakquery.ai/#calculator</a></b></p>
 <p align="center"><a href="https://mycel.speakquery.ai/#why"><img src="media/demo-3d.gif" width="49%" alt="3D view: direct MCP fills the context window, Mycel keeps it thin"></a> <a href="https://mycel.speakquery.ai/#calculator"><img src="media/demo-calculator.gif" width="49%" alt="Savings calculator: move the sliders, watch the savings"></a></p>
@@ -40,9 +42,9 @@ mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers 
 
 <p align="center"><img src="media/anim-context.svg" alt="Animated context window: adding servers fills the direct bar with red blocks up to 17.8k tokens; a 414-tool setup needs about 204k tokens and fills the 200k window, while Mycel stays a thin 1k slice" width="860"></p>
 
-- 🧠 **Context bloat.** Every tool schema is loaded up front, on every turn: 17.8k tokens for 8 servers, ~204k for 414 tools. Less room for your actual work, worse tool choice.
+- 🧠 **Context bloat.** In clients that send every tool definition on every turn, that is 17.8k tokens for 8 servers and ~204k for 414 tools. Those are tool-definition tokens (~4 chars per token), measured in a local lab with remote servers signed in; not yet reproducible from the repo. Less room for your actual work, worse tool choice. Check your client: Claude Code and recent Cursor load tool descriptions on demand.
 - 🚚 **Everything flows through the model.** 10,000 rows from tool A to tool B means 10,000 rows in the prompt.
-- 🔁 **Round-trip storms.** A 17-step chore means 17 inference turns.
+- 🔁 **Round-trip storms.** A 17-step chore means up to 17 inference turns when the client makes one tool call per turn.
 - 🎭 **Blind trust.** A web page can tell your agent to write to disk or send your keys; a server can silently rewrite a tool description.
 - 🎬 🔑 🕳️ **No home for long jobs, no scoped delegation, no black box.** Video renders time out mid-call, sub-agents inherit every key, and nobody can see what the agent did or what it cost.
 
@@ -52,7 +54,7 @@ mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers 
 
 <p align="center"><img src="media/anim-roundtrips.svg" alt="Animated comparison: 17 model round trips with direct MCP versus 1 round trip when Mycel Code Mode runs the 17 calls inside its sandbox" width="860"></p>
 
-- ⚡ **1 round trip instead of 17.** The model writes one small script; Mycel runs it in a WebAssembly sandbox and returns only the result (+0.4 ms median overhead per call).
+- ⚡ **17 calls, 1 round trip.** The model writes one small script; Mycel runs it in a WebAssembly sandbox and returns only the result (about +0.4 ms on a Mac, +1 ms in CI (Ubuntu, Windows); median of 15 local calls). 17 tool calls in 1 model round trip. A client that makes one tool call per turn needs 17 turns; an efficient direct path using batch tools (read_multiple_files) needs about 3. Code Mode assumes the model writes a working script first time; not yet measured with a live model.
 - 📦 **Refs instead of payloads.** A 20,000-row CSV becomes a reference plus a digest: 131k tokens → 187. The model can still ask for rows or hand the ref to another tool.
 - 🛡️ **Safe by default.** Untrusted content can't trigger a write without approval, secrets never enter the model's context, and changed tool definitions are blocked.
 - 👁️ **Everything is recorded.** Per-call spans, budgets, approvals and a live dashboard; sub-agents get narrowed capability tokens, never your keys.
@@ -66,7 +68,8 @@ mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers 
 <p align="center"><img src="media/chart-scaling.svg" alt="Line chart: direct MCP tool definitions grow from 1.1k to 17.8k tokens across 1 to 8 servers while Mycel stays near 1k; break-even is around 3 servers" width="860"></p>
 
 - 📉 **8 servers: 17.8k → 1.0k tokens per turn (−94%)**, and a 30-turn session drops from 534k to ~31k.
-- 🧰 **Big setups:** 9 servers with Canva is 44.5k → 1.05k; 15 servers / 414 tools is ~204k → ~1.2k (−99.4%).
+- 🧰 **Big setups:** 9 servers with Canva is 44.5k → 1.05k; 15 servers / 414 tools is ~204k → ~1.2k (−99.4%). These are tool-definition tokens (~4 chars per token), measured in a local lab with remote servers signed in; not yet reproducible from the repo.
+- 🔁 **Reproducible:** the −94% with 8 servers is reproducible: examples/field-test (CI runs it on Ubuntu and Windows).
 - 📄 **Big results:** a 20,000-row CSV is 131k → 187 tokens.
 - ⚖️ **The honest part:** with 1–2 servers Mycel is break-even or slightly worse (−4% / −3%). Skip it there unless you want the safety layer, refs or Code Mode. Details: [Do you need Mycel?](#-do-you-need-mycel)
 
@@ -82,17 +85,17 @@ Measured by `mycel bench` — a reproducible in-process benchmark with 12 realis
 | *"Label every stale issue"* (20 of 40) | 21 round trips · 6,071 tokens | **1 round trip** · 77 tokens | **98.7%** |
 | 5,000-row SQL result | 29.7k tokens | 156 tokens (digest + ref) | **99.5%** |
 | 8 s 720p video (3.1 MB) | 1,068k tokens as base64 (won't fit) | 117 tokens (metadata + 3 keyframe refs) | **>99.9%** |
-| Tool search, offline BM25 (20 queries) | — | top-1 **18/20** · top-3 **20/20** | — |
+| Tool search, offline BM25 (20 English queries) | — | top-1 **18/20** · top-3 **20/20** | — |
 
-<sub>Methodology & caveats: [`src/bench.ts`](src/bench.ts). "Direct" counts only what the model must read; it ignores prompt caching, which lowers cost (not context size) for the direct case.</sub>
+<sub>Methodology & caveats: [`src/bench.ts`](src/bench.ts). "Direct" counts only what the model must read; it ignores prompt caching, which lowers cost (not context size) for the direct case. The offline index is English-only today: a reviewer's 8 Turkish queries found 0/8 in the top 3. Models usually search in English; non-English queries are not yet supported.</sub>
 
 ## 💰 What you actually save — worked examples
 
-Direct MCP re-sends every tool definition on every turn; Mycel stays flat at ~1k tokens. All numbers below are measured (see [Do you need Mycel?](#-do-you-need-mycel) and the [field test](#-field-test-8-real-mcp-servers)), except the dollar line, which is an illustrative assumption.
+In a client that sends every tool definition on every turn, direct MCP re-sends all of them each time; Mycel stays flat at ~1k tokens. All numbers below are measured (see [Do you need Mycel?](#-do-you-need-mycel) and the [field test](#-field-test-8-real-mcp-servers)), except the dollar line, which is an illustrative assumption.
 
-### 🖱️ Example 1: Cursor with 8 MCP servers, 30-turn session
+### 🖱️ Example 1: A client that sends every tool definition each turn: 8 servers, 30 turns
 
-You connect 8 servers (80 tools). Direct MCP sends all 80 definitions (**17.8k tokens**) with every turn, so a 30-turn session spends **17.8k × 30 = 534k tokens** on definitions alone. Through Mycel the model sees ~1.0k tokens per turn: **1.0k × 30 ≈ 31k**.
+You connect 8 servers (80 tools). A client that sends all 80 definitions (**17.8k tokens**) with every turn spends **17.8k × 30 = 534k tokens** on definitions alone over 30 turns. Through Mycel the model sees ~1.0k tokens per turn: **1.0k × 30 ≈ 31k**. This is arithmetic (17.8k × 30), not a recorded session. Clients that load tools on demand spend less; see [Do you need Mycel?](#-do-you-need-mycel).
 
 <p align="center"><img src="media/chart-conversation.svg" alt="Cumulative tokens over a 30-turn conversation with 8 servers: 534k direct versus 31k through Mycel" width="860"></p>
 
@@ -100,7 +103,7 @@ You connect 8 servers (80 tools). Direct MCP sends all 80 definitions (**17.8k t
 
 ### 🧰 Example 2: All 15 servers, 414 tools
 
-Add Canva (44 tools) and Higgsfield (241 tools) to the others and direct MCP needs **~204k tokens of definitions**. That is more than a 200k context window **before you type the first message**. Mycel: **~1.2k**. At 9 servers with Canva (126 tools) it is already 44.5k vs 1.05k (−97.6%).
+Add Canva (44 tools) and Higgsfield (241 tools) to the others and direct MCP needs **~204k tokens of definitions** (tool-definition tokens (~4 chars per token), measured in a local lab with remote servers signed in; not yet reproducible from the repo). In a client that sends them all up front, that is more than a 200k context window **before you type the first message**. Mycel: **~1.2k**. At 9 servers with Canva (126 tools) it is already 44.5k vs 1.05k (−97.6%).
 
 <p align="center"><img src="media/chart-fullscale.svg" alt="Horizontal bars: 8 servers 17.8k vs 1.0k, 9 servers with Canva 44.5k vs 1.05k, 15 servers with 414 tools about 204k vs 1.2k, with a 200k context window line" width="860"></p>
 
@@ -108,9 +111,9 @@ Add Canva (44 tools) and Higgsfield (241 tools) to the others and direct MCP nee
 
 Direct: the whole file flows through the model, **131k tokens**. Through Mycel the model gets a reference plus a digest (row count, columns, a sample): **187 tokens**. It can still ask for specific rows or pass the ref to another tool without ever reading the file.
 
-### 🔁 Example 4: A 17-step chore
+### 🔁 Example 4: A 17-step chore, 17 calls in 1 round trip
 
-"Find stale notes and save a report" takes **17 round trips** when the model drives every call. With Code Mode the model writes one small script and Mycel runs it: **1 round trip**. Per-call overhead of the gateway: **+0.4 ms** median. And the safe default holds: an untrusted web page trying to trigger `write_file` is **blocked and needs approval**.
+"Find stale notes and save a report" is **17 tool calls in 1 model round trip** with Code Mode: the model writes one small script and Mycel runs it. A client that makes one tool call per turn needs 17 turns; an efficient direct path using batch tools (`read_multiple_files`) needs about 3. Code Mode assumes the model writes a working script first time; not yet measured with a live model. Per-call overhead of the gateway: **about +0.4 ms on a Mac, +1 ms in CI (Ubuntu, Windows); median of 15 local calls**. And the safe default holds: an untrusted web page trying to trigger `write_file` is **blocked and needs approval**.
 
 **Where it does *not* help:** with 1–2 servers Mycel is break-even or slightly worse (−4% / −3%). Skip it there, unless you want the safety layer, refs or Code Mode.
 
@@ -132,13 +135,13 @@ Mycel's own footprint stays flat at ~1k tokens. Direct MCP grows with every serv
 **You'll feel it if…**
 - you use **4+ MCP servers**, or one big one (Playwright, GitHub, Notion: 20–90 tools each);
 - your tools return **big results**: files, tables, logs, page snapshots, images, video. A 20,000-row CSV is 131k tokens direct and 187 through Mycel;
-- your agent does **many small steps** (read 15 files, decide, write): Code Mode does it in 1 round trip instead of 17;
+- your agent does **many small steps** (read 15 files, decide, write): Code Mode does it in 1 round trip instead of up to 17 (about 3 with batch tools);
 - your agent reads **untrusted content** (web, email, tickets) *and* can write, send or delete;
 - you need to **see and cap** what agents do: approvals, budgets, an audit trail, or other agents (A2A) calling your tools.
 
 **You probably don't need it if…** you run 1–2 small servers and only make short, read-only calls. Your client is fine on its own, and Mycel's `auto` mode would just show those tools directly anyway.
 
-**Your client matters too.** Claude Code already loads tool definitions on demand, so there you'd use Mycel mainly for Code Mode, refs, the safety layer and A2A. Cursor, Claude Desktop, VS Code, Windsurf and most agent frameworks send every definition on every turn, so there the context savings above apply in full.
+**Your client matters too.** Claude Code and recent Cursor versions load MCP tool descriptions on demand (Cursor calls it "dynamic context discovery"). In those clients the definition savings are smaller and not yet measured; Mycel's value there is Code Mode, refs for big results, the safety layer and A2A. Other clients and frameworks may send definitions up front: check your client. The numbers above apply in full only where every definition goes out every turn.
 
 ## 🔬 Field test: 8 real MCP servers
 
@@ -148,18 +151,22 @@ Mycel's own footprint stays flat at ~1k tokens. Direct MCP grows with every serv
 |---|---|---|
 | S1 | Tool definitions in context (80 tools) | 17.8k → **1.0k** tokens (−94%) |
 | S2 | Startup until tools are listed | about the same as direct (≈0.5–1.5 s) |
-| S3 | Offline tool search, 16 natural-language queries | top-3 **16/16**, top-1 10/16 |
-| S4 | Per-call overhead (median of 15) | **+0.4 ms** |
+| S3 | Offline tool search, 16 natural-language queries | top-3 **15–16/16** depending on the run (English queries), top-1 10/16 |
+| S4 | Per-call overhead (median of 15 local calls) | **about +0.4 ms** on a Mac, +1 ms in CI (Ubuntu, Windows) |
 | S5 | 20,000-row CSV through `read_text_file` | 131k → **187** tokens (ref + table digest, grep-able) |
-| S6 | "Find stale notes, save a report" (17 calls) | 17 round trips → **1** (Code Mode) |
+| S6 | "Find stale notes, save a report" (17 calls) | 17 calls in **1** round trip (Code Mode; not yet measured with a live model) |
 | S7 | Web page (untrusted) → `write_file` | **blocked**, approval required |
 | S8 | Browser automation (Playwright) | works, no needless prompts |
 | S9 | Images, progress notifications | image → ref, 4/4 progress events forwarded |
 | S10 | Risk classes for Playwright's 25 tools | 7 read · 13 external · 5 destructive |
 
+The offline index is English-only today: a reviewer's 8 Turkish queries found 0/8 in the top 3. Models usually search in English; non-English queries are not yet supported.
+
+**Reproducibility:** the −94% with 8 servers is reproducible: examples/field-test (CI runs it on Ubuntu and Windows).
+
 **Plus a real remote server with OAuth:** after `mycel login canva`, Canva's 44 tools work through Mycel, and the tokens refresh automatically. With Canva added, the lab holds 126 tools: **44.5k tokens of definitions direct, 1.05k through Mycel (−97.6%)**.
 
-**At full scale:** 15 servers including Canva and Higgsfield (241 tools on its own), 414 tools in all. The tool definitions cost about **204k tokens direct and 1.2k through Mycel (−99.4%)**. Direct, that would fill most of a model's context window before the first message.
+**At full scale:** 15 servers including Canva and Higgsfield (241 tools on its own), 414 tools in all. The tool definitions cost about **204k tokens direct and 1.2k through Mycel (−99.4%)**. Direct, that would fill most of a model's context window before the first message. These are tool-definition tokens (~4 chars per token), measured in a local lab with remote servers signed in; not yet reproducible from the repo.
 
 The field test found four real bugs before launch. All are fixed and covered by tests:
 - Playwright marks even `hover` as destructive. Mycel now cross-checks that label against the tool's name (`annotations: strict` opts out).
@@ -257,7 +264,7 @@ All 20 ship in v1. Every one is opt-in beyond the defaults, and a 10-line config
 | **2 · Code Mode** | The model writes one async JS script; it runs in a **QuickJS WebAssembly sandbox** (no fs, no network, no Node APIs, CPU/memory/call caps). Only the return value comes back. `Promise.all` works. |
 | **3 · Ref Store** | Content-addressed (`ref://<sha256>`) storage for anything big or binary, with model-sized **digests**: JSON shape + sample, table columns + stats, text outline, image/video/audio metadata, video keyframes (ffmpeg). Pass refs straight into tool args as text, JSON, base64, data URL or file path. |
 | **4 · Job Queue** | Slow tools become jobs: progress, cancel, retry with backoff, **provider fallback chains**, resume after restart (idempotent jobs only — nothing runs twice by surprise). |
-| **5 · Cost & Budget** | Per-tool cost/latency contracts, `dryRun` estimates, per-task / per-day / per-token spend caps. |
+| **5 · Cost & Budget** | Per-tool cost/latency contracts, `dryRun` estimates, per-task / per-day / per-token spend caps. Tools without a declared cost count as $0; set `cost` per tool for budgets to be meaningful. |
 | **15 · Model Router** | `mycel_ask` hands self-contained sub-tasks (summarise, extract, classify) to a `fast`/`balanced`/`deep` tier — any OpenAI-compatible endpoint (Ollama, vLLM, LM Studio, OpenRouter…) or Anthropic. Refs in the prompt are expanded for the sub-model, not your main context. |
 
 ### Trust

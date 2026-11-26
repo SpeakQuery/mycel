@@ -1,5 +1,7 @@
 # Mycel launch film
 
+> The film is a dramatization. Its 500 MB video example with transcript uses illustrative data (video/data.json); today the built-in video digest returns metadata and keyframe refs, no transcript. The command shown as `npx mycel init` is `npx @speakquery/mycel init` (the package is published as @speakquery/mycel).
+
 The source for the 90-second Mycel launch video, built with [HyperFrames](https://hyperframes.heygen.com): HTML and GSAP, rendered locally to MP4. Nothing in it uses a paid or cloud service.
 
 ## Re-render everything (one command)

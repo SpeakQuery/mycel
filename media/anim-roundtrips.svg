@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 458" width="860" height="458" role="img" aria-labelledby="t d">
-<title id="t">17 round trips versus 1</title><desc id="d">Left: a model drives 17 tool calls one after another, a counter climbing to 17 round trips. Right: the same task as one Code Mode script sent to Mycel, which makes the 17 calls inside its sandbox, for 1 round trip.</desc>
+<title id="t">17 round trips versus 1</title><desc id="d">Left: a model drives 17 tool calls one after another, a counter climbing to 17 round trips. Right: the same task as one Code Mode script sent to Mycel, which makes the 17 calls inside its sandbox, for 1 round trip. A client making one call per turn needs 17 turns; batch tools need about 3. Code Mode assumes a working script first time; not yet measured with a live model.</desc>
 <style>text{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;fill:#E6F2EC}.m{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.dim{fill:#7E968B}.g{fill:#3DFFB0}.r{fill:#FF6B5B}.b{font-weight:700}
 .fb{transform-box:fill-box;transform-origin:left center}.fc{transform-box:fill-box;transform-origin:center}
 .ar0{animation:k_ar0 9.0s linear infinite;}@keyframes k_ar0{0%{opacity:0}5.556%{opacity:0}6.667%{opacity:1}91.111%{opacity:1}96.667%{opacity:0}100%{opacity:0}}
@@ -161,5 +161,5 @@
 <text class="c1 g b" x="540" y="352" font-size="44" text-anchor="end" style="opacity:1">1</text>
 <text x="550" y="352" font-size="22" class="dim">round trip</text>
 <text class="cap" x="450" y="384" font-size="13" style="fill:#3DFFB0">17 calls fan out inside the sandbox.</text><text class="cap" x="450" y="402" font-size="13" style="fill:#3DFFB0">Only the final result returns to the model.</text>
-<text x="430" y="436" font-size="13" text-anchor="middle" class="dim">"Find stale notes and save a report": 17 round trips → 1 · gateway overhead +0.4 ms per call (median)</text>
+<text x="430" y="436" font-size="13" text-anchor="middle" class="dim">"Find stale notes and save a report": 17 calls, 1 round trip (batch tools: ~3; not yet measured live) · overhead ~+0.4 ms Mac, +1 ms CI</text>
 </svg>

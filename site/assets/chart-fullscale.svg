@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 400" width="860" height="400" role="img" aria-labelledby="t d">
 <title id="t">Tool-definition tokens: direct MCP vs Mycel at 8, 9 and 15 servers</title>
-<desc id="d">Horizontal bars. 8 servers: 17.8k vs 1.0k. 9 servers with Canva: 44.5k vs 1.05k. 15 servers, 414 tools: about 204k vs 1.2k, which exceeds a 200k context window.</desc>
+<desc id="d">Horizontal bars. 8 servers: 17.8k vs 1.0k. 9 servers with Canva: 44.5k vs 1.05k. 15 servers, 414 tools: about 204k vs 1.2k, which exceeds a 200k context window. The 414-tool figure is tool-definition tokens (~4 chars per token) measured in a local lab; not yet reproducible from the repo.</desc>
 <rect width="860" height="400" rx="16" fill="#07110D"/>
 <rect x="1" y="1" width="858" height="398" rx="15" fill="none" stroke="#3DFFB0" stroke-opacity=".18"/>
 <text x="30" y="38" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="20" fill="#E6F2EC"  font-weight="700">Bigger setups: the gap explodes</text>

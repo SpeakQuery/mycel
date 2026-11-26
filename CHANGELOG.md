@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Docs: corrected client claims (Claude Code and Cursor load tools on demand), round-trip framing, overhead range, English-only search note, film disclosure; mycel_search asks for English queries.
+
 ## 0.1.1 — 2026-11-26
 
 - Published on npm as `@speakquery/mycel` (the command is still `mycel`): `npm install -g @speakquery/mycel`.

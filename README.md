@@ -25,7 +25,7 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers and imports them
 ```
 
-<sub>Install first: `npm install -g github:SpeakQuery/mycel` (macOS, Linux, Windows). The npm release is coming soon.</sub>
+<sub>Install first: `npm install -g @speakquery/mycel` (macOS, Linux, Windows, Node 20+). The command is `mycel`.</sub>
 
 > **Is Mycel a new protocol?** No — and that's the point. Mycel speaks plain **MCP** to your client and plain **MCP** to your servers, so nothing has to change on either side. It also speaks **A2A** so other agents can use your tools under the same rules. Think of it as the missing middle layer both protocols assumed someone else would build.
 
@@ -152,8 +152,8 @@ The field test found four real bugs before launch. All are fixed and covered by 
 Works on **macOS, Linux and Windows** (Node 20+). `ffmpeg` is optional (video/audio digests). The servers you bring decide the rest. For example, Python-based servers need [`uv`](https://docs.astral.sh/uv/).
 
 ```bash
-# Install (npm release coming soon; this installs straight from GitHub)
-npm install -g github:SpeakQuery/mycel
+# Install (the command is `mycel`)
+npm install -g @speakquery/mycel
 
 # 1. Import the MCP servers you already use (secrets become {{secret:NAME}} placeholders)
 mycel init

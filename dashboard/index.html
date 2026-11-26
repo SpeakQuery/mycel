@@ -1315,7 +1315,7 @@ footer .mono { font-size: 11.5px; }
     const servers = o.servers || [];
     $("servers-count").textContent = servers.length ? servers.length + " server" + (servers.length === 1 ? "" : "s") + " · " + num(servers.reduce((a, s) => a + (s.tools || 0), 0)) + " tools" : "";
     if (!servers.length) {
-      setKids(el, h("div", { style: "grid-column:1/-1" }, emptyState("server", "No servers connected", h("span", null, "Import your existing MCP setup with ", code("npx mycel init"), ", or add servers to ", code("mycel.yaml"), "."))));
+      setKids(el, h("div", { style: "grid-column:1/-1" }, emptyState("server", "No servers connected", h("span", null, "Import your existing MCP setup with ", code("mycel init"), ", or add servers to ", code("mycel.yaml"), "."))));
     } else {
       const DOT = { ready: "live", connecting: "warn", error: "err", disabled: "" };
       setKids(el, servers.map((s) => h("div", { class: "scard" },

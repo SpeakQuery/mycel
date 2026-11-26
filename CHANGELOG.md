@@ -2,6 +2,8 @@
 
 ## 0.1.1 — 2026-11-26
 
+- Published on npm as `@speakquery/mycel` (the command is still `mycel`): `npm install -g @speakquery/mycel`.
+
 Found by running Mycel in front of 8 real open-source MCP servers ([field test](examples/field-test)).
 
 - **Search ranking across many servers.** Server-damped IDF (a term used by 40 tools of one server counts as a few documents), synonyms keyed by surface word and weighted 0.3, and a bonus when a tool name is fully explained by the query. A 44-tool server no longer drowns git/fetch/duckduckgo.

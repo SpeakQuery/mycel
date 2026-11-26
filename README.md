@@ -1,6 +1,6 @@
 <div align="center">
 
-<a href="media/mycel-launch.mp4"><img src="media/mycel-launch-preview.gif" alt="Mycel launch film — click to watch the full 90-second video" width="860"></a>
+<a href="https://mycel.speakquery.ai/#film"><img src="media/mycel-launch-preview.gif" alt="Mycel launch film — click to watch the full 90-second video" width="860"></a>
 
 # Mycel
 
@@ -15,7 +15,7 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 [![A2A v0.3](https://img.shields.io/badge/A2A-v0.3-3DFFB0?style=flat-square)](https://a2a-protocol.org)
 [![Tests](https://img.shields.io/badge/tests-47%20passing-3DFFB0?style=flat-square)](tests)
 
-[**▶ Watch the 90-second film**](media/mycel-launch.mp4) · [Quickstart](#-quickstart) · [Benchmark](#-the-numbers) · [How it works](#-how-it-works) · [All 20 features](#-features) · [Docs](docs/)
+[**▶ Watch the 90-second film**](https://mycel.speakquery.ai/#film) · [Quickstart](#-quickstart) · [Benchmark](#-the-numbers) · [How it works](#-how-it-works) · [All 20 features](#-features) · [Docs](docs/)
 
 </div>
 

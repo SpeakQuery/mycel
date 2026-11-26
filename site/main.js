@@ -249,3 +249,10 @@ const STATS = {toolsDirect:167, toolsMycel:8, tokensDirect:"34.8k", tokensMycel:
   range.addEventListener("input", render);
   render();
 })();
+
+// Deep links such as /#film: scroll once layout (fonts, video poster) has settled.
+window.addEventListener("load", () => {
+  const id = decodeURIComponent(location.hash.slice(1));
+  const el = id && document.getElementById(id);
+  if (el) requestAnimationFrame(() => el.scrollIntoView({ block: "start" }));
+});

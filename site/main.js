@@ -209,45 +209,179 @@ const STATS = {toolsDirect:167, toolsMycel:8, tokensDirect:"34.8k", tokensMycel:
   });
 })();
 
-// ---- Savings calculator (measured 1-8, estimated beyond) -----------------------
-(function () {
+// ---- Shared token model (measured 1-8 servers, estimated 9-15) ---------------------
+window.MycelModel = (function () {
   "use strict";
-  var range = document.getElementById("sv-range");
-  if (!range) return;
+  var CTX = 200000;
   // Measured tokens of tool definitions per turn, 1..8 servers (real open-source servers).
   var DIRECT = [1089, 1451, 4729, 6658, 9424, 10585, 12498, 17798];
   var MYCEL = [1128, 1498, 3832, 919, 951, 962, 995, 1032];
-  // Estimate beyond 8 servers: ~2.2k tokens per extra server direct, ~28 tokens for Mycel.
-  function pt(n) {
+  var st = { n: 8, heavy: false, mode: "direct" };
+  function point(n, heavy) {
+    if (heavy) return { d: 204000, m: 1200, est: false, heavy: true }; // measured: 15 servers incl. Canva + Higgsfield, 414 tools
+    n = Math.max(1, Math.min(15, Math.round(n) || 1));
     if (n <= 8) return { d: DIRECT[n - 1], m: MYCEL[n - 1], est: false };
     return { d: DIRECT[7] + 2200 * (n - 8), m: MYCEL[7] + 28 * (n - 8), est: true };
   }
-  function fmt(v) {
-    if (v >= 100000) return Math.round(v / 1000) + "k";
-    if (v >= 1000) return (v / 1000).toFixed(1) + "k";
-    return String(Math.round(v));
+  function score(tokens) { return Math.max(0, Math.min(100, Math.round(100 * (1 - tokens / CTX)))); }
+  function grade(s) { return s >= 95 ? "A" : s >= 85 ? "B" : s >= 70 ? "C" : s >= 50 ? "D" : "F"; }
+  function set(p) {
+    if (p.n != null) st.n = Math.max(1, Math.min(15, Math.round(p.n) || 1));
+    st.heavy = p.heavy != null ? !!p.heavy : (p.n != null ? false : st.heavy);
+    if (st.heavy) st.n = 15;
+    if (p.mode) st.mode = p.mode;
+    document.dispatchEvent(new CustomEvent("mycel:state", { detail: st }));
   }
-  var el = function (id) { return document.getElementById(id); };
+  return { CTX: CTX, state: st, point: point, score: score, grade: grade, set: set };
+})();
+
+// ---- Scroll reveal ----------------------------------------------------------------
+(function () {
+  "use strict";
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce || !("IntersectionObserver" in window)) return;
+  var targets = document.querySelectorAll(".section .wrap > *, .reason, .pains li, .features li, .sv-card, .ba-card, .qs li, .how-step");
+  if (!targets.length) return;
+  document.documentElement.classList.add("js-reveal");
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting || e.boundingClientRect.top < 0) { e.target.classList.add("in"); io.unobserve(e.target); }
+    });
+  }, { rootMargin: "0px 0px -8% 0px", threshold: 0.05 });
+  targets.forEach(function (el) {
+    el.classList.add("rv");
+    var sib = el.parentElement ? Array.prototype.indexOf.call(el.parentElement.children, el) : 0;
+    if (el.matches("li, .ba-card, .how-step")) el.style.setProperty("--d", Math.min(sib, 7) * 70 + "ms");
+    io.observe(el);
+  });
+})();
+
+// ---- 3D controls + fallback readout ------------------------------------------------
+(function () {
+  "use strict";
+  var M = window.MycelModel, $ = function (id) { return document.getElementById(id); };
+  var range = $("gl-range");
+  if (!range) return;
+  var bD = $("gl-direct"), bM = $("gl-mycel");
+  function k(v) { return v >= 100000 ? Math.round(v / 1000) + "k" : v >= 1000 ? (v / 1000).toFixed(1) + "k" : String(Math.round(v)); }
   function render() {
-    var n = parseInt(range.value, 10) || 1;
-    var p = pt(n);
-    var pct = Math.round((1 - p.m / p.d) * 100);
-    el("sv-count").textContent = n + (n === 1 ? " server" : " servers");
-    el("sv-d1").textContent = fmt(p.d);
-    el("sv-m1").textContent = fmt(p.m);
-    el("sv-d30").textContent = fmt(p.d * 30);
-    el("sv-m30").textContent = fmt(p.m * 30);
-    el("sv-pct").textContent = pct < 0 ? "\u2212" + Math.abs(pct) + "%" : pct + "%";
-    var maxD = pt(15).d;
-    el("sv-bar-d").style.width = (p.d / maxD * 100).toFixed(1) + "%";
-    el("sv-bar-m").style.width = (p.m / maxD * 100).toFixed(1) + "%";
-    el("sv-note").textContent = p.est
-      ? "Estimate: beyond 8 servers we assume ~2.2k tokens per extra server. Real heavy setups are larger (15 servers with 414 tools measured ~204k vs ~1.2k)."
-      : "Measured with real open-source MCP servers" + (n <= 2 ? ". With 1\u20132 servers Mycel saves nothing, so skip it." : ".");
-    range.setAttribute("aria-valuetext", n + " servers, " + pct + "% saved" + (p.est ? " (estimate)" : " (measured)"));
+    var s = M.state, p = M.point(s.n, s.heavy), mycel = s.mode === "mycel", tok = mycel ? p.m : p.d, pct = tok / M.CTX * 100;
+    range.value = s.n; $("gl-count").textContent = s.heavy ? "15 (414 tools)" : s.n;
+    bD.setAttribute("aria-pressed", String(!mycel)); bM.setAttribute("aria-pressed", String(mycel));
+    $("gl-mode").textContent = mycel ? "Through Mycel" : "Direct MCP";
+    $("gl-mode").className = "gl-mode " + (mycel ? "ok" : "bad");
+    $("gl-tok").textContent = k(tok) + " tokens";
+    $("gl-pct").textContent = (pct >= 10 ? Math.round(pct) : pct.toFixed(1)) + "% of a 200k window" + (pct > 100 ? " (overflow)" : "");
+    $("gl-note").textContent = s.heavy ? "Measured: 15 servers including Canva and Higgsfield, 414 tools. Direct MCP overflows a 200k window before the first message."
+      : p.est ? "Estimate: beyond 8 servers we assume about 2.2k extra tokens per server (direct) and about 28 (Mycel). Real heavy setups are bigger."
+      : "Measured with real open-source MCP servers." + (s.n <= 2 ? " With 1 to 2 servers Mycel saves nothing." : "");
+    $("fb-fill").style.height = Math.min(100, Math.max(1.5, pct)) + "%";
+    $("fb-fill").className = "fb-fill " + (mycel ? "ok" : "bad");
+    range.setAttribute("aria-valuetext", s.n + " servers, " + k(tok) + " tokens" + (p.est ? " (estimate)" : ""));
   }
-  range.addEventListener("input", render);
+  range.addEventListener("input", function () { M.set({ n: +range.value }); });
+  bD.addEventListener("click", function () { M.set({ mode: "direct" }); });
+  bM.addEventListener("click", function () { M.set({ mode: "mycel" }); });
+  $("gl-heavy").addEventListener("click", function () { M.set({ heavy: true, mode: "direct" }); });
+  document.addEventListener("mycel:state", render);
   render();
+})();
+
+// ---- Savings calculator ------------------------------------------------------------
+(function () {
+  "use strict";
+  var M = window.MycelModel, $ = function (id) { return document.getElementById(id); };
+  if (!$("calc")) return;
+  var mq = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+  var DAYS = 22;
+  var inputs = { servers: [1, 15, 8], turns: [10, 2000, 200], devs: [1, 200, 5], price: [0, 1000, 3] };
+  var v = { servers: 8, turns: 200, devs: 5, price: 3 };
+  var heavy = false;
+
+  // animated numbers
+  function tween(el, to, fmt) {
+    var from = el._v || 0;
+    cancelAnimationFrame(el._r);
+    if ((mq && mq.matches) || from === to) { el._v = to; el.textContent = fmt(to); return; }
+    var t0 = performance.now(), dur = 700;
+    (function step(now) {
+      var p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      el._v = from + (to - from) * e; el.textContent = fmt(el._v);
+      if (p < 1) el._r = requestAnimationFrame(step); else el._v = to;
+    })(t0);
+  }
+  function compact(x) { // 1,234 | 12.3k | 4.56M | 1.20B
+    x = Math.abs(x);
+    if (x >= 1e9) return (x / 1e9).toFixed(2) + "B";
+    if (x >= 1e6) return (x / 1e6).toFixed(x >= 1e8 ? 0 : 1) + "M";
+    if (x >= 1e4) return (x / 1e3).toFixed(x >= 1e5 ? 0 : 1) + "k";
+    return Math.round(x).toLocaleString("en-US");
+  }
+  function money(x) { return "$" + (x >= 1e5 ? compact(x) : Math.round(x).toLocaleString("en-US")); }
+  function pctf(x) { return (x >= 10 ? Math.round(x) : x.toFixed(1)) + "%"; }
+  function setGain(id, amount, fmt) {
+    var el = $(id);
+    if (amount <= 0) { cancelAnimationFrame(el._r); el._v = 0; el.textContent = "no gain"; el.classList.add("nogain"); return; }
+    el.classList.remove("nogain"); tween(el, amount, fmt);
+  }
+  function gauge(prefix, tokens) {
+    var pct = tokens / M.CTX * 100, s = M.score(tokens), g = M.grade(s);
+    $("ring-" + prefix).style.strokeDashoffset = String(100 - Math.max(1.2, Math.min(100, pct)));
+    tween($("o-p" + prefix), pct, pctf);
+    tween($("o-s" + prefix), s, function (x) { return String(Math.round(x)); });
+    var gr = $("gr-" + prefix); gr.setAttribute("data-g", g); gr.firstChild.textContent = g;
+    gr.setAttribute("aria-label", "Context headroom grade " + g + ", score " + s + " of 100");
+  }
+  function render() {
+    var p = M.point(v.servers, heavy), saved = p.d - p.m, tokens = saved * v.turns * v.devs * DAYS, usd = tokens / 1e6 * v.price;
+    tween($("o-d"), p.d, compact); tween($("o-m"), p.m, compact);
+    setGain("o-tokens", tokens, compact); setGain("o-month", usd, money); setGain("o-year", usd * 12, money);
+    gauge("d", p.d); gauge("m", p.m);
+    $("c-est").hidden = !p.est;
+    $("c-note").textContent = p.heavy
+      ? "Measured: 15 servers including Canva and Higgsfield, 414 tools. About 204k tokens direct, 1.2k through Mycel. Direct MCP fills the whole 200k window before the first message."
+      : saved <= 0 ? "With " + v.servers + (v.servers === 1 ? " server" : " servers") + " Mycel's meta-tools cost about as much as your tool list, so there is no gain. Skip it unless you want Code Mode, refs or the safety layer."
+      : p.est ? "Estimate: beyond 8 measured servers we assume about 2.2k extra tokens per server (direct) and about 28 (Mycel). Heavy real setups are larger."
+      : "Measured with real open-source MCP servers.";
+  }
+  function clamp(key, x) { var r = inputs[key]; return Math.max(r[0], Math.min(r[1], x)); }
+  function bind(key) {
+    var rng = $("c-" + key), num = $("c-" + key + "-n");
+    function apply(x, fromNum) {
+      if (!isFinite(x)) return;
+      v[key] = clamp(key, x);
+      if (!fromNum || document.activeElement !== num) num.value = v[key];
+      if (!fromNum || x === v[key]) rng.value = v[key];
+      if (key === "servers") { heavy = false; M.set({ n: v.servers, heavy: false }); }
+      render();
+    }
+    rng.addEventListener("input", function () { apply(parseFloat(rng.value), false); });
+    num.addEventListener("input", function () { if (num.value !== "") apply(parseFloat(num.value), true); });
+    num.addEventListener("blur", function () { num.value = v[key]; });
+  }
+  Object.keys(inputs).forEach(bind);
+  $("c-heavy").addEventListener("click", function () {
+    heavy = true; v.servers = 15; $("c-servers").value = 15; $("c-servers-n").value = 15;
+    M.set({ heavy: true, mode: "direct" }); render();
+  });
+  // keep the 3D slider and the calculator in sync
+  document.addEventListener("mycel:state", function (e) {
+    var s = e.detail;
+    if (s.n !== v.servers || s.heavy !== heavy) {
+      v.servers = s.n; heavy = s.heavy; $("c-servers").value = s.n; $("c-servers-n").value = s.n; render();
+    }
+  });
+  render();
+  // count up from zero the first time the calculator scrolls into view
+  if ("IntersectionObserver" in window && !(mq && mq.matches)) {
+    var io = new IntersectionObserver(function (es) {
+      if (!es[0].isIntersecting) return;
+      io.disconnect();
+      ["o-d", "o-m", "o-tokens", "o-month", "o-year", "o-pd", "o-pm", "o-sd", "o-sm"].forEach(function (id) { $(id)._v = 0; });
+      render();
+    }, { threshold: 0.2 });
+    io.observe($("calc"));
+  }
 })();
 
 // Deep links such as /#film: scroll once layout (fonts, video poster) has settled.

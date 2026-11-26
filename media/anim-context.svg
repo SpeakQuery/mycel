@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 490" width="860" height="490" role="img" aria-labelledby="t d">
+<title id="t">Context window: direct MCP versus Mycel</title><desc id="d">Animation of a 200k-token context window. Adding servers one by one fills the direct bar with red blocks up to 17.8k tokens for 8 servers, while Mycel stays a thin 1k slice. A heavy setup of 15 servers and 414 tools needs about 204k tokens, filling the window, versus about 1.2k through Mycel.</desc>
+<style>text{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;fill:#E6F2EC}.m{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.dim{fill:#7E968B}.g{fill:#3DFFB0}.r{fill:#FF6B5B}.b{font-weight:700}
+.fb{transform-box:fill-box;transform-origin:left center}.fc{transform-box:fill-box;transform-origin:center}
+.cn1{animation:k_cn1 8.0s linear infinite;}@keyframes k_cn1{0%{opacity:0}5.0%{opacity:0}5.625%{opacity:1}8.75%{opacity:1}9.375%{opacity:0}100%{opacity:0}}
+.cn2{animation:k_cn2 8.0s linear infinite;}@keyframes k_cn2{0%{opacity:0}8.75%{opacity:0}9.375%{opacity:1}12.5%{opacity:1}13.125%{opacity:0}100%{opacity:0}}
+.cn3{animation:k_cn3 8.0s linear infinite;}@keyframes k_cn3{0%{opacity:0}12.5%{opacity:0}13.125%{opacity:1}16.25%{opacity:1}16.875%{opacity:0}100%{opacity:0}}
+.cn4{animation:k_cn4 8.0s linear infinite;}@keyframes k_cn4{0%{opacity:0}16.25%{opacity:0}16.875%{opacity:1}20.0%{opacity:1}20.625%{opacity:0}100%{opacity:0}}
+.cn5{animation:k_cn5 8.0s linear infinite;}@keyframes k_cn5{0%{opacity:0}20.0%{opacity:0}20.625%{opacity:1}23.75%{opacity:1}24.375%{opacity:0}100%{opacity:0}}
+.cn6{animation:k_cn6 8.0s linear infinite;}@keyframes k_cn6{0%{opacity:0}23.75%{opacity:0}24.375%{opacity:1}27.5%{opacity:1}28.125%{opacity:0}100%{opacity:0}}
+.cn7{animation:k_cn7 8.0s linear infinite;}@keyframes k_cn7{0%{opacity:0}27.5%{opacity:0}28.125%{opacity:1}31.25%{opacity:1}31.875%{opacity:0}100%{opacity:0}}
+.cn8{animation:k_cn8 8.0s linear infinite;}@keyframes k_cn8{0%{opacity:0}31.25%{opacity:0}31.875%{opacity:1}92.5%{opacity:1}93.125%{opacity:0}100%{opacity:0}}
+.ba0{animation:k_ba0 8.0s linear infinite;}@keyframes k_ba0{0%{opacity:0}5.0%{opacity:0}6.25%{opacity:1}92.5%{opacity:1}93.75%{opacity:0}100%{opacity:0}}
+.ba1{animation:k_ba1 8.0s linear infinite;}@keyframes k_ba1{0%{opacity:0}8.75%{opacity:0}10.0%{opacity:1}92.5%{opacity:1}93.75%{opacity:0}100%{opacity:0}}
+.ba2{animation:k_ba2 8.0s linear infinite;}@keyframes k_ba2{0%{opacity:0}12.5%{opacity:0}13.75%{opacity:1}92.5%{opacity:1}93.75%{opacity:0}100%{opacity:0}}
+.ba3{animation:k_ba3 8.0s linear infinite;}@keyframes k_ba3{0%{opacity:0}16.25%{opacity:0}17.5%{opacity:1}92.5%{opacity:1}93.75%{opacity:0}100%{opacity:0}}
+.ba4{animation:k_ba4 8.0s linear infinite;}@keyframes k_ba4{0%{opacity:0}20.0%{opacity:0}21.25%{opacity:1}92.5%{opacity:1}93.75%{opacity:0}100%{opacity:0}}
+.ba5{animation:k_ba5 8.0s linear infinite;}@keyframes k_ba5{0%{opacity:0}23.75%{opacity:0}25.0%{opacity:1}92.5%{opacity:1}93.75%{opacity:0}100%{opacity:0}}
+.ba6{animation:k_ba6 8.0s linear infinite;}@keyframes k_ba6{0%{opacity:0}27.5%{opacity:0}28.75%{opacity:1}92.5%{opacity:1}93.75%{opacity:0}100%{opacity:0}}
+.ba7{animation:k_ba7 8.0s linear infinite;}@keyframes k_ba7{0%{opacity:0}31.25%{opacity:0}32.5%{opacity:1}92.5%{opacity:1}93.75%{opacity:0}100%{opacity:0}}
+.la{animation:k_la 8.0s linear infinite;}@keyframes k_la{0%{opacity:0}32.5%{opacity:0}34.375%{opacity:1}92.5%{opacity:1}94.375%{opacity:0}100%{opacity:0}}
+.gb{animation:k_gb 8.0s linear infinite;}@keyframes k_gb{0%{transform:scaleX(0)}6.25%{transform:scaleX(0)}12.5%{transform:scaleX(1)}92.5%{transform:scaleX(1);opacity:1}97.5%{opacity:0}100%{opacity:0}}
+.lb{animation:k_lb 8.0s linear infinite;}@keyframes k_lb{0%{opacity:0}12.5%{opacity:0}14.375%{opacity:1}92.5%{opacity:1}94.375%{opacity:0}100%{opacity:0}}
+.hc{animation:k_hc 8.0s linear infinite;}@keyframes k_hc{0%{opacity:0}42.5%{opacity:0}44.375%{opacity:1}92.5%{opacity:1}94.375%{opacity:0}100%{opacity:0}}
+.hd{animation:k_hd 8.0s linear infinite;}@keyframes k_hd{0%{opacity:0}42.5%{opacity:0}44.375%{opacity:1}92.5%{opacity:1}94.375%{opacity:0}100%{opacity:0}}
+.gc{animation:k_gc 8.0s linear infinite;}@keyframes k_gc{0%{transform:scaleX(0)}45.0%{transform:scaleX(0)}67.5%{transform:scaleX(1)}92.5%{transform:scaleX(1);opacity:1}97.5%{opacity:0}100%{opacity:0}}
+.lc{animation:k_lc 8.0s linear infinite;}@keyframes k_lc{0%{opacity:0}65.0%{opacity:0}66.875%{opacity:1}92.5%{opacity:1}94.375%{opacity:0}100%{opacity:0}}
+.flash{animation:k_flash 8.0s linear infinite;}@keyframes k_flash{0%{opacity:0}66.25%{opacity:0}68.75%{opacity:1}72.5%{opacity:.25}76.25%{opacity:1}80.0%{opacity:.25}83.75%{opacity:1}92.5%{opacity:1}97.5%{opacity:0}100%{opacity:0}}
+.gd{animation:k_gd 8.0s linear infinite;}@keyframes k_gd{0%{transform:scaleX(0)}52.5%{transform:scaleX(0)}58.75%{transform:scaleX(1)}92.5%{transform:scaleX(1);opacity:1}97.5%{opacity:0}100%{opacity:0}}
+.ld{animation:k_ld 8.0s linear infinite;}@keyframes k_ld{0%{opacity:0}58.75%{opacity:0}60.625%{opacity:1}92.5%{opacity:1}94.375%{opacity:0}100%{opacity:0}}
+.msg{animation:k_msg 8.0s linear infinite;}@keyframes k_msg{0%{opacity:0}70.0%{opacity:0}71.875%{opacity:1}92.5%{opacity:1}94.375%{opacity:0}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important}}</style>
+<rect width="860" height="490" rx="14" fill="#07110D"/>
+<text x="40" y="38" font-size="20" class="b">Your context window: 200k tokens</text>
+<text x="820" y="38" font-size="20" text-anchor="end" class="dim">servers connected:</text>
+<text class="cn1" x="820" y="68" font-size="26" text-anchor="end" font-weight="700" style="opacity:0">1</text>
+<text class="cn2" x="820" y="68" font-size="26" text-anchor="end" font-weight="700" style="opacity:0">2</text>
+<text class="cn3" x="820" y="68" font-size="26" text-anchor="end" font-weight="700" style="opacity:0">3</text>
+<text class="cn4" x="820" y="68" font-size="26" text-anchor="end" font-weight="700" style="opacity:0">4</text>
+<text class="cn5" x="820" y="68" font-size="26" text-anchor="end" font-weight="700" style="opacity:0">5</text>
+<text class="cn6" x="820" y="68" font-size="26" text-anchor="end" font-weight="700" style="opacity:0">6</text>
+<text class="cn7" x="820" y="68" font-size="26" text-anchor="end" font-weight="700" style="opacity:0">7</text>
+<text class="cn8" x="820" y="68" font-size="26" text-anchor="end" font-weight="700" style="opacity:1">8</text>
+<line x1="40.0" y1="86" x2="40.0" y2="92" stroke="#7E968B"/><text x="40.0" y="82" font-size="11" text-anchor="middle" class="dim">0k</text>
+<line x1="235.0" y1="86" x2="235.0" y2="92" stroke="#7E968B"/><text x="235.0" y="82" font-size="11" text-anchor="middle" class="dim">50k</text>
+<line x1="430.0" y1="86" x2="430.0" y2="92" stroke="#7E968B"/><text x="430.0" y="82" font-size="11" text-anchor="middle" class="dim">100k</text>
+<line x1="625.0" y1="86" x2="625.0" y2="92" stroke="#7E968B"/><text x="625.0" y="82" font-size="11" text-anchor="middle" class="dim">150k</text>
+<line x1="820.0" y1="86" x2="820.0" y2="92" stroke="#7E968B"/><text x="820.0" y="82" font-size="11" text-anchor="middle" class="dim">200k</text>
+<text x="40" y="102" font-size="14" class="r b">DIRECT MCP · 8 servers, 80 tools</text>
+<rect x="40" y="108" width="780" height="34" rx="6" fill="#10231A" stroke="#1C3A2D"/>
+<rect class="ba0" x="40.5" y="111" width="7.7" height="28" rx="2" fill="#FF6B5B"/>
+<rect class="ba1" x="49.2" y="111" width="7.7" height="28" rx="2" fill="#FF6B5B"/>
+<rect class="ba2" x="57.9" y="111" width="7.7" height="28" rx="2" fill="#FF6B5B"/>
+<rect class="ba3" x="66.5" y="111" width="7.7" height="28" rx="2" fill="#FF6B5B"/>
+<rect class="ba4" x="75.2" y="111" width="7.7" height="28" rx="2" fill="#FF6B5B"/>
+<rect class="ba5" x="83.9" y="111" width="7.7" height="28" rx="2" fill="#FF6B5B"/>
+<rect class="ba6" x="92.6" y="111" width="7.7" height="28" rx="2" fill="#FF6B5B"/>
+<rect class="ba7" x="101.2" y="111" width="7.7" height="28" rx="2" fill="#FF6B5B"/>
+<text class="la r b" x="119" y="131" font-size="15">17.8k tokens, re-sent every turn</text>
+<text x="40" y="164" font-size="14" class="g b">MYCEL · same 8 servers</text>
+<rect x="40" y="170" width="780" height="34" rx="6" fill="#10231A" stroke="#1C3A2D"/>
+<rect class="gb fb" x="41" y="173" width="3.9" height="28" rx="2" fill="#3DFFB0"/>
+<text class="lb g b" x="56" y="193" font-size="15">~1k tokens, flat (-94%)</text>
+<line x1="40" y1="240" x2="820" y2="240" stroke="#1C3A2D" stroke-dasharray="4 6"/>
+<text class="hc r b" x="40" y="274" font-size="14">DIRECT MCP · 15 servers, 414 tools (the heavy setup)</text>
+<rect x="40" y="280" width="780" height="34" rx="6" fill="#10231A" stroke="#1C3A2D"/>
+<rect class="gc fb" x="41" y="283" width="778" height="28" rx="3" fill="#FF6B5B"/>
+<text class="lc b" x="430" y="303" font-size="16" text-anchor="middle" style="fill:#07110D">204k tokens: FULL</text>
+<rect class="flash" x="37" y="277" width="786" height="40" rx="8" fill="none" stroke="#FF6B5B" stroke-width="2"/>
+<text class="hd g b" x="40" y="336" font-size="14">MYCEL · all 414 tools, still searchable</text>
+<rect x="40" y="342" width="780" height="34" rx="6" fill="#10231A" stroke="#1C3A2D"/>
+<rect class="gd fb" x="41" y="345" width="4.7" height="28" rx="2" fill="#3DFFB0"/>
+<text class="ld g b" x="57" y="365" font-size="15">~1.2k tokens (-99.4%)</text>
+<text class="msg b" x="430" y="408" font-size="19" text-anchor="middle" style="fill:#FF6B5B">414 tools → 204k: the window is full before you type.</text>
+<text x="430" y="440" font-size="12" text-anchor="middle" class="dim">Measured with mycel bench and the 8-server field test. Each red block ≈ one server (8-server average, ≈2.2k tokens).</text>
+</svg>

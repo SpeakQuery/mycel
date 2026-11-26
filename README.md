@@ -29,19 +29,48 @@ mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers 
 
 > **Is Mycel a new protocol?** No — and that's the point. Mycel speaks plain **MCP** to your client and plain **MCP** to your servers, so nothing has to change on either side. It also speaks **A2A** so other agents can use your tools under the same rules. Think of it as the missing middle layer both protocols assumed someone else would build.
 
-## 😩 The problem
+<p align="center"><img src="media/anim-counter.svg" alt="Measured results: -94% tool definitions with 8 servers, 204k to 1.2k tokens with 414 tools, 131k to 187 tokens for a 20,000-row CSV, 17 round trips to 1" width="860"></p>
 
-Connect an agent to a dozen MCP servers and you get:
+<p align="center"><b>▶ Try the interactive savings calculator and 3D view → <a href="https://mycel.speakquery.ai/#calculator">https://mycel.speakquery.ai/#calculator</a></b></p>
+<p align="center"><a href="https://mycel.speakquery.ai/#why"><img src="media/demo-3d.gif" width="49%" alt="3D view: direct MCP fills the context window, Mycel keeps it thin"></a> <a href="https://mycel.speakquery.ai/#calculator"><img src="media/demo-calculator.gif" width="49%" alt="Savings calculator: move the sliders, watch the savings"></a></p>
 
-| | Pain | What it costs you |
-|---|---|---|
-| 🧠 | **Context bloat** — every tool schema is loaded up front | ~35k tokens gone before the first word; worse tool choice |
-| 🚚 | **Everything flows through the model** | 10,000 rows from tool A to tool B = 10,000 rows in the prompt |
-| 🔁 | **Round-trip storms** | a 20-step task = 20 inference turns |
-| 🎭 | **Prompt injection & rug pulls** | a web page can tell your agent to email your keys; a server can silently rewrite a tool description |
-| 🎬 | **Long-running AI work has no home** | video, renders and batch jobs time out mid-call |
-| 🔑 | **Sub-agents inherit every key** | delegation means "here's everything, please behave" |
-| 🕳️ | **No black box** | nobody can see what the agent did, why, or what it cost |
+<h1 align="center">Why use it?</h1>
+
+<h3 align="center">Because every agent with many tools drowns in its own plumbing.</h3>
+
+<p align="center"><img src="media/anim-context.svg" alt="Animated context window: adding servers fills the direct bar with red blocks up to 17.8k tokens; a 414-tool setup needs about 204k tokens and fills the 200k window, while Mycel stays a thin 1k slice" width="860"></p>
+
+- 🧠 **Context bloat.** Every tool schema is loaded up front, on every turn: 17.8k tokens for 8 servers, ~204k for 414 tools. Less room for your actual work, worse tool choice.
+- 🚚 **Everything flows through the model.** 10,000 rows from tool A to tool B means 10,000 rows in the prompt.
+- 🔁 **Round-trip storms.** A 17-step chore means 17 inference turns.
+- 🎭 **Blind trust.** A web page can tell your agent to write to disk or send your keys; a server can silently rewrite a tool description.
+- 🎬 🔑 🕳️ **No home for long jobs, no scoped delegation, no black box.** Video renders time out mid-call, sub-agents inherit every key, and nobody can see what the agent did or what it cost.
+
+<h1 align="center">What do you gain?</h1>
+
+<h3 align="center">Fewer round trips. Big data stays out of the prompt. Unsafe actions get stopped.</h3>
+
+<p align="center"><img src="media/anim-roundtrips.svg" alt="Animated comparison: 17 model round trips with direct MCP versus 1 round trip when Mycel Code Mode runs the 17 calls inside its sandbox" width="860"></p>
+
+- ⚡ **1 round trip instead of 17.** The model writes one small script; Mycel runs it in a WebAssembly sandbox and returns only the result (+0.4 ms median overhead per call).
+- 📦 **Refs instead of payloads.** A 20,000-row CSV becomes a reference plus a digest: 131k tokens → 187. The model can still ask for rows or hand the ref to another tool.
+- 🛡️ **Safe by default.** Untrusted content can't trigger a write without approval, secrets never enter the model's context, and changed tool definitions are blocked.
+- 👁️ **Everything is recorded.** Per-call spans, budgets, approvals and a live dashboard; sub-agents get narrowed capability tokens, never your keys.
+
+<p align="center"><img src="media/anim-guard.svg" alt="Animated: an untrusted web page payload telling the agent to write to ~/.ssh is stopped by a Mycel shield with approval required" width="860"></p>
+
+<h1 align="center">How much do you save?</h1>
+
+<h3 align="center">1–2 servers: nothing. 8 servers: ~94%. A big setup: ~99%.</h3>
+
+<p align="center"><img src="media/chart-scaling.svg" alt="Line chart: direct MCP tool definitions grow from 1.1k to 17.8k tokens across 1 to 8 servers while Mycel stays near 1k; break-even is around 3 servers" width="860"></p>
+
+- 📉 **8 servers: 17.8k → 1.0k tokens per turn (−94%)**, and a 30-turn session drops from 534k to ~31k.
+- 🧰 **Big setups:** 9 servers with Canva is 44.5k → 1.05k; 15 servers / 414 tools is ~204k → ~1.2k (−99.4%).
+- 📄 **Big results:** a 20,000-row CSV is 131k → 187 tokens.
+- ⚖️ **The honest part:** with 1–2 servers Mycel is break-even or slightly worse (−4% / −3%). Skip it there unless you want the safety layer, refs or Code Mode. Details: [Do you need Mycel?](#-do-you-need-mycel)
+
+---
 
 ## 📊 The numbers
 
@@ -59,14 +88,7 @@ Measured by `mycel bench` — a reproducible in-process benchmark with 12 realis
 
 ## 💰 What you actually save — worked examples
 
-Short version: **with 1–2 servers you save nothing; with 8 you save ~94%; with a big setup you save ~99%.** Direct MCP re-sends every tool definition on every turn, Mycel stays flat at ~1k tokens. All numbers below are measured (see [Do you need Mycel?](#-do-you-need-mycel) and the [field test](#-field-test-8-real-mcp-servers)), except the dollar line, which is an illustrative assumption.
-
-| | Scenario | Direct MCP | Through Mycel | Saved |
-|---|---|---:|---:|---:|
-| 🖱️ | 8 servers, 30-turn session (definitions only) | 534k tokens | ~31k | **~94%** |
-| 🧰 | All 15 servers / 414 tools, per turn | ~204k tokens | ~1.2k | **99.4%** |
-| 📄 | Read a 20,000-row CSV | 131k tokens | 187 | **>99.8%** |
-| 🔁 | "Find stale notes and save a report" | 17 round trips | 1 | **16 fewer** |
+Direct MCP re-sends every tool definition on every turn; Mycel stays flat at ~1k tokens. All numbers below are measured (see [Do you need Mycel?](#-do-you-need-mycel) and the [field test](#-field-test-8-real-mcp-servers)), except the dollar line, which is an illustrative assumption.
 
 ### 🖱️ Example 1: Cursor with 8 MCP servers, 30-turn session
 
@@ -95,8 +117,6 @@ Direct: the whole file flows through the model, **131k tokens**. Through Mycel t
 ## 🤔 Do you need Mycel?
 
 Honest answer: **it depends on how many MCP servers your agent uses.** Measured with 8 real open-source servers ([field test](examples/field-test)), adding them one at a time:
-
-<p align="center"><img src="media/chart-scaling.svg" alt="Line chart: direct MCP tool definitions grow from 1.1k to 17.8k tokens across 1 to 8 servers while Mycel stays near 1k; break-even is around 3 servers" width="860"></p>
 
 | MCP servers | Tools | Tool definitions, direct | Through Mycel | Context saved |
 |---:|---:|---:|---:|---:|

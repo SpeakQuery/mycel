@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -28,7 +28,7 @@
       </a>
       <nav aria-label="Primary">
         <ul class="nav-links">
-          <li><a href="#problem">Problem</a></li>
+          <li><a href="#why">Why</a></li>
           <li><a href="#savings">Savings</a></li>
           <li><a href="#fit">Do I need it?</a></li>
           <li><a href="#architecture">Architecture</a></li>
@@ -94,31 +94,67 @@
       </div>
     </section>
 
-    <!-- PROBLEM -->
-    <section class="section" id="problem" aria-labelledby="problem-title">
+    <!-- WHY: 3D context window + reasons -->
+    <section class="section why" id="why" aria-labelledby="why-title">
       <div class="wrap">
-        <p class="kicker">The problem</p>
-        <h2 id="problem-title">MCP made tools pluggable. It didn't make them cheap, fast or safe.</h2>
-        <p class="section-lede">Connect a dozen servers and your agent pays for it on every turn. Eight pains we kept hitting:</p>
-        <ol class="pains">
-          <li><h3>Context bloat</h3><p>Every server dumps its full tool schemas up front. Thirty servers cost tens of thousands of tokens before the first word.</p></li>
-          <li><h3>Everything flows through the model</h3><p>Moving 10k rows from tool A to tool B means 10k rows in the context window.</p></li>
-          <li><h3>Round-trip storms</h3><p>A 10-step task becomes 10 inference turns, each one slow and billed.</p></li>
-          <li class="warn"><h3>Security bolted on</h3><p>Tool output can smuggle instructions, descriptions can change silently (rug pulls), and API keys sit in prompts.</p></li>
-          <li><h3>Tools don't describe their cost</h3><p>No latency, no price, no hint whether a call can be undone.</p></li>
-          <li><h3>Long-running work has no home</h3><p>Video, render and training calls simply time out.</p></li>
-          <li class="warn"><h3>Agents can't safely delegate</h3><p>Sub-agents inherit full credentials, with no way to narrow them.</p></li>
-          <li><h3>No black box</h3><p>Nobody can see what an agent did, or why.</p></li>
-        </ol>
+        <p class="kicker">Why would you use it?</p>
+        <h2 class="mega" id="why-title">Your tools shouldn't eat your <span class="glow">context.</span></h2>
+        <p class="section-lede big">Every MCP server pushes its full tool list into every turn. Add servers and the stack climbs until it crowds out your real work. Drag the slider. Then flip the switch.</p>
+
+        <div class="gl" id="gl">
+          <figure class="gl-stage" id="gl-stage">
+            <canvas id="gl-canvas" role="img" aria-label="3D model of a 200k-token context window. Tool definitions stack up inside it as you add MCP servers."></canvas>
+            <div class="gl-fallback" aria-hidden="true">
+              <div class="fb-col"><span class="fb-fill" id="fb-fill"></span></div>
+              <p>200k context window</p>
+            </div>
+            <figcaption class="gl-hud" aria-live="polite">
+              <span class="gl-mode" id="gl-mode">Direct MCP</span>
+              <span class="gl-tok" id="gl-tok">17.8k tokens</span>
+              <span class="gl-pct" id="gl-pct">9% of a 200k window</span>
+            </figcaption>
+            <p class="gl-hint" aria-hidden="true">Drag to rotate</p>
+          </figure>
+          <div class="gl-controls">
+            <div class="gl-ctl">
+              <label for="gl-range">MCP servers <output id="gl-count" for="gl-range">8</output></label>
+              <input type="range" id="gl-range" min="1" max="15" value="8" step="1">
+            </div>
+            <div class="seg" role="group" aria-label="Connection mode">
+              <button type="button" class="seg-btn" id="gl-direct" aria-pressed="true">Direct MCP</button>
+              <button type="button" class="seg-btn seg-m" id="gl-mycel" aria-pressed="false">Through Mycel</button>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm gl-heavy" id="gl-heavy">Load the measured heavy setup: 15 servers, 414 tools</button>
+          </div>
+          <p class="fine gl-note" id="gl-note">Measured with real open-source servers up to 8. Beyond 8 the stack is an estimate.</p>
+        </div>
+
+        <ul class="reasons" aria-label="Three reasons">
+          <li class="reason">
+            <p class="r-big" aria-hidden="true">−94%</p>
+            <h3>−94% context with 8 servers</h3>
+            <p>17.8k tokens of tool definitions per turn become 1.0k. The model searches the catalog and loads a schema only when it needs one.</p>
+          </li>
+          <li class="reason">
+            <p class="r-big" aria-hidden="true">17 → 1</p>
+            <h3>17 steps → 1 round trip</h3>
+            <p>With Code Mode the model writes one short script and a sandbox runs the calls. Only the result comes back. Gateway overhead: +0.4 ms per call.</p>
+          </li>
+          <li class="reason r-warn">
+            <p class="r-big" aria-hidden="true">Blocked</p>
+            <h3>Untrusted web page can't write files without approval</h3>
+            <p>Content from untrusted servers is tainted. A tainted call that writes, sends or deletes waits for a human. Mycel reduces the risk of prompt injection; it doesn't solve it.</p>
+          </li>
+        </ul>
       </div>
     </section>
 
     <!-- BEFORE / AFTER -->
     <section class="section" id="compare" aria-labelledby="compare-title">
       <div class="wrap">
-        <p class="kicker">Before / after</p>
-        <h2 id="compare-title">Same tools. A fraction of the context.</h2>
-        <p class="section-lede">Measured with <code>mycel bench</code>: the same catalog of 12 servers, called directly over MCP and through Mycel.</p>
+        <p class="kicker">What do you actually gain?</p>
+        <h2 class="mega" id="compare-title">Same tools. <span class="glow">A fraction of the context.</span></h2>
+        <p class="section-lede big">More room for your actual work, fewer slow turns, and a trust layer in between. Measured with <code>mycel bench</code>: the same catalog of 12 servers, called directly over MCP and through Mycel.</p>
         <div class="ba">
           <article class="ba-card ba-before" aria-labelledby="ba-before-title">
             <h3 id="ba-before-title">Direct MCP</h3>
@@ -142,11 +178,54 @@
     </section>
 
     <!-- SAVINGS -->
+    <span id="calculator" class="anchor-alias" aria-hidden="true"></span>
     <section class="section" id="savings" aria-labelledby="savings-title">
       <div class="wrap">
-        <p class="kicker">What you actually save</p>
-        <h2 id="savings-title">Nothing with 2 servers. 94% with 8. 99% with 15 servers and 414 tools.</h2>
-        <p class="section-lede">Direct MCP re-sends every tool definition on every turn. Mycel stays flat at about 1k tokens. So the gain grows with every server you add.</p>
+        <p class="kicker">How much do you save?</p>
+        <h2 class="mega" id="savings-title">Nothing at 2 servers. <span class="glow">Real money at 8.</span></h2>
+        <p class="section-lede big">Direct MCP re-sends every tool definition on every turn. Mycel stays flat at about 1k tokens. Set your own numbers and watch the gap.</p>
+
+        <div class="calc" id="calc" role="group" aria-labelledby="calc-title">
+          <h3 id="calc-title" class="sr-only">Savings calculator</h3>
+          <div class="calc-in">
+            <div class="fld" data-f="servers"><label for="c-servers-n">MCP servers</label><div class="fld-row"><input type="range" id="c-servers" min="1" max="15" step="1" value="8" aria-label="MCP servers"><input type="number" id="c-servers-n" min="1" max="15" step="1" value="8" inputmode="numeric"></div></div>
+            <div class="fld" data-f="turns"><label for="c-turns-n">Turns per day, per developer</label><div class="fld-row"><input type="range" id="c-turns" min="10" max="2000" step="10" value="200" aria-label="Turns per day"><input type="number" id="c-turns-n" min="10" max="2000" step="10" value="200" inputmode="numeric"></div></div>
+            <div class="fld" data-f="devs"><label for="c-devs-n">Developers on the team</label><div class="fld-row"><input type="range" id="c-devs" min="1" max="200" step="1" value="5" aria-label="Developers"><input type="number" id="c-devs-n" min="1" max="200" step="1" value="5" inputmode="numeric"></div></div>
+            <div class="fld" data-f="price"><label for="c-price-n">Input price, $ per million tokens</label><div class="fld-row"><input type="range" id="c-price" min="0.25" max="30" step="0.25" value="3" aria-label="Input price per million tokens"><input type="number" id="c-price-n" min="0" max="1000" step="0.25" value="3" inputmode="decimal"></div></div>
+          </div>
+          <div class="calc-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="c-heavy">Load the measured heavy setup: 15 servers, 414 tools</button>
+            <span class="est" id="c-est" hidden>estimate</span>
+          </div>
+
+          <div class="calc-money" aria-live="polite">
+            <div class="big-stat"><p class="bs-label">Saved per month</p><p class="bs-num" id="o-month">$0</p></div>
+            <div class="big-stat"><p class="bs-label">Saved per year</p><p class="bs-num" id="o-year">$0</p></div>
+            <div class="big-stat bs-sm"><p class="bs-label">Tokens saved per month</p><p class="bs-num" id="o-tokens">0</p></div>
+          </div>
+          <p class="fine calc-fine">Before prompt caching. Caching lowers the cost of repeated tokens, but not the size of your context. Based on 22 working days a month and tool definitions re-sent on every turn.</p>
+
+          <div class="calc-turn">
+            <div class="turn-card"><p class="bs-label">Tool-definition tokens per turn, direct</p><p class="turn-num t-d" id="o-d">0</p></div>
+            <div class="turn-card"><p class="bs-label">Tool-definition tokens per turn, Mycel</p><p class="turn-num t-m" id="o-m">0</p></div>
+          </div>
+
+          <h3 class="calc-sub">How much of a 200k context window is gone before you say anything?</h3>
+          <div class="gauges">
+            <div class="gauge g-d">
+              <p class="bs-label">Direct MCP</p>
+              <div class="ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle class="ring-fg" id="ring-d" cx="60" cy="60" r="52" pathLength="100"/></svg><p class="ring-val" id="o-pd">0%</p></div>
+              <p class="grade" id="gr-d" data-g="A"><span class="grade-l">A</span><span class="grade-s"><span id="o-sd">100</span>/100</span></p>
+            </div>
+            <div class="gauge g-m">
+              <p class="bs-label">Through Mycel</p>
+              <div class="ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle class="ring-fg" id="ring-m" cx="60" cy="60" r="52" pathLength="100"/></svg><p class="ring-val" id="o-pm">0%</p></div>
+              <p class="grade" id="gr-m" data-g="A"><span class="grade-l">A</span><span class="grade-s"><span id="o-sm">100</span>/100</span></p>
+            </div>
+          </div>
+          <p class="fine calc-fine"><strong>Context headroom score</strong> = 100 × (1 − tool tokens ÷ 200,000). It only says how much of the window is left once tool definitions are loaded. It is not a measure of model quality or accuracy. A ≥ 95, B ≥ 85, C ≥ 70, D ≥ 50, F below.</p>
+          <p class="fine" id="c-note"></p>
+        </div>
 
         <figure class="sv-chart">
           <img src="assets/chart-scaling.svg" width="860" height="480" loading="lazy" alt="Line chart of tool-definition tokens per turn for 1 to 8 MCP servers. Direct MCP grows from 1.1k to 17.8k; Mycel stays near 1k. Break-even is around 3 servers.">
@@ -176,27 +255,26 @@
           </li>
         </ul>
 
-        <div class="sv-calc" role="group" aria-labelledby="sv-calc-title">
-          <h3 id="sv-calc-title">How many MCP servers do you use?</h3>
-          <div class="sv-slider">
-            <label for="sv-range" class="sr-only">Number of MCP servers</label>
-            <input type="range" id="sv-range" min="1" max="15" value="8" step="1">
-            <output id="sv-count" for="sv-range" class="sv-count">8 servers</output>
-          </div>
-          <div class="sv-bars" aria-hidden="true">
-            <div class="sv-row"><span class="sv-lbl">Direct</span><span class="sv-track"><span class="sv-bar sv-bar-d" id="sv-bar-d"></span></span></div>
-            <div class="sv-row"><span class="sv-lbl">Mycel</span><span class="sv-track"><span class="sv-bar sv-bar-m" id="sv-bar-m"></span></span></div>
-          </div>
-          <dl class="sv-out" aria-live="polite">
-            <div><dt>Per turn, direct</dt><dd id="sv-d1">17.8k</dd></div>
-            <div><dt>Per turn, Mycel</dt><dd id="sv-m1" class="sv-good">1.0k</dd></div>
-            <div><dt>30-turn session, direct</dt><dd id="sv-d30">534k</dd></div>
-            <div><dt>30-turn session, Mycel</dt><dd id="sv-m30" class="sv-good">31k</dd></div>
-            <div><dt>Saved</dt><dd id="sv-pct" class="sv-good">94%</dd></div>
-          </dl>
-          <p class="fine" id="sv-note">Measured: 1–8 servers (real open-source servers), plus 9 servers with Canva and 15 servers with Canva and Higgsfield in the full-scale test.</p>
-        </div>
-        <p class="fine">Estimates for 9–15 servers assume about 2.2k tokens per extra server and about 30 tokens of growth for Mycel, so they are lower than the heavy 15-server setup (414 tools, ~204k) measured above. Dollar figures are not shown: they depend on your model and caching.</p>
+        <p class="fine">Estimates for 9–15 servers assume about 2.2k tokens per extra server for direct MCP and about 28 for Mycel, so they are far lower than the heavy 15-server setup (414 tools, ~204k vs ~1.2k) measured above. Money figures are before prompt caching and depend on your model and price.</p>
+      </div>
+    </section>
+
+    <!-- PROBLEM -->
+    <section class="section" id="problem" aria-labelledby="problem-title">
+      <div class="wrap">
+        <p class="kicker">The problem</p>
+        <h2 id="problem-title">MCP made tools pluggable. It didn't make them cheap, fast or safe.</h2>
+        <p class="section-lede">Connect a dozen servers and your agent pays for it on every turn. Eight pains we kept hitting:</p>
+        <ol class="pains">
+          <li><h3>Context bloat</h3><p>Every server dumps its full tool schemas up front. Thirty servers cost tens of thousands of tokens before the first word.</p></li>
+          <li><h3>Everything flows through the model</h3><p>Moving 10k rows from tool A to tool B means 10k rows in the context window.</p></li>
+          <li><h3>Round-trip storms</h3><p>A 10-step task becomes 10 inference turns, each one slow and billed.</p></li>
+          <li class="warn"><h3>Security bolted on</h3><p>Tool output can smuggle instructions, descriptions can change silently (rug pulls), and API keys sit in prompts.</p></li>
+          <li><h3>Tools don't describe their cost</h3><p>No latency, no price, no hint whether a call can be undone.</p></li>
+          <li><h3>Long-running work has no home</h3><p>Video, render and training calls simply time out.</p></li>
+          <li class="warn"><h3>Agents can't safely delegate</h3><p>Sub-agents inherit full credentials, with no way to narrow them.</p></li>
+          <li><h3>No black box</h3><p>Nobody can see what an agent did, or why.</p></li>
+        </ol>
       </div>
     </section>
 
@@ -557,6 +635,7 @@
     </div>
   </footer>
 
-  <script src="main.js?v=3" defer></script>
+  <script src="main.js?v=4" defer></script>
+  <script type="module" src="assets/scene.js?v=4"></script>
 </body>
 </html>

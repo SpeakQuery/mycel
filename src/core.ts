@@ -129,7 +129,7 @@ export class Mycel {
 
   // ------------------------------------------------------------------ lifecycle
   async start(): Promise<this> {
-    const ups: ProviderUpstream[] = this.opts.noConnect ? [] : await connectAll(this.config.servers, this.vault, this.log, this.baseDir);
+    const ups: ProviderUpstream[] = this.opts.noConnect ? [] : await connectAll(this.config.servers, this.vault, this.log, this.baseDir, { home: this.home });
     for (const [name, p] of Object.entries(this.opts.providers ?? {})) {
       ups.push(await new ProviderUpstream(name, p.provider, { trust: p.trust ?? "trusted", tools: p.tools ?? {} }).refresh());
     }
@@ -391,6 +391,12 @@ export class Mycel {
   present(value: unknown, tool?: ToolEntry): unknown {
     const limit = this.config.refs.inlineLimitBytes;
     const untrusted = tool?.trust === "untrusted";
+    // Many servers wrap one big text in an object ({content: "..."}). Store the text itself,
+    // so a CSV gets a table digest and grep works line by line.
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const entries = Object.entries(value as Record<string, unknown>);
+      if (entries.length === 1 && typeof entries[0][1] === "string" && Buffer.byteLength(entries[0][1]) > limit) value = entries[0][1];
+    }
     const s = typeof value === "string" ? value : JSON.stringify(value);
     let out: unknown = value;
     if (s !== undefined && Buffer.byteLength(s) > limit) {

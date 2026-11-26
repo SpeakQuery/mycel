@@ -8,7 +8,7 @@
 Tagline: **"One layer between your agents and everything they touch."**
 Secondary: **"Your MCP setup, minus the context bloat."**
 
-CLI: `npx mycel init` → imports existing Claude / Cursor / VS Code / Windsurf MCP configs.
+CLI: `mycel init` → imports existing Claude / Cursor / VS Code / Windsurf MCP configs.
 Language: TypeScript (Node ≥ 20). License: Apache-2.0. Repo: github.com/SpeakQuery/mycel
 
 ## The problem (today's MCP pain)

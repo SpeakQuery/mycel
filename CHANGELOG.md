@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.1 — 2026-11-26
+
+Found by running Mycel in front of 8 real open-source MCP servers ([field test](examples/field-test)).
+
+- **OAuth sign-in for remote MCP servers** (Canva, Higgsfield, Notion, Linear, …). `mycel login <server>` handles discovery, dynamic client registration, PKCE and refresh. Tokens are stored with mode 0600. `doctor` and `serve` tell you when a sign-in is missing.
+- **`annotations: balanced | strict`** per server. Playwright marks even `hover` as destructive, which made every browser step ask for approval. In balanced mode (the default), a destructive annotation needs the tool's name to agree.
+- Big text results wrapped in JSON (`{content: "…"}`) are stored as text, so a CSV gets a table digest and grep works line by line.
+- `mycel_ref` grep shows a window around the match on very long lines instead of the whole line.
+- Better search synonyms (remember, save, history, uncommitted, open/visit → navigate, …). Field-test top-3 accuracy is now 16/16.
+- Install with `npm install -g github:SpeakQuery/mycel`. `mycel init` now writes client snippets that call the installed `mycel` command.
+- CI runs on Linux, macOS and Windows.
+- New: a "Do you need Mycel?" guide with measured break-even numbers, plus the `examples/field-test` suite.
+
 ## 0.1.0 — 2026-11-26
 
 Initial release. All 20 features:

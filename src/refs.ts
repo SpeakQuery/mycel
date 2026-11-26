@@ -127,7 +127,7 @@ export class RefStore {
           .map((l, i) => [i + 1, l] as const)
           .filter(([, l]) => re.test(l))
           .slice(0, 200)
-          .map(([n, l]) => `${n}: ${l}`)
+          .map(([n, l]) => `${n}: ${clip(l, re)}`)
           .join("\n");
       }
       if (opts.rows) return text.split(/\r?\n/).slice(opts.rows[0], opts.rows[1]).join("\n");
@@ -449,3 +449,11 @@ export function dirSize(dir: string): number {
 }
 
 export { walkStrings };
+
+/** Keep grep output small: show a window around the first match of a very long line. */
+function clip(line: string, re: RegExp, width = 160): string {
+  if (line.length <= width * 2) return line;
+  const at = line.search(re);
+  const start = Math.max(0, at - width);
+  return `${start > 0 ? "…" : ""}${line.slice(start, at + width)}…`;
+}

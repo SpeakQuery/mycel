@@ -7,6 +7,7 @@ import { isStdio, type ServerConfig } from "./config.js";
 import { hashDefinition, type ToolEntry } from "./catalog.js";
 import { inferContract, type ToolAnnotations } from "./contracts.js";
 import type { SecretVault } from "./secrets.js";
+import { FileOAuthProvider } from "./oauth.js";
 
 export interface UpstreamToolResult {
   content: Array<Record<string, unknown>>;
@@ -30,7 +31,7 @@ export interface ToolProvider {
   close?(): Promise<void>;
 }
 
-export function toEntries(server: string, cfg: Pick<ServerConfig, "trust" | "tools">, tools: Awaited<ReturnType<ToolProvider["listTools"]>>): ToolEntry[] {
+export function toEntries(server: string, cfg: Pick<ServerConfig, "trust" | "tools"> & { annotations?: "balanced" | "strict" }, tools: Awaited<ReturnType<ToolProvider["listTools"]>>): ToolEntry[] {
   return tools.map((t) => ({
     id: `${server}.${t.name}`,
     server,
@@ -39,7 +40,7 @@ export function toEntries(server: string, cfg: Pick<ServerConfig, "trust" | "too
     inputSchema: t.inputSchema ?? { type: "object", properties: {} },
     outputSchema: t.outputSchema,
     annotations: t.annotations,
-    contract: inferContract(t.name, t.description, t.annotations, cfg.tools?.[t.name]),
+    contract: inferContract(t.name, t.description, t.annotations, cfg.tools?.[t.name], cfg.annotations),
     trust: cfg.trust,
     hash: hashDefinition(t),
   }));
@@ -75,7 +76,27 @@ export class McpProvider implements ToolProvider {
   }
 }
 
-export async function connectMcp(name: string, cfg: ServerConfig, vault: SecretVault, baseDir = process.cwd()): Promise<McpProvider> {
+export interface ConnectOptions {
+  /** Mycel home; OAuth tokens are stored under <home>/oauth. Without it, OAuth is off. */
+  home?: string;
+  /** Interactive sign-in (mycel login): open the browser instead of failing. */
+  onRedirect?: (url: URL) => void | Promise<void>;
+}
+
+/** The OAuth provider Mycel would use for an HTTP server, or undefined if OAuth doesn't apply. */
+export function oauthFor(name: string, cfg: ServerConfig, vault: SecretVault, opts: ConnectOptions = {}) {
+  if (isStdio(cfg) || cfg.oauth === false || !opts.home) return undefined;
+  const headers = vault.inject(cfg.headers) as Record<string, string>;
+  if (Object.keys(headers).some((h) => h.toLowerCase() === "authorization")) return undefined; // static token wins
+  const o = cfg.oauth ?? {};
+  return new FileOAuthProvider(name, opts.home, {
+    ...o,
+    clientSecret: o.clientSecret ? String(vault.inject({ s: o.clientSecret }).s) : undefined,
+    onRedirect: opts.onRedirect,
+  });
+}
+
+export async function connectMcp(name: string, cfg: ServerConfig, vault: SecretVault, baseDir = process.cwd(), opts: ConnectOptions = {}): Promise<McpProvider> {
   let transport: Transport;
   if (isStdio(cfg)) {
     transport = new StdioClientTransport({
@@ -89,9 +110,10 @@ export async function connectMcp(name: string, cfg: ServerConfig, vault: SecretV
   } else {
     transport = new StreamableHTTPClientTransport(new URL(cfg.url), {
       requestInit: { headers: vault.inject(cfg.headers) },
+      authProvider: oauthFor(name, cfg, vault, opts),
     });
   }
-  const client = new Client({ name: `mycel:${name}`, version: "0.1.0" }, { capabilities: {} });
+  const client = new Client({ name: `mycel:${name}`, version: "0.1.1" }, { capabilities: {} });
   await client.connect(transport);
   return new McpProvider(client);
 }
@@ -103,7 +125,7 @@ export class ProviderUpstream implements Upstream {
   constructor(
     public name: string,
     private provider: ToolProvider,
-    private cfg: Pick<ServerConfig, "trust" | "tools">,
+    private cfg: Pick<ServerConfig, "trust" | "tools"> & { annotations?: "balanced" | "strict" },
   ) {}
 
   async refresh() {
@@ -132,12 +154,13 @@ export async function connectAll(
   vault: SecretVault,
   log: (msg: string) => void = () => {},
   baseDir = process.cwd(),
+  opts: ConnectOptions = {},
 ): Promise<ProviderUpstream[]> {
   const entries = Object.entries(servers).filter(([, s]) => s.enabled !== false);
   return Promise.all(
     entries.map(async ([name, cfg]) => {
       try {
-        const provider = await withTimeout(connectMcp(name, cfg, vault, baseDir), 30_000, `connect ${name}`);
+        const provider = await withTimeout(connectMcp(name, cfg, vault, baseDir, opts), 30_000, `connect ${name}`);
         const up = await new ProviderUpstream(name, provider, cfg).refresh();
         log(`✓ ${name}: ${up.tools.length} tools`);
         return up;

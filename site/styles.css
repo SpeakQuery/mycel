@@ -265,3 +265,17 @@ p { margin: 0 0 12px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* Do you need it? */
+.fit-table td, .fit-table th { white-space: nowrap; }
+.vs.fit-table td.fit-neg { color: var(--amber); }
+.vs.fit-table td.fit-pos { color: var(--accent); font-weight: 600; }
+.fit-break th, .fit-break td { border-top: 1px solid var(--line-strong); }
+.fit-cards { margin-top: 24px; }
+.fit-list li { display: block; padding: 10px 0; color: var(--text-2); line-height: 1.55; }
+.fit-list li strong { color: var(--text); }
+/* Long install commands: scroll inside the box, keep Copy visible */
+.cmd { max-width: 100%; min-width: 0; }
+.cmd code { min-width: 0; flex: 1 1 auto; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.cmd code::-webkit-scrollbar { display: none; }
+.cmd .copy { flex: 0 0 auto; }

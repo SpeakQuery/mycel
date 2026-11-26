@@ -3,14 +3,14 @@
 Add Mycel as a single MCP server (user scope, available in every project):
 
 ```bash
-claude mcp add mycel -- npx -y mycel serve
+claude mcp add mycel -- mycel serve
 ```
 
 With an explicit config file, or project scope (writes `.mcp.json` so your team shares it):
 
 ```bash
-claude mcp add mycel -- npx -y mycel serve -c /absolute/path/to/mycel.yaml
-claude mcp add --scope project mycel -- npx -y mycel serve -c ./mycel.yaml
+claude mcp add mycel -- mycel serve -c /absolute/path/to/mycel.yaml
+claude mcp add --scope project mycel -- mycel serve -c ./mycel.yaml
 ```
 
 From a clone (no npm publish needed):

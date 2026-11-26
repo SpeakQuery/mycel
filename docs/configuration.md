@@ -56,7 +56,16 @@ A server is either a **stdio** server (has `command`) or an **HTTP** server (has
 | Field | Type | Default | Meaning |
 |---|---|---|---|
 | `url` | string (valid URL) | required | MCP endpoint of the remote server. |
-| `headers` | map string to string | `{}` | Extra HTTP headers. Values may use `{{secret:NAME}}`. |
+| `headers` | map string to string | `{}` | Extra HTTP headers. Values may use `{{secret:NAME}}`. An `Authorization` header turns OAuth off for this server. |
+| `oauth` | `false` or object | on | OAuth 2.1 sign-in per the MCP authorization spec: discovery, dynamic client registration, PKCE and refresh. Run `mycel login <name>` once. Tokens are stored in `<home>/oauth/<name>.json` with mode 0600. Optional fields: `clientId`, `clientSecret` (may be `{{secret:NAME}}`) for servers without dynamic registration, `scope`, `callbackPort` (default `33418`). Set `false` to disable. |
+
+```yaml
+servers:
+  canva:
+    url: https://mcp.canva.com/mcp        # then: mycel login canva
+```
+
+If a server needs a sign-in and you haven't done it, `mycel doctor` and `mycel serve` say so (`Run: mycel login canva`) instead of failing silently.
 
 ### Common fields
 
@@ -65,6 +74,7 @@ A server is either a **stdio** server (has `command`) or an **HTTP** server (has
 | `trust` | `trusted` or `untrusted` | `trusted` | Output of `untrusted` servers is labelled and taints downstream calls. |
 | `enabled` | boolean | `true` | Set `false` to skip connecting to the server. |
 | `description` | string | none | Free-text note about the server. |
+| `annotations` | `balanced` or `strict` | `balanced` | How far to believe the server's MCP tool annotations. Some servers mark every non-read tool `destructiveHint: true` (Playwright marks `hover`). In `balanced` mode, such a tool is classed `external` unless its name looks like it writes, deletes or runs code. `strict` takes annotations at face value. |
 | `tools` | map tool name to contract override | `{}` | Per-tool contract overrides (below). |
 
 ### Tool contract overrides (`servers.<name>.tools.<tool>`)

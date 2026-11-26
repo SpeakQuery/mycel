@@ -111,5 +111,5 @@ export function toMycelYaml(found: FoundConfig[]): { yaml: string; servers: numb
 
 /** Snippet the user pastes into their client so it talks to Mycel only. */
 export function clientSnippet(configPath: string) {
-  return { mcpServers: { mycel: { command: "npx", args: ["-y", "mycel", "serve", "--config", configPath] } } };
+  return { mcpServers: { mycel: { command: "mycel", args: ["serve", "--config", configPath] } } };
 }

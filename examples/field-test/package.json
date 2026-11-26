@@ -1,0 +1,18 @@
+{
+  "name": "mycel-field-test",
+  "private": true,
+  "type": "module",
+  "description": "Mycel against 8 real open-source MCP servers: direct vs through Mycel.",
+  "scripts": {
+    "setup": "node setup.mjs",
+    "test": "node lab.mjs",
+    "scale": "node scale.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server-everything": "*",
+    "@modelcontextprotocol/server-filesystem": "*",
+    "@modelcontextprotocol/server-memory": "*",
+    "@modelcontextprotocol/server-sequential-thinking": "*",
+    "@playwright/mcp": "*"
+  }
+}

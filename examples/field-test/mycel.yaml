@@ -1,0 +1,33 @@
+# Mycel field test: 8 real open-source MCP servers, no accounts needed.
+# Python servers (fetch, git, time) run through uvx: https://docs.astral.sh/uv/
+servers:
+  filesystem:
+    command: node
+    args: ["node_modules/@modelcontextprotocol/server-filesystem/dist/index.js", "data"]
+  memory:
+    command: node
+    args: ["node_modules/@modelcontextprotocol/server-memory/dist/index.js"]
+  everything:
+    command: node
+    args: ["node_modules/@modelcontextprotocol/server-everything/dist/index.js"]
+  thinking:
+    command: node
+    args: ["node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js"]
+  playwright:
+    command: node
+    args: ["node_modules/@playwright/mcp/cli.js", "--headless", "--isolated"]
+  fetch:
+    command: uvx
+    args: ["mcp-server-fetch"]
+    trust: untrusted        # web pages are data, never instructions
+  git:
+    command: uvx
+    args: ["mcp-server-git", "--repository", "gitrepo"]
+  time:
+    command: uvx
+    args: ["mcp-server-time"]
+
+  # Remote servers with OAuth work too. Uncomment, then run `mycel login <name>` once.
+  # context7:   { url: "https://mcp.context7.com/mcp", trust: untrusted }   # no sign-in needed
+  # canva:      { url: "https://mcp.canva.com/mcp" }
+  # higgsfield: { url: "https://mcp.higgsfield.ai/mcp", trust: untrusted }

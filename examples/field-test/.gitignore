@@ -1,0 +1,8 @@
+node_modules/
+data/
+gitrepo/
+scale/
+.mycel/
+mycel.lock
+results.json
+scale.json

@@ -13,7 +13,12 @@ import { runBench, formatBench } from "./bench.js";
 import { mint, attenuate, inspect, newRootKey, parseDuration, type Caveat } from "./tokens.js";
 import { ApprovalQueue } from "./policy.js";
 import { Recorder } from "./recorder.js";
-import { EFFECTS, type Effect } from "./config.js";
+import { EFFECTS, isStdio, type Effect } from "./config.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js";
+import { oauthFor } from "./upstream.js";
+import { DEFAULT_CALLBACK_PORT, openBrowser, waitForCallback } from "./oauth.js";
 
 // Exit quietly when piped into something that closes early (e.g. `mycel traces | head -1`).
 process.stdout.on("error", (e: NodeJS.ErrnoException) => {
@@ -39,7 +44,7 @@ const program = new Command();
 program
   .name("mycel")
   .description("The connective layer for AI agents — MCP gateway + A2A mesh.")
-  .version("0.1.0")
+  .version("0.1.1")
   .option("-c, --config <path>", "path to mycel.yaml");
 
 program
@@ -152,11 +157,58 @@ program
     if (!loaded) return;
     ok(!!loaded.path, `config ${loaded.path ?? "(none)"}`, "run mycel init");
     const m = await new Mycel(loaded, { log: () => {} }).start();
-    for (const u of m.upstreams.values()) ok(u.status === "ready", `${u.name}: ${u.status === "ready" ? `${u.tools.length} tools` : u.error}`);
+    for (const u of m.upstreams.values()) ok(u.status === "ready", `${u.name}: ${u.status === "ready" ? `${u.tools.length} tools` : u.error}`, /unauthori[sz]ed|\b401\b/i.test(u.error ?? "") && !/mycel login/.test(u.error ?? "") ? `run: mycel login ${u.name}` : "");
     ok(m.drift.changed.length === 0, `manifest pinning: ${m.drift.changed.length} changed, ${m.drift.added.length} new`, `review with mycel pin`);
     const fp = m.contextFootprint();
     out(`\n  Context: ${fp.tools} tools would cost ≈${fp.directTokens} tokens; through Mycel ≈${fp.mycelTokens}.\n`);
     await m.close();
+  });
+
+program
+  .command("login <server>")
+  .description("Sign in to a remote MCP server that uses OAuth (Canva, Notion, Linear, …)")
+  .option("--no-browser", "print the sign-in link instead of opening a browser")
+  .action(async (name: string, o: { browser: boolean }) => {
+    const loaded = loadConfig(program.opts().config ? resolve(program.opts().config) : undefined);
+    const cfg = loaded.config.servers[name];
+    if (!cfg) throw new Error(`No server "${name}" in ${loaded.path ?? "config"}`);
+    if (isStdio(cfg)) return out(`${name} is a local (stdio) server; it doesn't need a sign-in.`);
+    const m = new Mycel(loaded, { log: () => {}, noConnect: true });
+    const provider = oauthFor(name, cfg, m.vault, {
+      home: loaded.home,
+      onRedirect: (url) => {
+        out(`\n  Sign in to ${c.b(name)} in your browser:\n  ${url.href}\n`);
+        if (o.browser) openBrowser(url.href);
+      },
+    });
+    if (!provider) return out(`OAuth is off for ${name} (oauth: false, or an Authorization header is set).`);
+    const port = (cfg.oauth || undefined)?.callbackPort ?? DEFAULT_CALLBACK_PORT;
+    const cb = waitForCallback(port, () => provider.expectedState());
+    await cb.ready;
+    const connect = async () => {
+      const client = new Client({ name: `mycel:${name}`, version: "0.1.1" }, { capabilities: {} });
+      const transport = new StreamableHTTPClientTransport(new URL(cfg.url), { requestInit: { headers: m.vault.inject(cfg.headers) }, authProvider: provider });
+      await client.connect(transport);
+      return { client, transport };
+    };
+    let conn: Awaited<ReturnType<typeof connect>>;
+    try {
+      conn = await connect();
+      cb.close();
+    } catch (e) {
+      if (!(e instanceof UnauthorizedError)) {
+        cb.close();
+        throw e;
+      }
+      out(c.d("  Waiting for you to finish signing in…"));
+      const code = await cb.code;
+      const transport = new StreamableHTTPClientTransport(new URL(cfg.url), { requestInit: { headers: m.vault.inject(cfg.headers) }, authProvider: provider });
+      await transport.finishAuth(code);
+      conn = await connect();
+    }
+    const { tools } = await conn.client.listTools();
+    out(`  ${c.g("✓")} ${name}: signed in, ${tools.length} tools available. Tokens refresh automatically.\n`);
+    await conn.client.close();
   });
 
 program

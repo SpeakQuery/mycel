@@ -29,6 +29,7 @@
       <nav aria-label="Primary">
         <ul class="nav-links">
           <li><a href="#problem">Problem</a></li>
+          <li><a href="#fit">Do I need it?</a></li>
           <li><a href="#architecture">Architecture</a></li>
           <li><a href="#features">Features</a></li>
           <li><a href="#how">How it works</a></li>
@@ -53,8 +54,8 @@
         <div class="hero-cta">
           <div class="cmd" role="group" aria-label="Install command">
             <span class="cmd-prompt" aria-hidden="true">$</span>
-            <code id="install-cmd">npx -y github:SpeakQuery/mycel init</code>
-            <button class="copy" type="button" data-copy="npx -y github:SpeakQuery/mycel init" aria-label="Copy install command to clipboard">
+            <code id="install-cmd">npm install -g github:SpeakQuery/mycel</code>
+            <button class="copy" type="button" data-copy="npm install -g github:SpeakQuery/mycel" aria-label="Copy install command to clipboard">
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
               <span class="copy-label">Copy</span>
             </button>
@@ -135,9 +136,55 @@
             </ul>
           </article>
         </div>
-        <p class="fine">Reproduce it yourself: <code>npx -y github:SpeakQuery/mycel bench</code>. Numbers vary with your catalog and task.</p>
+        <p class="fine">Reproduce it yourself: <code>mycel bench</code>. Numbers vary with your catalog and task.</p>
       </div>
     </section>
+
+    <!-- DO YOU NEED IT -->
+    <section class="section" id="fit" aria-labelledby="fit-title">
+      <div class="wrap">
+        <p class="kicker">Do you need Mycel?</p>
+        <h2 id="fit-title">The more MCP servers you use, the more it pays off.</h2>
+        <p class="section-lede">Measured with 8 real open-source MCP servers (filesystem, git, fetch, time, memory, Playwright and more), added one at a time. Mycel's own footprint stays flat at about 1k tokens. Direct MCP grows with every server, and the model re-reads it on every turn.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-labelledby="fit-title">
+          <table class="vs fit-table">
+            <thead>
+              <tr><th scope="col">MCP servers</th><th scope="col">Tools</th><th scope="col">Tool definitions, direct</th><th scope="col" class="vs-m">Through Mycel</th><th scope="col">Context saved</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">1</th><td>3</td><td>1.1k tokens</td><td class="vs-m">1.1k</td><td class="fit-neg">−4%</td></tr>
+              <tr><th scope="row">2</th><td>4</td><td>1.5k</td><td class="vs-m">1.5k</td><td class="fit-neg">−3%</td></tr>
+              <tr><th scope="row">3</th><td>18</td><td>4.7k</td><td class="vs-m">3.8k</td><td>19%</td></tr>
+              <tr class="fit-break"><th scope="row">4</th><td>32</td><td>6.7k</td><td class="vs-m">0.9k</td><td class="fit-pos">86%</td></tr>
+              <tr><th scope="row">6</th><td>42</td><td>10.6k</td><td class="vs-m">1.0k</td><td class="fit-pos">91%</td></tr>
+              <tr><th scope="row">8</th><td>80</td><td>17.8k</td><td class="vs-m">1.0k</td><td class="fit-pos">94%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ba fit-cards">
+          <article class="ba-card ba-after" aria-labelledby="fit-yes">
+            <h3 id="fit-yes">Use it if</h3>
+            <ul class="fit-list">
+              <li>You use <strong>4+ MCP servers</strong>, or one big one (Playwright, GitHub, Notion: 20–90 tools each).</li>
+              <li>Your tools return <strong>big results</strong>: files, tables, logs, page snapshots, images, video. A 20,000-row CSV is 131k tokens direct and 187 through Mycel.</li>
+              <li>Your agent works in <strong>many small steps</strong>. Code Mode turns 17 tool calls into 1 round trip.</li>
+              <li>Your agent reads <strong>untrusted content</strong> (web, email, tickets) and can also write, send or delete.</li>
+              <li>You need <strong>approvals, budgets, an audit trail</strong>, or other agents (A2A) calling your tools.</li>
+            </ul>
+          </article>
+          <article class="ba-card ba-before" aria-labelledby="fit-no">
+            <h3 id="fit-no">Skip it if</h3>
+            <ul class="fit-list">
+              <li>You run <strong>1–2 small servers</strong> and only make short, read-only calls. Your client is fine on its own.</li>
+              <li>You don't need a safety layer, refs or Code Mode. Even then Mycel's <code>auto</code> mode costs only ~3% here: with few tools it shows them directly.</li>
+              <li><strong>Your client matters too.</strong> Claude Code already loads tool definitions on demand, so there Mycel is mainly for Code Mode, refs, safety and A2A. Cursor, Claude Desktop, VS Code and Windsurf send every definition on every turn, so there the savings apply in full.</li>
+            </ul>
+          </article>
+        </div>
+        <p class="fine">Run it on your machine: <code>examples/field-test</code> in the repo (10 checks, macOS / Linux / Windows). Per-call overhead measured at +0.4 ms.</p>
+      </div>
+    </section>
+
 
     <!-- ARCHITECTURE -->
     <section class="section" id="architecture" aria-labelledby="arch-title">
@@ -362,19 +409,24 @@
         <h2 id="qs-title">Running in under a minute.</h2>
         <ol class="qs">
           <li>
+            <h3>Install</h3>
+            <p>macOS, Linux or Windows, Node 20+. The npm release is coming soon.</p>
+            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>npm install -g github:SpeakQuery/mycel</code><button class="copy copy-sm" type="button" data-copy="npm install -g github:SpeakQuery/mycel" aria-label="Copy: npm install -g github:SpeakQuery/mycel">Copy</button></div>
+          </li>
+          <li>
             <h3>Import your setup</h3>
-            <p>Finds your existing MCP configs and writes <code>mycel.yaml</code>.</p>
-            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>npx -y github:SpeakQuery/mycel init</code><button class="copy copy-sm" type="button" data-copy="npx -y github:SpeakQuery/mycel init" aria-label="Copy: npx -y github:SpeakQuery/mycel init">Copy</button></div>
+            <p>Finds your Claude, Cursor, VS Code and Windsurf MCP configs and writes <code>mycel.yaml</code>. Then run <code>mycel doctor</code>.</p>
+            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>mycel init</code><button class="copy copy-sm" type="button" data-copy="mycel init" aria-label="Copy: mycel init">Copy</button></div>
+          </li>
+          <li>
+            <h3>Sign in to remote servers</h3>
+            <p>Only for servers that use OAuth (Canva, Notion, Linear…). Your browser opens; Mycel never sees your password.</p>
+            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>mycel login canva</code><button class="copy copy-sm" type="button" data-copy="mycel login canva" aria-label="Copy: mycel login canva">Copy</button></div>
           </li>
           <li>
             <h3>Point your client at Mycel</h3>
-            <p>Replace your server list with one entry. stdio for desktop, <code>--http</code> for teams.</p>
-            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>npx -y github:SpeakQuery/mycel serve</code><button class="copy copy-sm" type="button" data-copy="npx -y github:SpeakQuery/mycel serve" aria-label="Copy: npx -y github:SpeakQuery/mycel serve">Copy</button></div>
-          </li>
-          <li>
-            <h3>Watch it work</h3>
-            <p>Timeline, savings, cost and approvals at <code>localhost:4747</code>.</p>
-            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>npx -y github:SpeakQuery/mycel dashboard</code><button class="copy copy-sm" type="button" data-copy="npx -y github:SpeakQuery/mycel dashboard" aria-label="Copy: npx -y github:SpeakQuery/mycel dashboard">Copy</button></div>
+            <p>Replace your server list with one entry. Dashboard at <code>localhost:4747</code>.</p>
+            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>mycel serve</code><button class="copy copy-sm" type="button" data-copy="mycel serve" aria-label="Copy: mycel serve">Copy</button></div>
           </li>
         </ol>
       </div>
@@ -389,6 +441,18 @@
           <details>
             <summary>Is Mycel a new protocol?</summary>
             <p>No. Mycel is a drop-in layer. To your client it is a standard MCP server; to other agents it is a standard A2A agent. Your existing MCP servers and clients keep working with zero changes.</p>
+          </details>
+          <details>
+            <summary>I only use one or two MCP servers. Do I need it?</summary>
+            <p>Probably not, at least not for context savings: with 1–2 small servers Mycel adds about 3%. It starts paying off around 4 servers, or with one large server like Playwright or GitHub. With fewer, you'd use it for Code Mode, refs for big results, the safety layer or A2A. See "Do you need Mycel?" above.</p>
+          </details>
+          <details>
+            <summary>Does it run on Windows?</summary>
+            <p>Yes. Mycel is plain Node.js and is tested on Linux, macOS and Windows in CI. Install with <code>npm install -g github:SpeakQuery/mycel</code>. The servers you put behind it bring their own needs; Python servers, for example, need <code>uv</code>.</p>
+          </details>
+          <details>
+            <summary>Does it work with Canva, Notion and other servers that need a sign-in?</summary>
+            <p>Yes. Run <code>mycel login canva</code> once. Mycel follows the MCP authorization spec (OAuth with PKCE), stores the tokens only on your machine and refreshes them automatically.</p>
           </details>
           <details>
             <summary>Does it send my data anywhere?</summary>
@@ -416,8 +480,8 @@
         <p class="section-lede">Star the repo, open an issue, or write an adapter in 50 lines.</p>
         <div class="hero-cta center">
           <div class="cmd" role="group" aria-label="Install command">
-            <span class="cmd-prompt" aria-hidden="true">$</span><code>npx -y github:SpeakQuery/mycel init</code>
-            <button class="copy" type="button" data-copy="npx -y github:SpeakQuery/mycel init" aria-label="Copy install command to clipboard"><span class="copy-label">Copy</span></button>
+            <span class="cmd-prompt" aria-hidden="true">$</span><code>npm install -g github:SpeakQuery/mycel</code>
+            <button class="copy" type="button" data-copy="npm install -g github:SpeakQuery/mycel" aria-label="Copy install command to clipboard"><span class="copy-label">Copy</span></button>
           </div>
           <a class="btn btn-primary" href="https://github.com/SpeakQuery/mycel" rel="noopener">View on GitHub</a>
         </div>

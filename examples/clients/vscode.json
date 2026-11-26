@@ -2,8 +2,12 @@
   "servers": {
     "mycel": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "mycel", "serve", "-c", "${workspaceFolder}/mycel.yaml"]
+      "command": "mycel",
+      "args": [
+        "serve",
+        "-c",
+        "${workspaceFolder}/mycel.yaml"
+      ]
     }
   }
 }

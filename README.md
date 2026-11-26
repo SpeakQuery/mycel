@@ -13,7 +13,7 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 [![Node ≥ 20](https://img.shields.io/badge/node-%E2%89%A520-3DFFB0?style=flat-square)](package.json)
 [![MCP compatible](https://img.shields.io/badge/MCP-compatible-3DFFB0?style=flat-square)](https://modelcontextprotocol.io)
 [![A2A v0.3](https://img.shields.io/badge/A2A-v0.3-3DFFB0?style=flat-square)](https://a2a-protocol.org)
-[![Tests](https://img.shields.io/badge/tests-38%20passing-3DFFB0?style=flat-square)](tests)
+[![Tests](https://img.shields.io/badge/tests-42%20passing-3DFFB0?style=flat-square)](tests)
 
 [**▶ Watch the 90-second film**](media/mycel-launch.mp4) · [Quickstart](#-quickstart) · [Benchmark](#-the-numbers) · [How it works](#-how-it-works) · [All 20 features](#-features) · [Docs](docs/)
 
@@ -22,10 +22,10 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 ---
 
 ```bash
-npx mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers and imports them
+mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers and imports them
 ```
 
-<sub>Before the npm release lands, run straight from GitHub: `npx -y github:SpeakQuery/mycel init` (same for every command below).</sub>
+<sub>Install first: `npm install -g github:SpeakQuery/mycel` (macOS, Linux, Windows). The npm release is coming soon.</sub>
 
 > **Is Mycel a new protocol?** No — and that's the point. Mycel speaks plain **MCP** to your client and plain **MCP** to your servers, so nothing has to change on either side. It also speaks **A2A** so other agents can use your tools under the same rules. Think of it as the missing middle layer both protocols assumed someone else would build.
 
@@ -45,7 +45,7 @@ Connect an agent to a dozen MCP servers and you get:
 
 ## 📊 The numbers
 
-Measured by `npx mycel bench` — a reproducible in-process benchmark with 12 realistic servers (GitHub, Slack, Gmail, Calendar, Notion, Linear, Postgres, filesystem, browser, Drive, an AI media studio, Stripe test mode). Token counts use the same estimator (≈ 4 chars/token) on both sides.
+Measured by `mycel bench` — a reproducible in-process benchmark with 12 realistic servers (GitHub, Slack, Gmail, Calendar, Notion, Linear, Postgres, filesystem, browser, Drive, an AI media studio, Stripe test mode). Token counts use the same estimator (≈ 4 chars/token) on both sides.
 
 | Scenario | Direct MCP | Through Mycel | Saved |
 |---|---:|---:|---:|
@@ -57,31 +57,88 @@ Measured by `npx mycel bench` — a reproducible in-process benchmark with 12 re
 
 <sub>Methodology & caveats: [`src/bench.ts`](src/bench.ts). "Direct" counts only what the model must read; it ignores prompt caching, which lowers cost (not context size) for the direct case.</sub>
 
+## 🤔 Do you need Mycel?
+
+Honest answer: **it depends on how many MCP servers your agent uses.** Measured with 8 real open-source servers ([field test](examples/field-test)), adding them one at a time:
+
+| MCP servers | Tools | Tool definitions, direct | Through Mycel | Context saved |
+|---:|---:|---:|---:|---:|
+| 1 | 3 | 1.1k tokens | 1.1k | **−4%** (small overhead) |
+| 2 | 4 | 1.5k | 1.5k | −3% |
+| 3 | 18 | 4.7k | 3.8k | 19% |
+| **4** | **32** | **6.7k** | **0.9k** | **86%** |
+| 6 | 42 | 10.6k | 1.0k | 91% |
+| 8 | 80 | 17.8k | 1.0k | **94%** |
+
+Mycel's own footprint stays flat at ~1k tokens. Direct MCP grows with every server you add, and on *every* turn the model re-reads all of those definitions.
+
+**You'll feel it if…**
+- you use **4+ MCP servers**, or one big one (Playwright, GitHub, Notion: 20–90 tools each);
+- your tools return **big results**: files, tables, logs, page snapshots, images, video. A 20,000-row CSV is 131k tokens direct and 187 through Mycel;
+- your agent does **many small steps** (read 15 files, decide, write): Code Mode does it in 1 round trip instead of 17;
+- your agent reads **untrusted content** (web, email, tickets) *and* can write, send or delete;
+- you need to **see and cap** what agents do: approvals, budgets, an audit trail, or other agents (A2A) calling your tools.
+
+**You probably don't need it if…** you run 1–2 small servers and only make short, read-only calls. Your client is fine on its own, and Mycel's `auto` mode would just show those tools directly anyway.
+
+**Your client matters too.** Claude Code already loads tool definitions on demand, so there you'd use Mycel mainly for Code Mode, refs, the safety layer and A2A. Cursor, Claude Desktop, VS Code, Windsurf and most agent frameworks send every definition on every turn, so there the context savings above apply in full.
+
+## 🔬 Field test: 8 real MCP servers
+
+`cd examples/field-test && npm install && npm run setup && npm test` runs these checks on your own machine (macOS, Linux or Windows):
+
+| # | Check | Result |
+|---|---|---|
+| S1 | Tool definitions in context (80 tools) | 17.8k → **1.0k** tokens (−94%) |
+| S2 | Startup until tools are listed | about the same as direct (≈0.5–1.5 s) |
+| S3 | Offline tool search, 16 natural-language queries | top-3 **16/16**, top-1 10/16 |
+| S4 | Per-call overhead (median of 15) | **+0.4 ms** |
+| S5 | 20,000-row CSV through `read_text_file` | 131k → **187** tokens (ref + table digest, grep-able) |
+| S6 | "Find stale notes, save a report" (17 calls) | 17 round trips → **1** (Code Mode) |
+| S7 | Web page (untrusted) → `write_file` | **blocked**, approval required |
+| S8 | Browser automation (Playwright) | works, no needless prompts |
+| S9 | Images, progress notifications | image → ref, 4/4 progress events forwarded |
+| S10 | Risk classes for Playwright's 25 tools | 7 read · 13 external · 5 destructive |
+
+The field test found four real bugs before launch. All are fixed and covered by tests:
+- Playwright marks even `hover` as destructive. Mycel now cross-checks that label against the tool's name (`annotations: strict` opts out).
+- A big text result that came wrapped in JSON lost its table digest.
+- grep on a single very long line returned the whole line.
+- A few search synonyms were missing.
+
 ## 🚀 Quickstart
 
+Works on **macOS, Linux and Windows** (Node 20+). `ffmpeg` is optional (video/audio digests). The servers you bring decide the rest. For example, Python-based servers need [`uv`](https://docs.astral.sh/uv/).
+
 ```bash
+# Install (npm release coming soon; this installs straight from GitHub)
+npm install -g github:SpeakQuery/mycel
+
 # 1. Import the MCP servers you already use (secrets become {{secret:NAME}} placeholders)
-npx mycel init
+mycel init
 
-# 2. Check everything connects, see your own savings
-npx mycel doctor
-npx mycel bench
+# 2. Check everything connects and see your own savings
+mycel doctor
+mycel bench
 
-# 3. Point your client at Mycel instead of N servers
+# 3. Remote servers with a sign-in (Canva, Notion, Linear, …): once per server
+mycel login canva
+
+# 4. Point your client at Mycel instead of N servers
 ```
 
 <table>
-<tr><th>Claude Code</th><th>Claude Desktop / Cursor / Windsurf (<code>mcpServers</code>)</th></tr>
+<tr><th>Claude Code</th><th>Claude Desktop / Cursor / Windsurf / VS Code (<code>mcpServers</code>)</th></tr>
 <tr><td>
 
 ```bash
-claude mcp add mycel -- npx -y mycel serve
+claude mcp add mycel -- mycel serve
 ```
 
 </td><td>
 
 ```json
-{ "mcpServers": { "mycel": { "command": "npx", "args": ["-y", "mycel", "serve"] } } }
+{ "mcpServers": { "mycel": { "command": "mycel", "args": ["serve"] } } }
 ```
 
 </td></tr>
@@ -179,6 +236,8 @@ servers:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-github"]
     env: { GITHUB_TOKEN: "{{secret:GITHUB_TOKEN}}" }
+  canva:
+    url: https://mcp.canva.com/mcp          # OAuth: run `mycel login canva` once; tokens refresh automatically
   studio:
     url: https://studio.example.com/mcp
     headers: { Authorization: "Bearer {{secret:STUDIO_KEY}}" }
@@ -229,13 +288,13 @@ Sandbox API: `tools.call(id, args)`, `tools.search(q)`, `refs.read(ref, {path, r
 ## 🤝 Agent to agent
 
 ```bash
-export MYCEL_TOKEN_SECRET=$(npx mycel token secret)
-npx mycel serve --http --port 4747                       # MCP at /mcp, A2A at /a2a
+export MYCEL_TOKEN_SECRET=$(mycel token secret)
+mycel serve --http --port 4747                       # MCP at /mcp, A2A at /a2a
 
 # Give a research agent read-only GitHub access for 2 hours, max $1
-TOKEN=$(npx mycel token mint --tools 'github.*' --max-effect read --budget 1 --ttl 2h --sub researcher)
+TOKEN=$(mycel token mint --tools 'github.*' --max-effect read --budget 1 --ttl 2h --sub researcher)
 # …which it can narrow further for its own sub-agent — but never widen
-npx mycel token attenuate "$TOKEN" --tools 'github.list_*' --ttl 10m --sub summarizer
+mycel token attenuate "$TOKEN" --tools 'github.list_*' --ttl 10m --sub summarizer
 ```
 
 ```bash
@@ -287,6 +346,7 @@ export default defineAdapter({
 | `mycel serve [--http]` | run the gateway (stdio, or HTTP with `/mcp` + `/a2a`) |
 | `mycel dashboard` | open the local dashboard |
 | `mycel doctor` · `mycel bench` | check setup · measure savings |
+| `mycel login <server>` | sign in to a remote MCP server that uses OAuth (Canva, Notion, Linear, …) |
 | `mycel search <q>` · `mycel call <tool> [json]` · `mycel run <file>` | use tools from the terminal, same rules as agents |
 | `mycel approvals` · `approve <id>` · `deny <id>` | human-in-the-loop |
 | `mycel pin [--accept]` | review / accept tool-definition drift |
@@ -308,7 +368,7 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What i
 
 ## Contributing
 
-PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (38 tests) in a few seconds.
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (42 tests) in a few seconds.
 
 ## License
 

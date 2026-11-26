@@ -21,7 +21,7 @@ export interface Contract {
   source: "declared" | "annotations" | "inferred";
 }
 
-const DESTRUCTIVE = /\b(delete|remove|drop|destroy|purge|truncate|wipe|kill|revoke|terminate|uninstall|reset|force[_-]?push)\b/i;
+const DESTRUCTIVE = /\b(delete|remove|drop|destroy|purge|truncate|wipe|kill|revoke|terminate|uninstall|reset|force[_-]?push|unsafe|exec|execute|eval|evaluate|shell)\b/i;
 const WRITE = /\b(create|update|write|set|add|put|post|edit|insert|upsert|move|rename|merge|commit|push|upload|patch|apply|enable|disable|label|assign|close|open|archive)\b/i;
 const EXTERNAL = /\b(send|email|mail|message|notify|publish|tweet|post_to|sms|call|pay|charge|transfer|invite|share|deploy)\b/i;
 const READ = /\b(get|list|read|search|find|fetch|query|describe|show|view|count|stat|lookup|inspect|download)\b/i;
@@ -44,6 +44,7 @@ export function inferContract(
   description: string | undefined,
   annotations: ToolAnnotations | undefined,
   override: ContractOverride | undefined,
+  annotationMode: "balanced" | "strict" = "balanced",
 ): Contract {
   const n = words(name);
   const text = `${n} ${words(description ?? "")}`;
@@ -53,7 +54,12 @@ export function inferContract(
   if (annotations && (annotations.readOnlyHint !== undefined || annotations.destructiveHint !== undefined)) {
     source = "annotations";
     if (annotations.readOnlyHint) effect = "read";
-    else if (annotations.destructiveHint) effect = "destructive";
+    else if (annotations.destructiveHint) {
+      // Many servers mark every non-read tool destructive (e.g. a browser "hover").
+      // Unless the name corroborates it, treat it as an outside-world action instead.
+      const corroborated = DESTRUCTIVE.test(n) || WRITE.test(n);
+      effect = annotationMode === "strict" || corroborated ? "destructive" : annotations.openWorldHint === false ? "write" : "external";
+    }
     else if (annotations.openWorldHint) effect = "external";
     else effect = "write";
   } else if (DESTRUCTIVE.test(n)) effect = "destructive";

@@ -8,24 +8,57 @@ on:
 
 jobs:
   node:
-    runs-on: ubuntu-latest
+    name: node ${{ matrix.node-version }} · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        node-version: [20, 22]
+        include:
+          - { os: ubuntu-latest, node-version: 20 }
+          - { os: ubuntu-latest, node-version: 22 }
+          - { os: macos-latest, node-version: 22 }
+          - { os: windows-latest, node-version: 22 }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-      - name: Install ffmpeg
+      - name: Install ffmpeg (optional; enables video/audio digests)
+        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
       - run: node dist/cli.js bench
+
+  field-test:
+    name: field test · 8 real MCP servers · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: astral-sh/setup-uv@v6
+      - run: npm ci && npm run build
+      - name: Install the real MCP servers
+        working-directory: examples/field-test
+        run: npm install
+      - name: Run the 10 checks
+        working-directory: examples/field-test
+        run: npm run setup && npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: field-test-${{ matrix.os }}
+          path: examples/field-test/results.json
 
   python:
     runs-on: ubuntu-latest

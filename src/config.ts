@@ -31,11 +31,28 @@ const StdioServer = z.object({
 const HttpServer = z.object({
   url: z.url(),
   headers: z.record(z.string(), z.string()).prefault({}),
+  /**
+   * OAuth for servers that need a sign-in (Canva, Notion, Linear…). On by default:
+   * run `mycel login <server>` once. Set false to disable, or pass a pre-registered client.
+   */
+  oauth: z
+    .union([
+      z.literal(false),
+      z.object({ clientId: z.string().optional(), clientSecret: z.string().optional(), scope: z.string().optional(), callbackPort: z.number().int().optional() }),
+    ])
+    .optional(),
 });
 const ServerCommon = z.object({
   trust: Trust.default("trusted"),
   enabled: z.boolean().default(true),
   description: z.string().optional(),
+  /**
+   * How far to believe the server's MCP annotations.
+   * balanced (default): a destructiveHint on a tool whose name doesn't look like it
+   *   writes or deletes (hover, navigate, click…) is capped at "external".
+   * strict: take annotations at face value.
+   */
+  annotations: z.enum(["balanced", "strict"]).default("balanced"),
   tools: z.record(z.string(), ContractOverride).prefault({}),
 });
 export const ServerConfig = z.union([StdioServer.merge(ServerCommon), HttpServer.merge(ServerCommon)]);

@@ -33,6 +33,12 @@ describe("contracts", () => {
     expect(inferContract("create_issue", "", undefined, undefined).effect).toBe("write");
     expect(inferContract("frobnicate", "", undefined, undefined).effect).toBe("write");
     expect(inferContract("anything", "", { readOnlyHint: true }, undefined).effect).toBe("read");
+    // Over-cautious annotations: a browser hover isn't destructive unless you ask for strict.
+    const hover = { readOnlyHint: false, destructiveHint: true, openWorldHint: true };
+    expect(inferContract("browser_hover", "", hover, undefined).effect).toBe("external");
+    expect(inferContract("browser_hover", "", hover, undefined, "strict").effect).toBe("destructive");
+    expect(inferContract("write_file", "", { destructiveHint: true, openWorldHint: false }, undefined).effect).toBe("destructive");
+    expect(inferContract("browser_run_code_unsafe", "", hover, undefined).effect).toBe("destructive");
     expect(inferContract("generate_video", "", undefined, undefined).async).toBe(true);
     const c = inferContract("list_x", "", undefined, { effect: "destructive", costUsd: 2 });
     expect(c).toMatchObject({ effect: "destructive", costUsd: 2, source: "declared" });
@@ -261,5 +267,19 @@ describe("config & import", () => {
     expect(r.yaml).not.toContain("abc");
     expect(r.skipped[0]).toMatch(/Mycel itself/);
     expect(() => parseConfig(r.yaml)).not.toThrow();
+  });
+});
+
+describe("field-test regressions", () => {
+  it("clips grep matches on very long lines", async () => {
+    const { RefStore } = await import("../src/refs.js");
+    const { mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const store = new RefStore(mkdtempSync(join(tmpdir(), "mycel-grep-")));
+    const meta = store.put("x".repeat(50_000) + "needle" + "y".repeat(50_000), { mime: "text/plain" });
+    const out = String(store.read(meta.id, { grep: "needle" }));
+    expect(out).toContain("needle");
+    expect(out.length).toBeLessThan(500);
   });
 });

@@ -70,6 +70,8 @@ const SYNONYMS: Record<string, string[]> = {
   film: ["video"], movie: ["video"], clip: ["video"], picture: ["image"], photo: ["image"], img: ["image"],
   db: ["database", "sql"], sql: ["database", "query"], file: ["document"], doc: ["document"],
   pr: ["pull", "request"], repo: ["repository"], message: ["chat", "send"], calendar: ["event", "meeting"],
+  remember: ["create", "add", "store", "memory"], save: ["create", "write", "store"], store: ["create", "save"], note: ["create", "observation"],
+  history: ["log"], changes: ["diff"], uncommitted: ["unstaged", "diff"], screenshot: ["screenshot", "capture"], open: ["navigate"], go: ["navigate"], visit: ["navigate"],
 };
 
 /**

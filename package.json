@@ -1,0 +1,61 @@
+{
+  "name": "mycel",
+  "version": "0.1.0",
+  "description": "The connective layer for AI agents: a drop-in MCP gateway (smart tool router, code mode, ref store, jobs, policy firewall, flight recorder) plus an A2A agent mesh.",
+  "type": "module",
+  "bin": {
+    "mycel": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "dashboard",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "bench": "node dist/cli.js bench",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "a2a",
+    "agent2agent",
+    "ai-agents",
+    "gateway",
+    "llm",
+    "claude",
+    "tool-router",
+    "code-mode"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SpeakQuery/mycel.git"
+  },
+  "homepage": "https://github.com/SpeakQuery/mycel",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "commander": "^15.1.0",
+    "quickjs-emscripten": "^0.32.0",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.11",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.2"
+  }
+}

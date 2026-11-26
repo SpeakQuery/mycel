@@ -1,0 +1,14 @@
+{
+  "name": "video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes hyperframes@0.9.21 preview",
+    "check": "npx --yes hyperframes@0.9.21 check",
+    "render": "npx --yes hyperframes@0.9.21 render",
+    "publish": "npx --yes hyperframes@0.9.21 publish",
+    "data": "node scripts/sync-data.mjs",
+    "audio": "bash scripts/make-audio.sh",
+    "media": "bash scripts/build-media.sh"
+  }
+}

@@ -1,0 +1,113 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #e8f5ee; }
+    #pb-head { position: absolute; left: 120px; top: 92px; width: 1680px; font-size: 50px; font-weight: 900; letter-spacing: -0.03em; }
+    #pb-head span { color: #ffb547; }
+    #pb-grid {
+      position: absolute; left: 120px; top: 200px; width: 1680px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+    }
+    .pb-card {
+      position: relative; height: 356px; padding: 34px 34px 30px; border-radius: 20px;
+      background: rgba(12, 28, 22, 0.94); border: 1.5px solid #1c3a2e; overflow: hidden;
+    }
+    .pb-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: #ffb547; }
+    .pb-viz { height: 46px; position: relative; margin-bottom: 22px; }
+    .pb-t { font-size: 37px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.12; }
+    .pb-b { margin-top: 14px; font-size: 25px; line-height: 1.38; color: #9dbbae; }
+    .pb-badge {
+      position: absolute; left: 34px; bottom: 28px; font-family: "JetBrains Mono", monospace; font-size: 22px; font-weight: 700;
+      color: #ffb547; border: 1.5px solid rgba(255, 181, 71, 0.5); background: rgba(255, 181, 71, 0.08);
+      padding: 6px 14px; border-radius: 8px;
+    }
+    /* mini visuals */
+    .pb-bar { position: absolute; left: 0; height: 9px; border-radius: 5px; background: #ffb547; transform-origin: 0 50%; }
+    .pb-dot { position: absolute; top: 15px; width: 16px; height: 16px; border-radius: 50%; background: #ffb547; }
+    .pb-end { position: absolute; top: 6px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1.5px solid #2c5a47;
+      font-family: "JetBrains Mono", monospace; font-size: 19px; line-height: 31px; color: #8fb3a3; }
+    .pb-track { position: absolute; left: 0; top: 18px; width: 300px; height: 10px; border-radius: 5px; background: #173126; }
+    .pb-prog { position: absolute; left: 0; top: 18px; width: 300px; height: 10px; border-radius: 5px; background: #ffb547; transform-origin: 0 50%; }
+    #pb-over {
+      position: absolute; left: 0; right: 0; top: 470px; text-align: center; font-size: 84px; font-weight: 900; letter-spacing: -0.035em;
+    }
+    #pb-over span { color: #3dffb0; }
+  </style>
+  <div id="root" data-composition-id="problem" data-width="1920" data-height="1080">
+    <div id="pb-head">Today every tool talks <span>straight to the model.</span></div>
+    <div id="pb-grid">
+      <div class="pb-card" id="pb-c1">
+        <div class="pb-viz">
+          <div class="pb-bar" style="top:0;width:300px"></div><div class="pb-bar" style="top:18px;width:250px"></div><div class="pb-bar" style="top:36px;width:330px"></div>
+        </div>
+        <div class="pb-t">Context bloat</div>
+        <div class="pb-b">Every server dumps its full tool schemas into context up front.</div>
+        <div class="pb-badge"><span data-d="tokensDirect">38k</span> tokens before word one</div>
+      </div>
+      <div class="pb-card" id="pb-c2">
+        <div class="pb-viz">
+          <div class="pb-end" style="left:0">tool A</div><div class="pb-end" style="left:170px;color:#ffb547;border-color:#ffb547">model</div><div class="pb-end" style="left:340px">tool B</div>
+        </div>
+        <div class="pb-t">All data hits the model</div>
+        <div class="pb-b">Moving rows from one tool to another means every row passes through context.</div>
+        <div class="pb-badge"><span data-d="rowsThrough">10k</span> rows in the prompt</div>
+      </div>
+      <div class="pb-card" id="pb-c3">
+        <div class="pb-viz">
+          <div class="pb-end" style="left:0">model</div><div class="pb-end" style="left:330px">tools</div>
+          <div class="pb-dot" id="pb-ping" style="left:104px"></div>
+        </div>
+        <div class="pb-t">Round-trip storms</div>
+        <div class="pb-b">Every step of a task is another inference turn. Latency and cost pile up.</div>
+        <div class="pb-badge"><span data-d="roundTripsDirect">10</span> turns for one task</div>
+      </div>
+      <div class="pb-card" id="pb-c4">
+        <div class="pb-viz">
+          <div class="pb-end" style="left:0;font-size:18px">"ignore previous instructions…"</div>
+        </div>
+        <div class="pb-t">Injection &amp; rug pulls</div>
+        <div class="pb-b">Tool output smuggles instructions. Tool descriptions change silently.</div>
+        <div class="pb-badge">no provenance, no pinning</div>
+      </div>
+      <div class="pb-card" id="pb-c5">
+        <div class="pb-viz"><div class="pb-track"></div><div class="pb-prog" id="pb-prog"></div></div>
+        <div class="pb-t">Long jobs time out</div>
+        <div class="pb-b">Video renders and training runs outlive the request. The call just dies.</div>
+        <div class="pb-badge">timeout after <span data-d="timeoutSec">60</span> s</div>
+      </div>
+      <div class="pb-card" id="pb-c6">
+        <div class="pb-viz">
+          <div class="pb-end" style="left:0">agent</div><div class="pb-end" style="left:150px">sub-agent</div>
+          <div class="pb-end" style="left:330px;color:#ffb547;border-color:#ffb547">ALL KEYS</div>
+        </div>
+        <div class="pb-t">Sub-agents hold full keys</div>
+        <div class="pb-b">Delegating means handing over every credential, with no way to narrow it.</div>
+        <div class="pb-badge">all-access tokens</div>
+      </div>
+    </div>
+    <div id="pb-over" data-layout-allow-overlap>Something has to sit <span>in between.</span></div>
+  </div>
+  <script>
+    (function () {
+      window.MY.fill(document.getElementById("pb-grid"));
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#pb-head", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, 0.15);
+      const T = [0.6, 2.5, 4.4, 6.3, 8.2, 10.1];
+      T.forEach((t, i) => {
+        const c = "#pb-c" + (i + 1);
+        tl.fromTo(c, { opacity: 0, y: 40, scale: 0.96, filter: "blur(10px)" }, { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: 0.55, ease: "expo.out" }, t);
+        tl.fromTo(c, { borderColor: "#ffb547" }, { borderColor: "#1c3a2e", duration: 1.4, ease: "power2.out" }, t + 0.5);
+      });
+      // mini visuals
+      tl.fromTo("#pb-c1 .pb-bar", { scaleX: 0 }, { scaleX: 1, duration: 1.2, stagger: 0.15, ease: "expo.out" }, 0.9);
+      tl.fromTo("#pb-ping", { x: 0 }, { x: 210, duration: 0.35, ease: "power1.inOut", yoyo: true, repeat: 15 }, 4.7);
+      tl.fromTo("#pb-c4 .pb-end", { color: "#8fb3a3", borderColor: "#2c5a47" }, { color: "#ffb547", borderColor: "#ffb547", duration: 0.3 }, 7.0);
+      tl.fromTo("#pb-prog", { scaleX: 0, backgroundColor: "#3dffb0" }, { scaleX: 0.64, duration: 1.6, ease: "power1.out" }, 8.5);
+      tl.to("#pb-prog", { backgroundColor: "#ff7a45", duration: 0.2 }, 10.1);
+      // Everything dims; the line that needs a product.
+      tl.to(["#pb-grid", "#pb-head"], { opacity: 0.12, filter: "blur(4px)", duration: 0.5, ease: "power2.inOut" }, 13.8);
+      tl.fromTo("#pb-over", { opacity: 0, filter: "blur(10px)", scale: 0.97 }, { opacity: 1, filter: "blur(0px)", scale: 1, duration: 0.5, ease: "expo.out" }, 14.0);
+      tl.to(["#pb-over", "#pb-grid", "#pb-head"], { opacity: 0, filter: "blur(12px)", duration: 0.35, ease: "power2.in" }, 16.5);
+      window.__timelines["problem"] = tl;
+    })();
+  </script>
+</template>

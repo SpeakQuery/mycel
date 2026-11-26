@@ -1,0 +1,98 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #e8f5ee; }
+    #hk-panel {
+      position: absolute; left: 150px; top: 140px; width: 660px; height: 800px;
+      background: rgba(10, 24, 18, 0.92); border: 1.5px solid #1c3a2e; border-radius: 22px;
+      overflow: hidden; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+    }
+    #hk-head {
+      position: absolute; left: 0; right: 0; top: 0; height: 120px; padding: 26px 30px 0;
+      border-bottom: 1px solid #1c3a2e; background: #0c1c16; z-index: 2;
+    }
+    #hk-title { font-size: 26px; font-weight: 700; letter-spacing: 0.02em; }
+    #hk-title small { font-family: "JetBrains Mono", monospace; font-weight: 400; color: #8fb3a3; font-size: 20px; margin-left: 12px; }
+    #hk-meter { position: absolute; left: 30px; right: 30px; top: 74px; height: 14px; border-radius: 7px; background: #13291f; overflow: hidden; }
+    #hk-fill { position: absolute; inset: 0; background: linear-gradient(90deg, #3dffb0, #ffb547 70%, #ff7a45); transform-origin: 0 50%; }
+    #hk-stats { position: absolute; left: 0; right: 0; bottom: 0; height: 84px; background: #0c1c16; border-top: 1px solid #1c3a2e; z-index: 2;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 30px; font-family: "JetBrains Mono", monospace; font-size: 24px; color: #8fb3a3; }
+    #hk-stats b { color: #e8f5ee; font-weight: 700; }
+    #hk-body { position: absolute; left: 0; right: 0; top: 120px; bottom: 84px; overflow: hidden; }
+    #hk-lines { position: absolute; left: 26px; right: 22px; top: 14px; font-family: "JetBrains Mono", monospace; font-size: 17px; line-height: 27px; color: #6fa58c; }
+    .hk-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hk-line i { font-style: normal; color: #b9e8d2; }
+    #hk-full {
+      position: absolute; left: 50%; top: 50%; z-index: 3;
+      font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 34px; letter-spacing: 0.12em;
+      color: #07110d; background: #ffb547; padding: 14px 26px; border-radius: 10px; white-space: nowrap;
+    }
+    #hk-text { position: absolute; left: 900px; top: 330px; width: 900px; }
+    .hk-h { font-size: 86px; line-height: 1.08; font-weight: 900; letter-spacing: -0.035em; }
+    .hk-h + .hk-h { margin-top: 26px; }
+    .hk-w { display: inline-block; }
+    .hk-amber { color: #ffb547; }
+    #hk-sub { margin-top: 44px; font-size: 32px; color: #8fb3a3; line-height: 1.4; }
+  </style>
+  <div id="root" data-composition-id="hook" data-width="1920" data-height="1080">
+    <div id="hk-panel">
+      <div id="hk-head">
+        <div id="hk-title">Context window<small>model input</small></div>
+        <div id="hk-meter"><div id="hk-fill"></div></div>
+      </div>
+      <div id="hk-body"><div id="hk-lines" data-layout-ignore></div></div>
+      <div id="hk-stats">
+        <span>tools <b id="hk-tools">0</b></span>
+        <span>tokens <b id="hk-tokens">0</b></span>
+      </div>
+      <div id="hk-full" data-layout-allow-overlap>CONTEXT FULL</div>
+    </div>
+    <div id="hk-text">
+      <div class="hk-h" id="hk-l1">
+        <span class="hk-w">Your</span> <span class="hk-w">AI</span> <span class="hk-w">agent</span> <span class="hk-w">has</span><br>
+        <span class="hk-w"><span data-d="hookTools">300</span></span> <span class="hk-w">tools.</span>
+      </div>
+      <div class="hk-h" id="hk-l2">
+        <span class="hk-w">It</span> <span class="hk-w">can</span> <span class="hk-w hk-amber">barely</span> <span class="hk-w hk-amber">think.</span>
+      </div>
+      <div id="hk-sub">Every tool schema loads before the first word.</div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const D = window.MY.D;
+      window.MY.fill(document.getElementById("hk-text"));
+      // Tool schema lines (texture): server.action + truncated JSON schema.
+      const servers = ["github", "slack", "linear", "postgres", "stripe", "notion", "jira", "figma", "sentry", "gdrive", "s3", "video", "calendar", "gmail", "hubspot", "vercel"];
+      const actions = ["create_issue", "list_pull_requests", "search_messages", "run_query", "create_invoice", "update_page", "get_ticket", "export_frame", "list_events", "upload_file", "render_clip", "send_email", "merge_branch", "list_deployments", "get_contact", "add_comment"];
+      const R = window.MY.rng(42);
+      const box = document.getElementById("hk-lines");
+      const N = 120;
+      for (let i = 0; i < N; i++) {
+        const s = servers[Math.floor(R() * servers.length)], a = actions[Math.floor(R() * actions.length)];
+        const el = document.createElement("div");
+        el.className = "hk-line";
+        el.innerHTML = '{"name":"<i>' + s + "." + a + '</i>","description":"' + a.replace(/_/g, " ") + ' via the ' + s + ' API","inputSchema":{"type":"object","properties":{"id":{"type":"string"},"limit":{"type":"integer"}}}}';
+        box.appendChild(el);
+      }
+      const lines = box.querySelectorAll(".hk-line");
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#hk-panel", { opacity: 0, x: -60, filter: "blur(10px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.7, ease: "expo.out" }, 0.1);
+      // First screenful of schemas types in, then the column floods upward.
+      tl.fromTo(lines, { opacity: 0 }, { opacity: 1, duration: 0.05, stagger: 0.022, ease: "none" }, 0.5);
+      tl.fromTo(box, { y: 0 }, { y: -(N - 22) * 27, duration: 4.6, ease: "power2.in" }, 1.2);
+      tl.fromTo("#hk-fill", { scaleX: 0 }, { scaleX: 1, duration: 5.2, ease: "power1.in" }, 0.5);
+      window.MY.count(tl, document.getElementById("hk-tools"), D.hookTools, 0.5, 5.2);
+      window.MY.count(tl, document.getElementById("hk-tokens"), D.hookTokens, 0.5, 5.2);
+      tl.fromTo("#hk-full", { opacity: 0, scale: 1.4, xPercent: -50, yPercent: -50 }, { opacity: 1, scale: 1, xPercent: -50, yPercent: -50, duration: 0.35, ease: "expo.out" }, 5.8);
+      tl.to("#hk-lines", { color: "#ffb547", opacity: 0.35, duration: 0.3 }, 5.8);
+      tl.to("#hk-panel", { borderColor: "#ffb547", duration: 0.3 }, 5.8);
+      // Headline, word by word.
+      tl.fromTo("#hk-l1 .hk-w", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.16, stagger: 0.09, ease: "power3.out" }, 0.9);
+      tl.fromTo("#hk-l2 .hk-w", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.16, stagger: 0.11, ease: "power3.out" }, 3.0);
+      tl.fromTo("#hk-sub", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 4.4);
+      // Exit.
+      tl.to(["#hk-panel", "#hk-text"], { opacity: 0, filter: "blur(10px)", duration: 0.35, stagger: 0.05, ease: "power2.in" }, 7.45);
+      window.__timelines["hook"] = tl;
+    })();
+  </script>
+</template>

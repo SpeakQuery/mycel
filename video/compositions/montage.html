@@ -1,0 +1,80 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #e8f5ee; }
+    #mt-wrap { position: absolute; inset: 0; }
+    .mt-head { position: absolute; left: 0; right: 0; top: 92px; text-align: center; font-size: 56px; font-weight: 900; letter-spacing: -0.035em; }
+    .mt-head span { color: #3dffb0; }
+    #mt-links { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+    #mt-grid { position: absolute; left: 120px; top: 200px; width: 1680px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 20px; }
+    .mt-tile { position: relative; height: 166px; border-radius: 18px; background: rgba(12, 28, 22, 0.94); border: 1.5px solid #1c3a2e; padding: 26px 26px 0; }
+    .mt-tile b { display: block; font-size: 33px; letter-spacing: -0.02em; color: #9dbbae; }
+    .mt-tile span { display: block; margin-top: 12px; font-size: 23px; line-height: 1.3; color: #6f9483; }
+    .mt-tile i { position: absolute; right: 22px; top: 26px; width: 14px; height: 14px; border-radius: 50%; background: #1f4a39; }
+  </style>
+  <div id="root" data-composition-id="montage" data-width="1920" data-height="1080">
+    <div id="mt-wrap">
+      <div class="mt-head" id="mt-h1">One layer. <span>Everything an agent stack is missing.</span></div>
+      <div class="mt-head" id="mt-h2"><span data-d="featuresTotal">20</span> features. <span>All shipped in v1.</span></div>
+      <svg id="mt-links" viewBox="0 0 1920 1080" fill="none" stroke-linecap="round" data-layout-ignore><g id="mt-lg" stroke="#3dffb0" stroke-width="2.5" opacity="0.7"></g></svg>
+      <div id="mt-grid">
+        <div class="mt-tile"><i></i><b>Smart Tool Router</b><span><em data-d="toolsMycel" style="font-style:normal">8</em> meta-tools, schemas on demand</span></div>
+        <div class="mt-tile"><i></i><b>Code Mode</b><span>Chain many tools in one sandboxed script</span></div>
+        <div class="mt-tile"><i></i><b>Ref Store</b><span>Big results become refs and digests</span></div>
+        <div class="mt-tile"><i></i><b>Job Queue</b><span>Progress, cancel, resume, fallback</span></div>
+        <div class="mt-tile"><i></i><b>Cost &amp; Budget</b><span>Estimate first, cap per task or day</span></div>
+        <div class="mt-tile"><i></i><b>Policy Firewall</b><span>Allow, deny or require approval</span></div>
+        <div class="mt-tile"><i></i><b>Provenance</b><span>Untrusted content is labelled and gated</span></div>
+        <div class="mt-tile"><i></i><b>Secret Vault</b><span>The model never sees real keys</span></div>
+        <div class="mt-tile"><i></i><b>Manifest Pinning</b><span>Rug pulls detected and blocked</span></div>
+        <div class="mt-tile"><i></i><b>Flight Recorder</b><span>Every call traced, any task replayable</span></div>
+        <div class="mt-tile"><i></i><b>A2A Bridge</b><span>MCP and agent-to-agent in one layer</span></div>
+        <div class="mt-tile"><i></i><b>Capability Tokens</b><span>Sub-agents can only narrow access</span></div>
+        <div class="mt-tile"><i></i><b>Model Router</b><span>fast · balanced · deep tiers</span></div>
+        <div class="mt-tile"><i></i><b>Python client</b><span>pip install mycel-client</span></div>
+        <div class="mt-tile"><i></i><b>Live Dashboard</b><span>Timeline, savings, jobs, approvals</span></div>
+        <div class="mt-tile"><i></i><b>Universal import</b><span>Claude, Cursor, VS Code, Windsurf</span></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      window.MY.fill(document.getElementById("mt-wrap"));
+      const NS = "http://www.w3.org/2000/svg";
+      const tl = gsap.timeline({ paused: true });
+      const tiles = document.querySelectorAll(".mt-tile");
+      // Tile centres from the grid geometry (4 columns, 405 x 166, gaps 20 / 18).
+      const cw = (1680 - 3 * 20) / 4;
+      const centre = (i) => [120 + (i % 4) * (cw + 20) + cw / 2, 200 + Math.floor(i / 4) * (166 + 18) + 83];
+      tl.fromTo("#mt-h1", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, 0.1);
+      tl.fromTo(tiles, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: "expo.out" }, 0.3);
+      // Spotlight: one feature lights every 0.72 s and a thread connects it to the last.
+      const T0 = 1.5, STEP = 0.85;
+      const lg = document.getElementById("mt-lg");
+      tiles.forEach((tile, i) => {
+        const t = T0 + i * STEP;
+        tl.fromTo(tile, { scale: 1, borderColor: "#1c3a2e", boxShadow: "0 0 0 rgba(61,255,176,0)" },
+          { scale: 1.06, borderColor: "#3dffb0", boxShadow: "0 0 40px rgba(61,255,176,0.35)", duration: 0.22, ease: "expo.out" }, t);
+        tl.to(tile, { scale: 1, boxShadow: "0 0 14px rgba(61,255,176,0.12)", duration: 0.4, ease: "power2.out" }, t + 0.45);
+        tl.fromTo(tile.querySelector("b"), { color: "#9dbbae" }, { color: "#ffffff", duration: 0.2 }, t);
+        tl.fromTo(tile.querySelector("span"), { color: "#6f9483" }, { color: "#cfe5da", duration: 0.2 }, t);
+        tl.fromTo(tile.querySelector("i"), { backgroundColor: "#1f4a39", scale: 1 }, { backgroundColor: "#3dffb0", scale: 1.3, duration: 0.25, ease: "back.out(3)" }, t);
+        if (i > 0) {
+          const a = centre(i - 1), b = centre(i);
+          const p = document.createElementNS(NS, "path");
+          const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2 + (i % 2 ? -40 : 40);
+          p.setAttribute("d", `M${a[0]} ${a[1]} Q${mx} ${my} ${b[0]} ${b[1]}`);
+          lg.appendChild(p);
+          const l = p.getTotalLength();
+          p.style.strokeDasharray = l;
+          tl.fromTo(p, { strokeDashoffset: l }, { strokeDashoffset: 0, duration: 0.3, ease: "power2.out" }, t - 0.25);
+        }
+      });
+      const END = T0 + tiles.length * STEP; // ≈ 13 s
+      tl.to("#mt-h1", { opacity: 0, filter: "blur(8px)", duration: 0.2 }, END);
+      tl.fromTo("#mt-h2", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, END + 0.15);
+      tl.to("#mt-lg", { opacity: 0.25, duration: 0.6 }, END);
+      tl.to("#mt-wrap", { opacity: 0, scale: 0.96, filter: "blur(10px)", duration: 0.4, ease: "power2.in" }, 17.5);
+      window.__timelines["montage"] = tl;
+    })();
+  </script>
+</template>

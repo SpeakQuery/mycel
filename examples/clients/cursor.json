@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mycel": {
+      "command": "npx",
+      "args": ["-y", "mycel", "serve", "-c", "/absolute/path/to/mycel.yaml"]
+    }
+  }
+}

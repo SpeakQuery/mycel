@@ -1,0 +1,66 @@
+# Mycel quickstart: four mock MCP servers behind one gateway.
+#
+# Paths: Mycel spawns stdio servers in the *current working directory* (or
+# `cwd:` if set, which is itself relative to the current directory). The args
+# below are relative to this folder, so run every command from
+# examples/quickstart:   cd examples/quickstart && node ../../dist/cli.js doctor
+# (The demo script in ../demo sets `cwd` programmatically, so it runs from anywhere.)
+
+servers:
+  github:
+    command: node
+    args: ["../servers/github-mock.mjs"]
+    description: Mock GitHub (issues, labels, branches)
+
+  studio:
+    command: node
+    args: ["../servers/studio-mock.mjs"]
+    description: Mock AI media studio (images, videos)
+    # Contract overrides: what the tool costs and how it runs.
+    # Declared values win over MCP annotations and name-based inference.
+    tools:
+      generate_image: { costUsd: 0.04 }
+      generate_video: { async: true, costUsd: 0.40, latencyMs: 6000 }
+      upscale_video: { async: true, costUsd: 0.10, latencyMs: 2000 }
+
+  web:
+    command: node
+    args: ["../servers/web-mock.mjs"]
+    description: Mock web fetcher + email sender
+    # Everything this server returns is labelled untrusted. Side effects whose
+    # inputs derive from it (send_email, deletes…) need a human's approval.
+    trust: untrusted
+
+  warehouse:
+    command: node
+    args: ["../servers/warehouse-mock.mjs"]
+    description: Mock analytics warehouse (returns big CSVs)
+
+# First matching rule wins. Built-in defaults run after these:
+# destructive → approve, tainted external/destructive → approve.
+policy:
+  - match: { tool: "github.delete_*" }
+    action: deny
+    reason: Agents never delete branches; a human does that in the GitHub UI.
+  - match: { tool: "github.close_issue" }
+    action: approve
+    reason: Closing an issue notifies the customer who opened it.
+  - match: { effect: external, tainted: true }
+    action: approve
+    reason: Outbound message built from untrusted content.
+
+budget:
+  perTaskUsd: 1.00
+  perDayUsd: 5.00
+
+refs:
+  inlineLimitBytes: 8000   # results bigger than this become ref:// handles
+
+jobs:
+  asyncThresholdMs: 20000  # auto mode waits this long for a job before returning its id
+
+a2a:
+  name: quickstart
+  description: Mycel quickstart gateway (github, studio, web, warehouse mocks)
+  # Root key for capability tokens. Generate one with `mycel token secret`.
+  tokenSecret: "{{secret:MYCEL_TOKEN_SECRET}}"

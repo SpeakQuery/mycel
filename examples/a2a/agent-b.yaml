@@ -1,0 +1,23 @@
+# Agent B, "builder": owns the GitHub tools and serves them over A2A + MCP HTTP.
+#   node ../../dist/cli.js serve --http --port 4801 -c agent-b.yaml
+# Run from examples/a2a (server args are relative to the working directory).
+
+servers:
+  github:
+    command: node
+    args: ["../servers/github-mock.mjs"]
+
+policy:
+  - match: { tool: "github.delete_*" }
+    action: deny
+    reason: Remote agents never delete branches.
+  - match: { tool: "github.close_issue" }
+    action: approve
+    reason: Closing an issue notifies the customer; a human on builder's side signs off
+
+a2a:
+  name: builder
+  description: Owns the acme/app GitHub repository. Lists, labels and closes issues.
+  # Callers must present a capability token signed with this root key.
+  tokenSecret: "{{secret:MYCEL_TOKEN_SECRET}}"
+  requireToken: true

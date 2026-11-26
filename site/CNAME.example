@@ -1,0 +1,10 @@
+# Custom domain for GitHub Pages
+#
+# The project owner should create a file named `CNAME` (no extension) in this
+# `site/` folder containing ONLY their subdomain on a single line, for example:
+#
+#   mycel.example.com
+#
+# Then add a DNS CNAME record pointing that subdomain to <owner>.github.io and
+# set the custom domain under Settings -> Pages. All site paths are relative,
+# so the site works at the domain root or at <owner>.github.io/mycel/.

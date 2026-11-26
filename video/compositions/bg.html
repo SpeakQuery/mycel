@@ -1,0 +1,98 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; background: #07110d; overflow: hidden; }
+    #bg-stage { position: absolute; inset: -60px; }
+    #bg-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #bg-glow {
+      position: absolute; left: 50%; top: 50%; width: 1500px; height: 1000px;
+      margin: -500px 0 0 -750px; border-radius: 50%;
+      background: radial-gradient(closest-side, rgba(61, 255, 176, 0.10), rgba(61, 255, 176, 0) 70%);
+    }
+    #bg-vignette {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 48%, rgba(7, 17, 13, 0) 35%, rgba(2, 6, 4, 0.9) 100%);
+    }
+  </style>
+  <div id="root" data-composition-id="bg" data-width="1920" data-height="1080" data-layout-ignore>
+    <div id="bg-stage" data-layout-allow-overflow>
+      <div id="bg-glow"></div>
+      <svg id="bg-svg" viewBox="0 0 2040 1200" preserveAspectRatio="xMidYMid slice">
+        <g id="bg-net" fill="none" stroke-linecap="round" stroke-linejoin="round"></g>
+        <g id="bg-pulses" fill="none" stroke-linecap="round"></g>
+        <g id="bg-nodes"></g>
+      </svg>
+    </div>
+    <div id="bg-vignette"></div>
+  </div>
+  <script>
+    (function () {
+      const NS = "http://www.w3.org/2000/svg";
+      const R = window.MY.rng(20261126);
+      const net = document.getElementById("bg-net");
+      const pulses = document.getElementById("bg-pulses");
+      const nodes = document.getElementById("bg-nodes");
+      const W = 2040, H = 1200, FILM = 90;
+      const tl = gsap.timeline({ paused: true });
+
+      // Grow branching hyphae by a seeded random walk.
+      const strands = [];
+      function grow(x, y, a, steps, depth) {
+        const pts = [[x, y]];
+        for (let i = 0; i < steps; i++) {
+          a += (R() - 0.5) * 0.55;
+          x += Math.cos(a) * 34; y += Math.sin(a) * 34;
+          pts.push([x, y]);
+          if (depth < 2 && R() < 0.07) grow(x, y, a + (R() < 0.5 ? -1 : 1) * (0.6 + R() * 0.6), Math.floor(steps * 0.5), depth + 1);
+        }
+        strands.push({ pts, depth });
+      }
+      for (let i = 0; i < 16; i++) {
+        const side = i % 4;
+        const t = R();
+        const x = side === 0 ? 0 : side === 1 ? W : t * W;
+        const y = side === 2 ? 0 : side === 3 ? H : t * H;
+        const a = Math.atan2(H / 2 - y, W / 2 - x) + (R() - 0.5) * 1.1;
+        grow(x, y, a, 22 + Math.floor(R() * 18), 0);
+      }
+      strands.forEach((s, i) => {
+        const d = s.pts.map((p, j) => (j ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+        const p = document.createElementNS(NS, "path");
+        p.setAttribute("d", d);
+        p.setAttribute("stroke", s.depth ? "#1f4a39" : "#24604a");
+        p.setAttribute("stroke-width", s.depth ? 1.2 : 1.8);
+        p.setAttribute("opacity", s.depth ? 0.55 : 0.75);
+        net.appendChild(p);
+        const len = p.getTotalLength();
+        p.style.strokeDasharray = len; p.style.strokeDashoffset = len;
+        tl.fromTo(p, { strokeDashoffset: len }, { strokeDashoffset: 0, duration: 3 + R() * 3, ease: "power2.out" }, 0.1 + R() * 1.5);
+        // Light pulse travelling along the strand, a finite number of times.
+        if (!s.depth || i % 3 === 0) {
+          const q = p.cloneNode();
+          q.setAttribute("stroke", "#3dffb0"); q.setAttribute("stroke-width", s.depth ? 1.6 : 2.4);
+          q.setAttribute("opacity", 0.55);
+          q.style.strokeDasharray = "60 " + len;
+          pulses.appendChild(q);
+          const dur = 4 + R() * 5, start = 1 + R() * 4;
+          tl.fromTo(q, { strokeDashoffset: 60 }, { strokeDashoffset: -len, duration: dur, ease: "none", repeat: Math.ceil((FILM - start) / dur) }, start);
+        }
+        // Nodes at strand ends.
+        const e = s.pts[s.pts.length - 1];
+        const c = document.createElementNS(NS, "circle");
+        c.setAttribute("cx", e[0]); c.setAttribute("cy", e[1]); c.setAttribute("r", s.depth ? 3 : 4.5);
+        c.setAttribute("fill", "#3dffb0"); c.setAttribute("opacity", 0);
+        nodes.appendChild(c);
+        tl.fromTo(c, { opacity: 0 }, { opacity: 0.6, duration: 0.6 }, 3 + R() * 3);
+      });
+      // Slow constant drift of the whole network: the ground is never static.
+      tl.fromTo("#bg-stage", { x: 0, y: 0, rotation: 0 }, { x: -40, y: -24, rotation: 1.2, duration: FILM, ease: "none" }, 0);
+      // Network brightness follows the story: dim problem, bright reveal.
+      tl.fromTo("#bg-svg", { opacity: 0.55 }, { opacity: 0.35, duration: 1.5, ease: "power2.inOut" }, 8);
+      tl.to("#bg-svg", { opacity: 1, duration: 1.2, ease: "power2.inOut" }, 24.6);
+      tl.to("#bg-svg", { opacity: 0.6, duration: 1.5, ease: "power2.inOut" }, 32);
+      tl.fromTo("#bg-glow", { opacity: 0.4, scale: 0.8 }, { opacity: 1, scale: 1.1, duration: 1.4, ease: "power2.inOut" }, 24.6);
+      tl.to("#bg-glow", { opacity: 0.55, scale: 1, duration: 2, ease: "power2.inOut" }, 32);
+      tl.to("#bg-glow", { opacity: 1, scale: 1.1, duration: 1.5, ease: "power2.inOut" }, 84);
+      window.__timelines["bg"] = tl;
+    })();
+  </script>
+</template>

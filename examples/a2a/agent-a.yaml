@@ -1,0 +1,15 @@
+# Agent A, "planner": has no tools of its own; delegates GitHub work to builder.
+# mycel_delegate appears in its meta-tools because a2a.peers is set.
+
+servers: {}
+
+a2a:
+  name: planner
+  peers:
+    builder:
+      url: http://127.0.0.1:4801
+      description: GitHub agent for acme/app (issues, labels)
+      # A capability token minted with builder's root key (see README).
+      token: "{{secret:BUILDER_TOKEN}}"
+      # Results from peers are labelled untrusted by default; keep it that way.
+      trust: untrusted

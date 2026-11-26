@@ -1,0 +1,134 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #e8f5ee; }
+    #ar-wrap { position: absolute; inset: 0; }
+    #ar-lines { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+    .ar-chip {
+      position: absolute; height: 70px; border-radius: 14px; background: #0c1c16; border: 1.5px solid #2a5444;
+      display: flex; align-items: center; justify-content: center; font-size: 27px; font-weight: 700; white-space: nowrap;
+    }
+    .ar-chip.a2a { border-color: #ffb547; }
+    .ar-chip.a2a span { color: #ffb547; margin-left: 10px; font-family: "JetBrains Mono", monospace; font-size: 22px; }
+    .ar-edge {
+      position: absolute; height: 34px; padding: 0 14px; border-radius: 8px; background: #07110d;
+      font-family: "JetBrains Mono", monospace; font-size: 21px; line-height: 34px; color: #8fb3a3; white-space: nowrap;
+    }
+    #ar-box {
+      position: absolute; left: 160px; top: 250px; width: 1600px; height: 440px; border-radius: 26px;
+      border: 2px solid #3dffb0; background: rgba(9, 26, 19, 0.94);
+      box-shadow: 0 0 60px rgba(61, 255, 176, 0.18), inset 0 0 60px rgba(61, 255, 176, 0.05);
+    }
+    #ar-name { position: absolute; left: 30px; top: 24px; font-size: 34px; font-weight: 900; letter-spacing: -0.03em; color: #3dffb0; }
+    #ar-meta { position: absolute; left: 190px; right: 30px; top: 22px; display: flex; gap: 10px; align-items: center; }
+    #ar-meta .lbl { font-size: 21px; color: #8fb3a3; margin-right: 6px; white-space: nowrap; }
+    .ar-mt { font-family: "JetBrains Mono", monospace; font-size: 22px; padding: 6px 12px; border-radius: 8px; background: rgba(61, 255, 176, 0.1); color: #bff7df; border: 1px solid rgba(61, 255, 176, 0.3); }
+    #ar-mods { position: absolute; left: 30px; right: 30px; top: 100px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; }
+    .ar-mod { height: 120px; border-radius: 14px; background: #10261d; border: 1.5px solid #275a45; padding: 20px 20px 0; }
+    .ar-mod b { display: block; font-size: 29px; letter-spacing: -0.02em; }
+    .ar-mod span { display: block; margin-top: 10px; font-size: 21px; color: #8fb3a3; white-space: nowrap; }
+    .ar-bar { position: absolute; left: 30px; right: 30px; height: 76px; border-radius: 14px; display: flex; align-items: center; padding: 0 24px; gap: 24px; font-size: 25px; white-space: nowrap; }
+    .ar-bar b { font-size: 27px; }
+    #ar-trust { top: 240px; background: rgba(255, 181, 71, 0.07); border: 1.5px solid rgba(255, 181, 71, 0.55); }
+    #ar-trust b { color: #ffb547; }
+    #ar-rec { top: 332px; background: #10261d; border: 1.5px solid #275a45; }
+    #ar-rec b { color: #3dffb0; }
+    .ar-items { color: #cfe5da; }
+    #ar-cap { position: absolute; left: 0; right: 0; top: 918px; text-align: center; font-size: 32px; color: #8fb3a3; }
+    #ar-cap b { color: #e8f5ee; }
+  </style>
+  <div id="root" data-composition-id="arch" data-width="1920" data-height="1080">
+    <div id="ar-wrap">
+    <svg id="ar-lines" viewBox="0 0 1920 1080" fill="none" stroke-linecap="round" data-layout-ignore>
+      <g id="ar-base" stroke="#2f7a5c" stroke-width="2.5">
+        <path d="M330 170 V250" /><path d="M600 170 V250" /><path d="M870 170 V250" /><path d="M1140 170 V250" />
+        <path d="M1560 170 V250" stroke="#ffb547" />
+        <path d="M400 690 V800" /><path d="M760 690 V800" /><path d="M1120 690 V800" /><path d="M1560 690 V800" stroke="#ffb547" />
+      </g>
+      <g id="ar-pulse" stroke="#3dffb0" stroke-width="4"></g>
+    </svg>
+    <!-- clients -->
+    <div class="ar-chip ar-top" style="left:215px;top:100px;width:230px">Claude</div>
+    <div class="ar-chip ar-top" style="left:485px;top:100px;width:230px">Cursor</div>
+    <div class="ar-chip ar-top" style="left:755px;top:100px;width:230px">ChatGPT</div>
+    <div class="ar-chip ar-top" style="left:1025px;top:100px;width:230px">Local LLM</div>
+    <div class="ar-chip ar-top a2a" style="left:1370px;top:100px;width:380px">Remote agents<span>A2A</span></div>
+    <div class="ar-edge ar-e1" style="left:612px;top:193px">MCP · stdio | HTTP</div>
+    <div class="ar-edge ar-e1" style="left:1462px;top:193px">A2A · JSON-RPC</div>
+    <!-- the layer -->
+    <div id="ar-box">
+      <div id="ar-name">MYCEL</div>
+      <div id="ar-meta">
+        <span class="lbl"><span data-d="toolsMycel">8</span> meta-tools:</span>
+        <span class="ar-mt">search</span><span class="ar-mt">describe</span><span class="ar-mt">call</span><span class="ar-mt">run</span>
+        <span class="ar-mt">ref</span><span class="ar-mt">job</span><span class="ar-mt">delegate</span><span class="ar-mt">ask</span>
+      </div>
+      <div id="ar-mods">
+        <div class="ar-mod"><b>Router</b><span>BM25 · schemas on demand</span></div>
+        <div class="ar-mod"><b>Code Mode</b><span>QuickJS sandbox</span></div>
+        <div class="ar-mod"><b>Ref Store</b><span>ref://sha256 · digests</span></div>
+        <div class="ar-mod"><b>Jobs</b><span>progress · resume</span></div>
+        <div class="ar-mod"><b>Model Router</b><span>fast · balanced · deep</span></div>
+      </div>
+      <div class="ar-bar" id="ar-trust"><b>Trust layer</b><span class="ar-items">Policy · Taint · Secrets · Pinning · Capability tokens</span></div>
+      <div class="ar-bar" id="ar-rec"><b>Flight Recorder</b><span class="ar-items">every call traced → Dashboard · OpenTelemetry</span></div>
+    </div>
+    <div class="ar-edge ar-e2" style="left:528px;top:728px">MCP</div>
+    <div class="ar-edge ar-e2" style="left:888px;top:728px">MCP</div>
+    <div class="ar-edge ar-e2" style="left:1248px;top:728px">MCP</div>
+    <div class="ar-edge ar-e2" style="left:1612px;top:728px">A2A</div>
+    <!-- upstreams -->
+    <div class="ar-chip ar-bot" style="left:270px;top:800px;width:260px">GitHub server</div>
+    <div class="ar-chip ar-bot" style="left:630px;top:800px;width:260px">Video model</div>
+    <div class="ar-chip ar-bot" style="left:990px;top:800px;width:260px">Database</div>
+    <div class="ar-chip ar-bot a2a" style="left:1400px;top:800px;width:320px">Other agents<span>A2A</span></div>
+    <div id="ar-cap"><b>Drop-in:</b> standard MCP clients connect with zero changes.</div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      window.MY.fill(document.getElementById("ar-box"));
+      const tl = gsap.timeline({ paused: true });
+      const base = document.querySelectorAll("#ar-base path");
+      const pulseG = document.getElementById("ar-pulse");
+      base.forEach((p) => {
+        const l = p.getTotalLength();
+        p.style.strokeDasharray = l;
+      });
+      tl.fromTo("#ar-box", { opacity: 0, scale: 0.9, filter: "blur(12px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.8, ease: "expo.out" }, 0.15);
+      tl.fromTo("#ar-name", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.6);
+      tl.fromTo("#ar-meta > *", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, stagger: 0.06, ease: "expo.out" }, 0.75);
+      tl.fromTo(".ar-top", { opacity: 0, y: -30 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.09, ease: "expo.out" }, 1.3);
+      for (let i = 0; i < 5; i++) {
+        const p = base[i], l = p.getTotalLength();
+        tl.fromTo(p, { strokeDashoffset: l }, { strokeDashoffset: 0, duration: 0.4, ease: "power2.out" }, 1.8 + i * 0.06);
+      }
+      tl.fromTo(".ar-e1", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 2.1);
+      tl.fromTo(".ar-mod", { opacity: 0, y: 24, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.45, stagger: 0.14, ease: "expo.out" }, 2.4);
+      tl.fromTo("#ar-trust", { opacity: 0, scaleX: 0.6, transformOrigin: "0% 50%" }, { opacity: 1, scaleX: 1, duration: 0.55, ease: "expo.out" }, 3.4);
+      tl.fromTo("#ar-rec", { opacity: 0, scaleX: 0.6, transformOrigin: "0% 50%" }, { opacity: 1, scaleX: 1, duration: 0.55, ease: "expo.out" }, 3.9);
+      for (let i = 5; i < 9; i++) {
+        const p = base[i], l = p.getTotalLength();
+        tl.fromTo(p, { strokeDashoffset: l }, { strokeDashoffset: 0, duration: 0.4, ease: "power2.out" }, 4.4 + (i - 5) * 0.06);
+      }
+      tl.fromTo(".ar-e2", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 4.6);
+      tl.fromTo(".ar-bot", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.09, ease: "expo.out" }, 4.6);
+      tl.fromTo("#ar-cap", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3 }, 6.0);
+      // Traffic: pulses run client -> layer, then layer -> upstream.
+      base.forEach((p, i) => {
+        const q = p.cloneNode();
+        q.setAttribute("stroke", i === 4 || i === 8 ? "#ffd38a" : "#3dffb0");
+        q.setAttribute("stroke-width", "4");
+        q.style.strokeDasharray = "22 400";
+        pulseG.appendChild(q);
+        const l = p.getTotalLength();
+        const start = (i < 5 ? 5.2 : 5.6) + (i % 5) * 0.23;
+        tl.fromTo(q, { strokeDashoffset: 22 }, { strokeDashoffset: -l, duration: 0.9, ease: "none", repeat: 6, repeatDelay: 0.25 }, start);
+      });
+      // The data path lights module by module.
+      tl.to(".ar-mod", { borderColor: "#3dffb0", duration: 0.25, stagger: 0.35, yoyo: true, repeat: 1 }, 6.6);
+      // Exit: push into the layer.
+      tl.to("#ar-wrap", { scale: 1.12, opacity: 0, filter: "blur(10px)", duration: 0.5, ease: "power3.in" }, 11.45);
+      window.__timelines["arch"] = tl;
+    })();
+  </script>
+</template>

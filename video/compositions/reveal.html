@@ -1,0 +1,83 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #e8f5ee; }
+    #rv-threads { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+    #rv-lock { position: absolute; left: 0; right: 0; top: 330px; display: flex; align-items: center; justify-content: center; gap: 44px; }
+    #rv-mark { width: 210px; height: 210px; }
+    #rv-word { font-size: 236px; font-weight: 900; letter-spacing: -0.055em; line-height: 1; padding-bottom: 20px;
+      text-shadow: 0 0 40px rgba(61, 255, 176, 0.35); }
+    .rv-ch { display: inline-block; }
+    #rv-eyebrow { position: absolute; left: 0; right: 0; top: 250px; text-align: center; font-size: 38px; font-weight: 700; color: #8fb3a3; letter-spacing: 0.3em; text-transform: uppercase; }
+    #rv-tag { position: absolute; left: 0; right: 0; top: 640px; text-align: center; font-size: 64px; font-weight: 700; letter-spacing: -0.025em; }
+    #rv-tag span { color: #3dffb0; }
+    #rv-sub { position: absolute; left: 0; right: 0; top: 745px; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 34px; color: #8fb3a3; }
+    #rv-sub b { color: #e8f5ee; font-weight: 700; }
+  </style>
+  <div id="root" data-composition-id="reveal" data-width="1920" data-height="1080">
+    <svg id="rv-threads" viewBox="0 0 1920 1080" fill="none" stroke-linecap="round" data-layout-ignore></svg>
+    <div id="rv-eyebrow">Meet</div>
+    <div id="rv-lock">
+      <svg id="rv-mark" viewBox="0 0 120 120" fill="none" stroke-linecap="round">
+        <g stroke="#3dffb0" stroke-width="5">
+          <path class="rv-br" d="M60 60 C 52 46, 40 36, 22 24" />
+          <path class="rv-br" d="M60 60 C 72 48, 84 40, 100 28" />
+          <path class="rv-br" d="M60 60 C 76 64, 92 70, 106 80" />
+          <path class="rv-br" d="M60 60 C 58 76, 62 92, 64 108" />
+          <path class="rv-br" d="M60 60 C 46 66, 30 72, 14 84" />
+        </g>
+        <g fill="#3dffb0">
+          <circle class="rv-nd" cx="22" cy="24" r="7" /><circle class="rv-nd" cx="100" cy="28" r="7" />
+          <circle class="rv-nd" cx="106" cy="80" r="7" /><circle class="rv-nd" cx="64" cy="108" r="7" />
+          <circle class="rv-nd" cx="14" cy="84" r="7" />
+        </g>
+        <circle id="rv-core" cx="60" cy="60" r="13" fill="#e8f5ee" />
+      </svg>
+      <div id="rv-word"><span class="rv-ch">m</span><span class="rv-ch">y</span><span class="rv-ch">c</span><span class="rv-ch">e</span><span class="rv-ch">l</span></div>
+    </div>
+    <div id="rv-tag">The <span>connective layer</span> for AI agents.</div>
+    <div id="rv-sub"><b>MCP-compatible gateway</b> + <b>agent-to-agent mesh</b></div>
+  </div>
+  <script>
+    (function () {
+      const NS = "http://www.w3.org/2000/svg";
+      const R = window.MY.rng(7);
+      const svg = document.getElementById("rv-threads");
+      const tl = gsap.timeline({ paused: true });
+      // Threads grow in from the frame edges and converge on the lockup.
+      const targets = [[560, 430], [700, 400], [860, 470], [1040, 420], [1200, 470], [1360, 440], [960, 440]];
+      for (let i = 0; i < 22; i++) {
+        const t = targets[i % targets.length];
+        const side = i % 4;
+        const u = R();
+        const sx = side === 0 ? -20 : side === 1 ? 1940 : u * 1920;
+        const sy = side === 2 ? -20 : side === 3 ? 1100 : u * 1080;
+        const c1x = sx + (t[0] - sx) * 0.35 + (R() - 0.5) * 420, c1y = sy + (t[1] - sy) * 0.35 + (R() - 0.5) * 420;
+        const c2x = sx + (t[0] - sx) * 0.75 + (R() - 0.5) * 260, c2y = sy + (t[1] - sy) * 0.75 + (R() - 0.5) * 260;
+        const p = document.createElementNS(NS, "path");
+        p.setAttribute("d", `M${sx} ${sy} C${c1x} ${c1y} ${c2x} ${c2y} ${t[0]} ${t[1]}`);
+        p.setAttribute("stroke", i % 3 ? "#2f8f6a" : "#3dffb0");
+        p.setAttribute("stroke-width", i % 3 ? 1.6 : 2.4);
+        p.setAttribute("opacity", i % 3 ? 0.6 : 0.85);
+        svg.appendChild(p);
+        const len = p.getTotalLength();
+        p.style.strokeDasharray = len;
+        tl.fromTo(p, { strokeDashoffset: len }, { strokeDashoffset: 0, duration: 1.3 + R() * 0.5, ease: "power3.inOut" }, 0.0 + R() * 0.4);
+      }
+      // Threads settle back so the wordmark reads.
+      tl.to("#rv-threads", { opacity: 0.28, duration: 0.8, ease: "power2.inOut" }, 1.9);
+      tl.fromTo("#rv-eyebrow", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, 0.5);
+      // Mark: core lights, branches draw, nodes pop.
+      document.querySelectorAll("#rv-mark .rv-br").forEach((b) => { const l = b.getTotalLength(); b.style.strokeDasharray = l; tl.fromTo(b, { strokeDashoffset: l }, { strokeDashoffset: 0, duration: 0.5, ease: "power3.out" }, 1.45); });
+      tl.fromTo("#rv-core", { scale: 0, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.5, ease: "back.out(2)" }, 1.25);
+      tl.fromTo("#rv-mark .rv-nd", { scale: 0, transformOrigin: "50% 50%" }, { scale: 1, duration: 0.35, stagger: 0.05, ease: "back.out(2.5)" }, 1.8);
+      tl.fromTo("#rv-word .rv-ch", { opacity: 0, y: 30, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.4, stagger: 0.08, ease: "expo.out" }, 1.55);
+      tl.fromTo("#rv-tag", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.35, ease: "power3.out" }, 2.9);
+      tl.fromTo("#rv-sub", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" }, 3.8);
+      tl.to("#rv-eyebrow", { opacity: 0, duration: 0.3 }, 3.2);
+      // Exit: lockup pulls up and away into the architecture view.
+      tl.to(["#rv-tag", "#rv-sub", "#rv-threads"], { opacity: 0, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, 6.35);
+      tl.to("#rv-lock", { scale: 0.35, y: -300, opacity: 0, filter: "blur(6px)", duration: 0.5, ease: "power3.in" }, 6.4);
+      window.__timelines["reveal"] = tl;
+    })();
+  </script>
+</template>

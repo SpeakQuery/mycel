@@ -1,0 +1,170 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; font-family: "Inter", sans-serif; color: #e8f5ee; }
+    .pf-seg { position: absolute; inset: 0; }
+    .pf-in { position: absolute; inset: 0; }
+    .pf-title { position: absolute; left: 0; right: 0; top: 92px; text-align: center; font-size: 64px; font-weight: 900; letter-spacing: -0.035em; }
+    .pf-title .am { color: #ffb547; } .pf-title .ac { color: #3dffb0; }
+    .pf-panel { position: absolute; top: 230px; width: 760px; height: 650px; border-radius: 22px; background: rgba(12, 28, 22, 0.94); border: 1.5px solid #1c3a2e; overflow: hidden; }
+    .pf-L { left: 140px; } .pf-R { left: 1020px; border-color: rgba(61, 255, 176, 0.55); box-shadow: 0 0 50px rgba(61, 255, 176, 0.12); }
+    .pf-lab { position: absolute; left: 30px; top: 24px; font-size: 24px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+    .pf-L .pf-lab { color: #ffb547; } .pf-R .pf-lab { color: #3dffb0; }
+    .pf-foot { position: absolute; left: 30px; right: 30px; bottom: 26px; font-size: 30px; font-weight: 700; }
+    .pf-L .pf-foot { color: #ffb547; } .pf-R .pf-foot { color: #3dffb0; }
+    .pf-body { position: absolute; left: 30px; right: 30px; top: 80px; bottom: 90px; overflow: hidden; }
+    .pf-arrow { position: absolute; left: 925px; top: 520px; width: 70px; height: 70px; }
+    /* A: tools */
+    #pfa-grid { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+    .pfa-chip { border-radius: 4px; background: rgba(255, 181, 71, 0.16); border: 1px solid rgba(255, 181, 71, 0.35); }
+    #pfa-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding-top: 10px; }
+    .pfa-mt { height: 76px; border-radius: 12px; background: rgba(61, 255, 176, 0.08); border: 1.5px solid rgba(61, 255, 176, 0.45);
+      font-family: "JetBrains Mono", monospace; font-size: 27px; display: flex; align-items: center; padding-left: 20px; color: #d8fbea; }
+    .pf-save { position: absolute; right: 30px; bottom: 22px; font-family: "JetBrains Mono", monospace; font-size: 26px; font-weight: 700; color: #07110d; background: #3dffb0; padding: 6px 14px; border-radius: 8px; }
+    /* B: ref */
+    #pfb-file { font-family: "JetBrains Mono", monospace; font-size: 26px; color: #e8f5ee; margin-bottom: 14px; }
+    #pfb-hex { font-family: "JetBrains Mono", monospace; font-size: 17px; line-height: 25px; color: rgba(255, 181, 71, 0.55); word-break: break-all; }
+    #pfb-stamp { position: absolute; left: 50%; top: 52%; font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 30px; letter-spacing: 0.08em;
+      color: #07110d; background: #ffb547; padding: 12px 22px; border-radius: 10px; white-space: nowrap; }
+    #pfb-ref { font-family: "JetBrains Mono", monospace; font-size: 27px; color: #3dffb0; background: rgba(61, 255, 176, 0.08); border: 1.5px solid rgba(61, 255, 176, 0.45);
+      border-radius: 10px; padding: 10px 16px; display: inline-block; }
+    #pfb-meta { margin-top: 16px; font-family: "JetBrains Mono", monospace; font-size: 22px; color: #8fb3a3; }
+    #pfb-keys { margin-top: 20px; display: flex; gap: 14px; }
+    .pfb-k { width: 160px; }
+    .pfb-img { height: 90px; border-radius: 8px; border: 1px solid #275a45; position: relative; overflow: hidden; }
+    .pfb-t { margin-top: 6px; font-family: "JetBrains Mono", monospace; font-size: 19px; color: #8fb3a3; }
+    #pfb-tr { margin-top: 18px; font-family: "JetBrains Mono", monospace; font-size: 19px; line-height: 30px; color: #cfe5da; white-space: nowrap; }
+    /* C: code mode */
+    .pfc-row { display: flex; align-items: center; gap: 18px; font-family: "JetBrains Mono", monospace; font-size: 21px; color: #8fb3a3; }
+    .pfc-row .ln { position: relative; flex: 1; height: 3px; background: rgba(255, 181, 71, 0.25); }
+    .pfc-row .dt { position: absolute; top: -6px; width: 15px; height: 15px; border-radius: 50%; background: #ffb547; }
+    .pfc-row .ep { color: #cfe5da; width: 74px; }
+    #pfc-code { font-family: "JetBrains Mono", monospace; font-size: 21px; line-height: 40px; color: #cfe5da; white-space: pre; }
+    #pfc-code .c { color: #5f8a77; } #pfc-code .k { color: #3dffb0; } #pfc-code .s { color: #ffd38a; }
+    #pfc-run { position: absolute; left: 30px; right: 30px; top: 300px; height: 52px; border-radius: 10px; background: rgba(61, 255, 176, 0.08); border: 1.5px solid rgba(61, 255, 176, 0.4);
+      font-family: "JetBrains Mono", monospace; font-size: 22px; line-height: 49px; padding-left: 18px; color: #3dffb0; }
+  </style>
+  <div id="root" data-composition-id="proof" data-width="1920" data-height="1080">
+    <!-- A: tool schemas -->
+    <div id="pfa" class="pf-seg clip" data-start="0" data-duration="5.4">
+      <div class="pf-in" id="pfa-in">
+        <div class="pf-title"><span class="am" data-d="toolsDirect">180</span> tools → <span class="ac" data-d="toolsMycel">8</span> meta-tools</div>
+        <div class="pf-panel pf-L"><div class="pf-lab">Direct MCP · <span data-d="serversDirect">12</span> servers</div>
+          <div class="pf-body"><div id="pfa-grid"></div></div>
+          <div class="pf-foot"><span data-d="tokensDirect">38k</span> tokens of schemas</div></div>
+        <svg class="pf-arrow" viewBox="0 0 70 70"><path d="M10 35 H58 M42 19 L58 35 L42 51" stroke="#3dffb0" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="pf-panel pf-R"><div class="pf-lab">Through Mycel</div>
+          <div class="pf-body"><div id="pfa-meta">
+            <div class="pfa-mt">mycel_search</div><div class="pfa-mt">mycel_describe</div><div class="pfa-mt">mycel_call</div><div class="pfa-mt">mycel_run</div>
+            <div class="pfa-mt">mycel_ref</div><div class="pfa-mt">mycel_job</div><div class="pfa-mt">mycel_delegate</div><div class="pfa-mt">mycel_ask</div>
+          </div></div>
+          <div class="pf-foot"><span data-d="tokensMycel">1.9k</span> tokens</div>
+          <div class="pf-save" id="pfa-save">−<span data-d="tokenSavings">97%</span> context</div></div>
+      </div>
+    </div>
+    <!-- B: ref store -->
+    <div id="pfb" class="pf-seg clip" data-start="5.4" data-duration="5.4">
+      <div class="pf-in" id="pfb-in">
+        <div class="pf-title">A <span class="am" data-d="videoSize">500 MB</span> video. The model sees <span class="ac">a digest.</span></div>
+        <div class="pf-panel pf-L"><div class="pf-lab">Direct MCP</div>
+          <div class="pf-body"><div id="pfb-file">launch-cut.mp4 · <span data-d="videoSize">500 MB</span></div><div id="pfb-hexbox" style="position:absolute;left:0;right:0;top:52px;bottom:0;overflow:hidden" data-layout-ignore><div id="pfb-hex"></div></div></div>
+          <div id="pfb-stamp" data-layout-allow-overlap>WON'T FIT IN CONTEXT</div>
+          <div class="pf-foot">raw bytes through the model</div></div>
+        <svg class="pf-arrow" viewBox="0 0 70 70"><path d="M10 35 H58 M42 19 L58 35 L42 51" stroke="#3dffb0" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="pf-panel pf-R"><div class="pf-lab">Through Mycel · Ref Store</div>
+          <div class="pf-body">
+            <div id="pfb-ref">ref://sha256:<span data-d="refHash">9f2c…</span></div>
+            <div id="pfb-meta" data-d="videoMeta">04:12</div>
+            <div id="pfb-keys">
+              <div class="pfb-k"><div class="pfb-img" style="background:linear-gradient(135deg,#0f3a2c,#3dffb0 160%)"></div><div class="pfb-t" data-d="keyframeTimes.0">00:00</div></div>
+              <div class="pfb-k"><div class="pfb-img" style="background:linear-gradient(200deg,#3a2a10,#ffb547 170%)"></div><div class="pfb-t" data-d="keyframeTimes.1">01:03</div></div>
+              <div class="pfb-k"><div class="pfb-img" style="background:radial-gradient(circle at 40% 60%,#3dffb0,#0b2219 70%)"></div><div class="pfb-t" data-d="keyframeTimes.2">02:06</div></div>
+              <div class="pfb-k"><div class="pfb-img" style="background:linear-gradient(20deg,#07110d,#2f7a5c 60%,#e8f5ee 160%)"></div><div class="pfb-t" data-d="keyframeTimes.3">03:09</div></div>
+            </div>
+            <div id="pfb-tr"><div data-d="transcript.0"></div><div data-d="transcript.1"></div><div data-d="transcript.2"></div></div>
+          </div>
+          <div class="pf-foot">digest ≈ <span data-d="digestTokens">1.2k</span> tokens</div></div>
+      </div>
+    </div>
+    <!-- C: code mode -->
+    <div id="pfc" class="pf-seg clip" data-start="10.8" data-duration="5.2">
+      <div class="pf-in" id="pfc-in">
+        <div class="pf-title"><span class="am" data-d="roundTripsDirect">10</span> round trips → <span class="ac" data-d="roundTripsMycel">1</span> script</div>
+        <div class="pf-panel pf-L"><div class="pf-lab">Direct MCP</div>
+          <div class="pf-body" id="pfc-rows"></div>
+          <div class="pf-foot"><span data-d="roundTripsDirect">10</span> inference turns</div></div>
+        <svg class="pf-arrow" viewBox="0 0 70 70"><path d="M10 35 H58 M42 19 L58 35 L42 51" stroke="#3dffb0" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="pf-panel pf-R"><div class="pf-lab">Through Mycel · Code Mode</div>
+          <div class="pf-body">
+<div id="pfc-code"><span class="c">// one mycel_run call, QuickJS sandbox</span>
+<span class="k">const</span> bugs = <span class="k">await</span> github.list_issues({ label: <span class="s">"bug"</span> });
+<span class="k">const</span> owners = <span class="k">await</span> db.query(<span class="s">"select * from owners"</span>);
+<span class="k">const</span> plan = bugs.map(b => assign(b, owners));
+<span class="k">await</span> slack.post({ to: <span class="s">"#triage"</span>, text: summary(plan) });
+<span class="k">return</span> { assigned: plan.length };</div>
+            <div id="pfc-run">→ only the result returns to the model</div>
+          </div>
+          <div class="pf-foot"><span data-d="roundTripsMycel">1</span> round trip</div></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const D = window.MY.D;
+      window.MY.fill(document.querySelector('[data-composition-id="proof"]'));
+      // A: one chip per direct tool, sized to fill the panel body.
+      const grid = document.getElementById("pfa-grid");
+      const n = Number(D.toolsDirect) || 180, W = 700, H = 470, gap = 6;
+      const cols = Math.max(1, Math.ceil(Math.sqrt((n * W) / H)));
+      const rows = Math.ceil(n / cols);
+      const cw = (W - gap * (cols - 1)) / cols, ch = Math.min(cw, (H - gap * (rows - 1)) / rows);
+      for (let i = 0; i < n; i++) { const c = document.createElement("div"); c.className = "pfa-chip"; c.style.width = cw + "px"; c.style.height = ch + "px"; grid.appendChild(c); }
+      // B: hex flood.
+      const R = window.MY.rng(99), hx = "0123456789abcdef";
+      let s = ""; for (let i = 0; i < 1500; i++) { s += hx[Math.floor(R() * 16)] + hx[Math.floor(R() * 16)] + (i % 2 ? " " : ""); }
+      document.getElementById("pfb-hex").textContent = s;
+      // C: one row per direct round trip.
+      const rowsBox = document.getElementById("pfc-rows");
+      const rt = Math.min(Number(D.roundTripsDirect) || 10, 14);
+      const rh = Math.min(46, 470 / rt);
+      for (let i = 0; i < rt; i++) {
+        const r = document.createElement("div"); r.className = "pfc-row"; r.style.height = rh + "px";
+        r.innerHTML = '<span class="ep">model</span><span class="ln"><span class="dt"></span></span><span class="ep">tools</span><span style="width:110px;text-align:right">turn ' + (i + 1) + "</span>";
+        rowsBox.appendChild(r);
+      }
+      const tl = gsap.timeline({ paused: true });
+      const segIn = (id, t) => {
+        tl.fromTo(id + " .pf-title", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, t + 0.1);
+        tl.fromTo(id + " .pf-L", { opacity: 0, x: -50 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, t + 0.25);
+        tl.fromTo(id + " .pf-arrow", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.4, ease: "expo.out" }, t + 1.7);
+        tl.fromTo(id + " .pf-R", { opacity: 0, x: 50 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, t + 1.85);
+      };
+      const segOut = (id, t) => tl.to(id + "-in", { opacity: 0, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, t);
+      // A
+      segIn("#pfa", 0);
+      tl.fromTo(".pfa-chip", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.2, stagger: { each: 0.9 / n, from: "start" }, ease: "power2.out" }, 0.45);
+      tl.fromTo(".pfa-mt", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, stagger: 0.07, ease: "expo.out" }, 2.1);
+      tl.fromTo("#pfa-save", { opacity: 0, scale: 1.4 }, { opacity: 1, scale: 1, duration: 0.35, ease: "expo.out" }, 3.0);
+      segOut("#pfa", 5.05);
+      // B
+      segIn("#pfb", 5.4);
+      tl.fromTo("#pfb-hex", { y: 0 }, { y: -900, duration: 4.6, ease: "none" }, 5.6);
+      tl.fromTo("#pfb-stamp", { opacity: 0, scale: 1.4, xPercent: -50, yPercent: -50 }, { opacity: 1, scale: 1, xPercent: -50, yPercent: -50, duration: 0.3, ease: "expo.out" }, 6.6);
+      tl.fromTo("#pfb-ref", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3 }, 7.4);
+      tl.fromTo("#pfb-meta", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 7.7);
+      tl.fromTo(".pfb-k", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, stagger: 0.1, ease: "expo.out" }, 7.9);
+      tl.fromTo("#pfb-tr > div", { opacity: 0 }, { opacity: 1, duration: 0.25, stagger: 0.15 }, 8.4);
+      segOut("#pfb", 10.45);
+      // C
+      segIn("#pfc", 10.8);
+      const dots = document.querySelectorAll(".pfc-row .dt");
+      dots.forEach((d, i) => {
+        tl.fromTo(d, { x: 0, opacity: 0 }, { x: 370, opacity: 1, duration: 0.18, ease: "power1.inOut", yoyo: true, repeat: 1 }, 11.1 + i * 0.16);
+      });
+      tl.fromTo(".pfc-row", { opacity: 0.25 }, { opacity: 1, duration: 0.1, stagger: 0.16 }, 11.1);
+      tl.fromTo("#pfc-code", { opacity: 0, clipPath: "inset(0 0 100% 0)" }, { opacity: 1, clipPath: "inset(0 0 0% 0)", duration: 0.9, ease: "power2.out" }, 12.8);
+      tl.fromTo("#pfc-run", { opacity: 0, scaleX: 0.5, transformOrigin: "0% 50%" }, { opacity: 1, scaleX: 1, duration: 0.4, ease: "expo.out" }, 13.8);
+      tl.to("#pfc-in", { opacity: 0, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, 15.65);
+      window.__timelines["proof"] = tl;
+    })();
+  </script>
+</template>

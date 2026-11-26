@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mycel": {
+      "command": "npx",
+      "args": ["-y", "mycel", "serve", "-c", "/absolute/path/to/mycel.yaml"],
+      "env": {
+        "MYCEL_TOKEN_SECRET": "replace-with-output-of-mycel-token-secret"
+      }
+    }
+  }
+}

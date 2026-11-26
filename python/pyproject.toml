@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mycel-client"
+version = "0.1.0"
+description = "Zero-dependency Python client for Mycel, the MCP gateway + A2A agent mesh."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.9"
+authors = [{ name = "Mycel contributors" }]
+keywords = ["mycel", "mcp", "a2a", "agent2agent", "ai-agents", "llm", "tools"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/SpeakQuery/mycel"
+Repository = "https://github.com/SpeakQuery/mycel"
+Issues = "https://github.com/SpeakQuery/mycel/issues"
+Documentation = "https://github.com/SpeakQuery/mycel/tree/main/python#readme"
+
+[project.scripts]
+mycel-client = "mycel_client.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mycel_client"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/mycel_client", "tests", "README.md", "pyproject.toml"]

@@ -100,6 +100,8 @@ Mycel's own footprint stays flat at ~1k tokens. Direct MCP grows with every serv
 | S9 | Images, progress notifications | image → ref, 4/4 progress events forwarded |
 | S10 | Risk classes for Playwright's 25 tools | 7 read · 13 external · 5 destructive |
 
+**Plus a real remote server with OAuth:** after `mycel login canva`, Canva's 44 tools work through Mycel, and the tokens refresh automatically. With Canva added, the lab holds 126 tools: **44.5k tokens of definitions direct, 1.05k through Mycel (−97.6%)**.
+
 The field test found four real bugs before launch. All are fixed and covered by tests:
 - Playwright marks even `hover` as destructive. Mycel now cross-checks that label against the tool's name (`annotations: strict` opts out).
 - A big text result that came wrapped in JSON lost its table digest.

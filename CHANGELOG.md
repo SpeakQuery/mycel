@@ -8,7 +8,8 @@ Found by running Mycel in front of 8 real open-source MCP servers ([field test](
 - **`annotations: balanced | strict`** per server. Playwright marks even `hover` as destructive, which made every browser step ask for approval. In balanced mode (the default), a destructive annotation needs the tool's name to agree.
 - Big text results wrapped in JSON (`{content: "…"}`) are stored as text, so a CSV gets a table digest and grep works line by line.
 - `mycel_ref` grep shows a window around the match on very long lines instead of the whole line.
-- Better search synonyms (remember, save, history, uncommitted, open/visit → navigate, …). Field-test top-3 accuracy is now 16/16.
+- Verified with the real Canva MCP server: `mycel login canva`, 44 tools, read calls through Mycel. With Canva, 126 tools cost 44.5k tokens direct and 1.05k through Mycel.
+- Better search synonyms (list/search, remember, save, history, uncommitted, open/visit → navigate, …). Field-test top-3 accuracy is now 16/16.
 - Install with `npm install -g github:SpeakQuery/mycel`. `mycel init` now writes client snippets that call the installed `mycel` command.
 - CI runs on Linux, macOS and Windows.
 - New: a "Do you need Mycel?" guide with measured break-even numbers, plus the `examples/field-test` suite.

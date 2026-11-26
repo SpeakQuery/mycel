@@ -65,7 +65,7 @@ function stem(w: string): string {
 }
 
 const SYNONYMS: Record<string, string[]> = {
-  remove: ["delete"], delete: ["remove"], find: ["search", "list"], search: ["find", "query"],
+  remove: ["delete"], delete: ["remove"], find: ["search", "list"], search: ["find", "query", "list"], list: ["search", "find"], my: ["search"],
   ticket: ["issue"], issue: ["ticket", "bug"], bug: ["issue"], mail: ["email"], email: ["mail", "message"],
   film: ["video"], movie: ["video"], clip: ["video"], picture: ["image"], photo: ["image"], img: ["image"],
   db: ["database", "sql"], sql: ["database", "query"], file: ["document"], doc: ["document"],

@@ -2,6 +2,7 @@ import { EventEmitter } from "node:events";
 import { appendFileSync, mkdirSync, readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
+import type { EventSavings } from "./savings.js";
 
 export type EventKind = "session" | "search" | "describe" | "call" | "run" | "ref" | "job" | "approval" | "policy" | "a2a" | "ask" | "drift";
 
@@ -19,9 +20,14 @@ export interface TraceEvent {
   costUsd?: number;
   /** Tokens actually sent to the model for this step (estimate). */
   tokensToModel?: number;
-  /** Tokens the model did NOT have to see thanks to refs / code mode / the router (estimate). */
+  /**
+   * Kept for compatibility. MEASURED tokens saved by this event only: set by the recorder from `savings.measured`
+   * (counted events, shrunk results). Never an estimate, and never set on calls inside mycel_run (the run carries it).
+   */
   tokensSaved?: number;
   bytesOffloaded?: number;
+  /** Measured result savings per call/run, and the estimated tool-definition savings per tools/list. See savings.ts. */
+  savings?: EventSavings;
   decision?: string;
   tainted?: boolean;
   agent?: string;
@@ -35,12 +41,17 @@ export interface Stats {
   errors: number;
   runs: number;
   searches: number;
+  /** Kept for compatibility: MEASURED net tokens saved (saved − added). Estimated tool-definition savings are in `estimated`. */
   tokensSaved: number;
   tokensToModel: number;
   bytesOffloaded: number;
   costUsd: number;
   approvals: number;
   denied: number;
+  /** Measured result savings (exact, chars/4). Only counted calls. */
+  measured: { calls: number; savedTokens: number; addedTokens: number };
+  /** Estimated tool-definition savings, once per tools/list served. */
+  estimated: { toolsListServed: number; definitionTokens: number };
   byTool: Record<string, { calls: number; errors: number; totalMs: number; costUsd: number }>;
   since: string;
 }
@@ -70,6 +81,8 @@ export class Recorder extends EventEmitter {
 
   record(e: Omit<TraceEvent, "ts" | "spanId"> & { spanId?: string }): TraceEvent {
     const ev: TraceEvent = { ts: new Date().toISOString(), spanId: e.spanId ?? newId(), ...e };
+    const mv = ev.savings?.measured;
+    ev.tokensSaved = mv && ev.savings!.counted !== false && mv.savedTokens > 0 ? mv.savedTokens : undefined;
     if (this.opts.redact) {
       ev.args = clip(ev.args);
       ev.result = clip(ev.result);
@@ -117,6 +130,22 @@ export class Recorder extends EventEmitter {
     return s;
   }
 
+  /**
+   * Savings totals for `mycel stats`: the most recent gateway session in the log, and everything recorded today (UTC).
+   * Measured and estimated are kept apart; the estimate is per tools/list served, not per model turn.
+   */
+  savingsReport(now = new Date()): { session?: SavingsTotals & { id: string; start: string }; day: SavingsTotals & { date: string } } {
+    const date = now.toISOString().slice(0, 10);
+    const events = this.load({ days: 2 }).filter((e) => e.savings);
+    const today = events.filter((e) => e.ts.slice(0, 10) === date);
+    const lastId = events.length ? events[events.length - 1].savings!.session : undefined;
+    const mine = lastId ? events.filter((e) => e.savings!.session === lastId) : [];
+    return {
+      session: lastId ? { id: lastId, start: mine[0].ts, ...sumSavings(mine) } : undefined,
+      day: { date, ...sumSavings(today) },
+    };
+  }
+
   traces(limit = 50): Array<{ traceId: string; start: string; steps: number; errors: number; costUsd: number; tokensSaved: number; agent?: string; title: string }> {
     const by = new Map<string, TraceEvent[]>();
     for (const e of this.load({ days: 7 })) by.set(e.traceId, [...(by.get(e.traceId) ?? []), e]);
@@ -151,7 +180,17 @@ export class Recorder extends EventEmitter {
     if (!e.ok && e.kind !== "policy") s.errors++;
     if (e.kind === "approval") s.approvals++;
     if (e.kind === "policy" && e.decision === "deny") s.denied++;
-    s.tokensSaved += e.tokensSaved ?? 0;
+    const sv = e.savings;
+    if (sv?.measured && sv.counted !== false) {
+      s.measured.calls++;
+      s.measured.savedTokens += sv.measured.savedTokens;
+      s.measured.addedTokens += sv.measured.addedTokens;
+      s.tokensSaved += sv.measured.savedTokens - sv.measured.addedTokens;
+    }
+    if (sv?.estimated) {
+      s.estimated.toolsListServed++;
+      s.estimated.definitionTokens += sv.estimated.perTurnTokens;
+    }
     s.tokensToModel += e.tokensToModel ?? 0;
     s.bytesOffloaded += e.bytesOffloaded ?? 0;
     s.costUsd = round(s.costUsd + (e.costUsd ?? 0));
@@ -216,8 +255,31 @@ export class Recorder extends EventEmitter {
   }
 }
 
+export interface SavingsTotals {
+  measured: { calls: number; savedTokens: number; addedTokens: number; netTokens: number };
+  estimated: { toolsListServed: number; definitionTokens: number };
+}
+
+function sumSavings(events: TraceEvent[]): SavingsTotals {
+  const t: SavingsTotals = { measured: { calls: 0, savedTokens: 0, addedTokens: 0, netTokens: 0 }, estimated: { toolsListServed: 0, definitionTokens: 0 } };
+  for (const e of events) {
+    const sv = e.savings;
+    if (sv?.measured && sv.counted !== false) {
+      t.measured.calls++;
+      t.measured.savedTokens += sv.measured.savedTokens;
+      t.measured.addedTokens += sv.measured.addedTokens;
+    }
+    if (sv?.estimated) {
+      t.estimated.toolsListServed++;
+      t.estimated.definitionTokens += sv.estimated.perTurnTokens;
+    }
+  }
+  t.measured.netTokens = t.measured.savedTokens - t.measured.addedTokens;
+  return t;
+}
+
 function emptyStats(): Stats {
-  return { calls: 0, errors: 0, runs: 0, searches: 0, tokensSaved: 0, tokensToModel: 0, bytesOffloaded: 0, costUsd: 0, approvals: 0, denied: 0, byTool: {}, since: new Date().toISOString() };
+  return { calls: 0, errors: 0, runs: 0, searches: 0, tokensSaved: 0, tokensToModel: 0, bytesOffloaded: 0, costUsd: 0, approvals: 0, denied: 0, measured: { calls: 0, savedTokens: 0, addedTokens: 0 }, estimated: { toolsListServed: 0, definitionTokens: 0 }, byTool: {}, since: new Date().toISOString() };
 }
 
 function clip(v: unknown): unknown {

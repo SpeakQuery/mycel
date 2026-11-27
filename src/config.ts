@@ -154,6 +154,14 @@ export const MycelConfig = z.object({
       redact: z.boolean().default(true),
     })
     .prefault({}),
+  ui: z
+    .object({
+      /** Append the one-line savings summary to each tool result the model sees (costs roughly 30-40 tokens per call). Off by default. */
+      savingsLine: z.boolean().default(false),
+      /** Log the savings line to stderr in `mycel serve`. */
+      savingsLog: z.boolean().default(true),
+    })
+    .prefault({}),
   dashboard: z.object({ port: z.number().int().default(4747), host: z.string().default("127.0.0.1") }).prefault({}),
   a2a: z
     .object({

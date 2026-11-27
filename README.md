@@ -15,7 +15,7 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 [![Node ≥ 20](https://img.shields.io/badge/node-%E2%89%A520-3DFFB0?style=flat-square)](package.json)
 [![MCP compatible](https://img.shields.io/badge/MCP-compatible-3DFFB0?style=flat-square)](https://modelcontextprotocol.io)
 [![A2A v0.3](https://img.shields.io/badge/A2A-v0.3-3DFFB0?style=flat-square)](https://a2a-protocol.org)
-[![Tests](https://img.shields.io/badge/tests-91%20passing-3DFFB0?style=flat-square)](tests)
+[![Tests](https://img.shields.io/badge/tests-104%20passing-3DFFB0?style=flat-square)](tests)
 
 [**▶ Watch the 90-second film**](https://mycel.speakquery.ai/#film) · [Quickstart](#-quickstart) · [Benchmark](#-the-numbers) · [How it works](#-how-it-works) · [All 20 features](#-features) · [Docs](docs/)
 
@@ -77,7 +77,7 @@ This is one run per cell, not a statistical result. To be fair about the other s
 - ⚡ **17 calls, 1 round trip.** The model writes one small script; Mycel runs it in a WebAssembly sandbox and returns only the result (about +0.4 ms on a Mac, +1 ms in CI (Ubuntu, Windows); median of 15 local calls). 17 tool calls in 1 model round trip. A client that makes one tool call per turn needs 17 turns; an efficient direct path using batch tools (read_multiple_files) needs about 3. Code Mode assumes the model writes a working script first time; not yet measured with a live model.
 - 📦 **Refs instead of payloads.** A 20,000-row CSV becomes a reference plus a digest: 131k tokens → 187. The model can still ask for rows or hand the ref to another tool.
 - 🛡️ **Safe by default.** Untrusted content can't trigger a write without approval, secrets referenced as `{{secret:NAME}}` are injected by Mycel and scrubbed from outputs, errors and traces, and changed tool definitions are blocked.
-- 👁️ **Calls are recorded.** Tool calls that run through Mycel's call path get a span (not covered: client-side actions, provider-side effects, `mycel_job` status/wait reads, calls to unknown tools or invalid refs; money is read from the budget ledger, not the traces); budgets, approvals and a live dashboard; sub-agents get narrowed capability tokens, never your keys.
+- 👁️ **Calls are recorded.** Every tool request that reaches Mycel's MCP server gets a span, including failures, unknown tools, invalid refs and dry runs (not covered: client-side actions, provider-side effects, requests rejected before they reach Mycel; money is read from the budget ledger, not the traces); budgets, approvals and a live dashboard; sub-agents get narrowed capability tokens, never your keys.
 
 <p align="center"><img src="media/anim-guard.svg" alt="Animated: an untrusted web page payload telling the agent to write to ~/.ssh is stopped by a Mycel shield with approval required" width="860"></p>
 
@@ -375,7 +375,7 @@ All 20 ship in v1. Every one is opt-in beyond the defaults, and a 10-line config
 ### Visibility
 | Feature | What it does |
 |---|---|
-| **11 · Flight Recorder** | Tool calls that run through Mycel's call path (search, call, script, job, approval, policy decision) get a span (not `mycel_job` status/wait reads, calls to unknown tools or invalid refs; read money from the budget ledger): timing, tokens saved, bytes offloaded, cost, taint. JSONL on disk + **OpenTelemetry (OTLP/HTTP)** export. `mycel replay <trace>`. |
+| **11 · Flight Recorder** | Every tool request that reaches Mycel's MCP server gets a span (search, describe, call, run, ref, job, approval, policy decision, failures included; `describe`/`ref`/`job` spans hold ids and sizes, not content). Not covered: client-side actions, provider-side effects, requests rejected before they reach Mycel. Read money from the budget ledger: timing, measured tokens saved, bytes offloaded, cost, taint. JSONL on disk + **OpenTelemetry (OTLP/HTTP)** export. `mycel replay <trace>`. |
 | **12 · Live Dashboard** | Local web UI: savings, live activity, trace waterfalls, approvals, jobs, servers, drift, refs. Token-protected and DNS-rebinding-safe. |
 
 ### Mesh & integration
@@ -437,6 +437,32 @@ a2a:                                        # optional
 ```
 
 Full reference: [`docs/configuration.md`](docs/configuration.md).
+
+## 🧾 See what you save
+
+Mycel can put a one-line summary after each tool call. It keeps two kinds of numbers apart, because only one of them is exact:
+
+```
+Mycel · this call: ≈13,240 → ≈1,710 tokens (−87% size, measured · tokens ≈ chars/4) · session: ≈−48,300 · tool definitions: ~−202k/turn (estimated)
+```
+
+- **Measured (a size, not a token count).** The size of the raw result the upstream server returned vs the size Mycel actually returned to the model. The size is exact for what Mycel saw; the "tokens" are `chars / 4`, the same approximation used everywhere else, so they are marked `≈`. Real tokenizers differ: on one small body a reviewer saw 143 by this estimate against 223 from the Qwen tokenizer (up to ~55% apart), while on the 420-tool catalog cl100k and o200k agreed within about 2%. Read small figures as rough, large ones as a good guide. `_meta` carries `unit: "chars/4 tokens (approx.)"`. It covers `mycel_call`, direct tool calls in compact mode, and the inner calls of `mycel_run` (counted once, as the run). When Mycel returns *more* than the raw result (a small result plus its metadata) the line says `+N`, and it is subtracted from the session total, never counted as a saving. Calls that return an error, are denied or wait for approval have no measured figure.
+- **Estimated.** What a client that sends every tool definition on every turn would pay for the catalog, minus what Mycel exposes. Mycel cannot see how many turns your client makes or whether it already loads tools on demand, so this is shown per turn and counted once per `tools/list` served. It only applies if your client sends every tool definition each turn (Claude Code and recent Cursor load tools on demand).
+
+Where it shows (all on by default except the model-visible line):
+
+| Where | What |
+|---|---|
+| Flight log | a `savings` field on each call (or job delivery, or run) event: `measured`, and `estimated` on `tools/list` events |
+| Dashboard | a **Savings** panel: measured per call and session total; estimated shown separately, greyed, with the caveat |
+| `mycel serve` | the line on stderr (`ui.savingsLog: false` to silence) |
+| `mycel stats` | measured and estimated totals for the latest session and for today, printed separately (`--json` for scripts) |
+| MCP result | `_meta: { "mycel/savings": { line, measured, session, estimated } }`, which most clients do not show to the model |
+| Tool result text | **off by default.** Set `ui: { savingsLine: true }` to append the line as a last text block the model and you can see. It costs about 30-40 tokens per call, so it is a small tax on the very thing it measures. |
+
+The older `tokensSaved` counter (flight log, dashboard "Tokens saved", `mycel traces`, OTLP `mycel.tokens_saved`) now means measured savings only: it is never an estimate and does not double count `mycel_run` inner calls. The tool-definition estimate is reported separately.
+
+Known limits: results of async tools that outlive a restart have no raw size and show no measured figure; the raw size of image and audio results counts their base64 text, which overstates what a model would be charged for them; `session` means one gateway process.
 
 ## 🧪 Code Mode
 
@@ -517,6 +543,7 @@ export default defineAdapter({
 | `mycel pin [--accept]` | review / accept tool-definition drift |
 | `mycel token secret / mint / attenuate / inspect` | capability tokens |
 | `mycel traces` · `mycel replay <id>` | flight recorder |
+| `mycel stats [--json]` | measured and estimated token savings for the latest session and today |
 | `mycel refs [--gc 7d]` | ref store |
 
 ## 🛡️ Security model — honestly
@@ -533,7 +560,7 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What i
 
 ## Contributing
 
-PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (91 tests) in a few seconds.
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (104 tests) in a few seconds.
 
 ## 💚 Using Mycel? Show it
 

@@ -189,6 +189,7 @@ async function api(m: Mycel, req: IncomingMessage, res: ServerResponse, url: URL
       live: m.recorder.liveStats(),
       history: m.recorder.historicalStats(30),
       drift: m.drift,
+      savings: { session: m.savings.snapshot(), definitionsPerTurn: m.definitionsPerTurn(), toolsListServed: m.savings.toolsListServed(), day: m.recorder.savingsReport().day, recent: m.recorder.load({ days: 1 }).filter((e) => e.savings?.measured && e.savings.counted !== false).slice(-8).map((e) => ({ ts: e.ts, tool: e.tool ?? e.kind, ...e.savings!.measured! })) },
       budget: { spent: m.budget.spent(), limits: m.config.budget },
       models: m.models.list(),
       peers: m.peers.names(),

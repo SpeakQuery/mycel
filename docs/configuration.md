@@ -13,6 +13,7 @@ Mycel is configured with a single file, `mycel.yaml` (`mycel.yml` and `mycel.jso
 - [`secrets`](#secrets)
 - [`pinning`](#pinning)
 - [`recorder`](#recorder)
+- [`ui`](#ui)
 - [`dashboard`](#dashboard)
 - [`a2a`](#a2a)
 - [`models`](#models)
@@ -187,6 +188,13 @@ Limits for Code Mode scripts (QuickJS/WASM).
 | `otlpEndpoint` | string | none | OpenTelemetry OTLP/HTTP collector, for example `http://localhost:4318`. |
 | `redact` | boolean | `true` | Redact sensitive values in recorded spans. |
 
+## `ui`
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `savingsLine` | boolean | `false` | Append the one-line savings summary (`Mycel · this call: ≈13,240 → ≈1,710 tokens (−87% size, measured · tokens ≈ chars/4) · session: ≈−48,300 · tool definitions: ~−202k/turn (estimated)`) to each tool result as a final text block, so the model and you can see it. It costs about 30-40 tokens per call. The same data is always attached to MCP results as `_meta["mycel/savings"]` and recorded in the flight log. See [See what you save](../README.md#-see-what-you-save). |
+| `savingsLog` | boolean | `true` | Log the same line to stderr in `mycel serve`. |
+
 ## `dashboard`
 
 | Field | Type | Default | Meaning |
@@ -276,6 +284,7 @@ jobs: { asyncThresholdMs: 20000, concurrency: 4 }
 secrets: { source: file, file: ./.env.mycel, allow: [GITHUB_TOKEN, STUDIO_KEY, ANTHROPIC_API_KEY, MYCEL_TOKEN_SECRET, RESEARCHER_TOKEN] }
 pinning: { enabled: true, onDrift: block }
 recorder: { enabled: true, otlpEndpoint: "http://localhost:4318", redact: true }
+ui: { savingsLine: false, savingsLog: true }
 dashboard: { port: 4747, host: 127.0.0.1 }
 
 a2a:

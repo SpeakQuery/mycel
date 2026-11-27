@@ -125,6 +125,17 @@ main { max-width: 1440px; margin: 0 auto; padding: 24px; display: flex; flex-dir
 .btn.icon { width: 30px; padding: 0; }
 .btn svg { width: 14px; height: 14px; }
 
+/* ---------- Savings ---------- */
+.sv { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; padding: 16px 18px 18px; }
+.sv h3 { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.sv .big { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--accent); }
+.sv ul { list-style: none; margin: 8px 0 0; padding: 0; font-size: 12px; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; gap: 3px; }
+.sv li { display: flex; gap: 8px; justify-content: space-between; color: var(--muted); }
+.sv .est { opacity: .6; }
+.sv .est .big { color: var(--muted); }
+.sv .note { font-size: 11.5px; color: var(--faint); margin-top: 6px; }
+@media (max-width: 720px) { .sv { grid-template-columns: minmax(0,1fr); } }
+
 /* ---------- KPIs ---------- */
 .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
 .kpi { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 6px; position: relative; overflow: hidden; text-align: left; }
@@ -402,6 +413,24 @@ footer .mono { font-size: 11.5px; }
       <span class="value" id="k-apv">—</span>
       <span class="sub" id="k-apv-sub">&nbsp;</span>
     </button>
+  </section>
+
+  <section class="panel" id="savings" aria-labelledby="h-savings">
+    <div class="panel-head"><h2 id="h-savings">Savings</h2></div>
+    <div class="sv">
+      <div>
+        <h3>Measured <span class="faint" style="text-transform:none;letter-spacing:0">· result size, exact</span></h3>
+        <div class="big" id="sv-session">—</div>
+        <div class="note" id="sv-session-sub">this session</div>
+        <ul id="sv-recent" aria-label="Measured savings per call"></ul>
+      </div>
+      <div class="est">
+        <h3>Estimated <span style="text-transform:none;letter-spacing:0">· tool definitions</span></h3>
+        <div class="big" id="sv-est">—</div>
+        <div class="note" id="sv-est-sub">per turn</div>
+        <div class="note">Estimated: only applies if your client sends every tool definition each turn (Claude Code and recent Cursor load tools on demand). Counted once per tools/list served.</div>
+      </div>
+    </div>
   </section>
 
   <div id="auth-slot"></div>
@@ -791,6 +820,7 @@ footer .mono { font-size: 11.5px; }
     $("k-saved").title = num(hist.tokensSaved) + " tokens";
     setKids($("k-saved-sub"), "this session ", h("b", { text: "+" + compact(live.tokensSaved) }), " · offloaded ", h("b", { text: bytes(hist.bytesOffloaded) }));
 
+    renderSavings();
     const fp = o.footprint || {};
     const pct = fp.directTokens > 0 ? Math.round((1 - fp.mycelTokens / fp.directTokens) * 100) : 0;
     if (fp.tools) setKids($("k-ctx"), compact(fp.directTokens), h("small", { text: " → " }), compact(fp.mycelTokens));
@@ -1536,6 +1566,20 @@ footer .mono { font-size: 11.5px; }
       if (v && v.id) onJobEvent(v);
     });
   }
+  const signedTok = (n) => (n > 0 ? "−" + num(n) : n < 0 ? "+" + num(-n) : "0");
+  function renderSavings() {
+    const sv = S.overview && S.overview.savings; if (!sv) return;
+    const ses = sv.session || {};
+    $("sv-session").textContent = signedTok(ses.netTokens || 0) + " tokens";
+    $("sv-session-sub").textContent = "this session · " + num(ses.calls) + " call" + (ses.calls === 1 ? "" : "s") + " (saved " + num(ses.savedTokens) + ", added " + num(ses.addedTokens) + ")";
+    $("sv-est").textContent = sv.definitionsPerTurn > 0 ? "~−" + compact(sv.definitionsPerTurn) + "/turn" : "—";
+    $("sv-est-sub").textContent = "estimated · " + num(sv.toolsListServed) + " tools/list served this session";
+    const rows = (S.savingsRecent || sv.recent || []).slice(-8).reverse().map((r) => {
+      const change = r.savedTokens > 0 ? "−" + r.pct + "%" : r.addedTokens > 0 ? "+" + num(r.addedTokens) : "no change";
+      return h("li", {}, h("span", { text: r.tool }), h("span", { text: num(r.rawTokens) + " → " + num(r.returnedTokens) + " tok (" + change + ")" }));
+    });
+    setKids($("sv-recent"), rows);
+  }
   /** Keep the "live session" numbers moving between overview polls. */
   function liveBump(e) {
     const o = S.overview; if (!o || !o.live || !o.history) return;
@@ -1546,6 +1590,13 @@ footer .mono { font-size: 11.5px; }
       if (e.kind === "run") s.runs = (s.runs || 0) + 1;
       if (!e.ok && e.kind !== "policy") s.errors = (s.errors || 0) + 1;
     }
+    const mv = e.savings && e.savings.measured;
+    if (mv && e.savings.counted !== false && o.savings) {
+      const ses = o.savings.session = o.savings.session || { calls: 0, savedTokens: 0, addedTokens: 0, netTokens: 0 };
+      ses.calls++; ses.savedTokens += mv.savedTokens; ses.addedTokens += mv.addedTokens; ses.netTokens = ses.savedTokens - ses.addedTokens;
+      S.savingsRecent = (S.savingsRecent || o.savings.recent || []).concat([{ tool: e.tool || e.kind, ...mv }]).slice(-8);
+    }
+    if (e.savings && e.savings.estimated && o.savings) { o.savings.definitionsPerTurn = e.savings.estimated.perTurnTokens; o.savings.toolsListServed = (o.savings.toolsListServed || 0) + 1; }
     if (e.costUsd && o.budget && o.budget.spent) o.budget.spent.day = (o.budget.spent.day || 0) + e.costUsd;
     renderOverview();
   }

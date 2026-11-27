@@ -4,6 +4,7 @@ import type { Mycel, CallContext } from "./core.js";
 import { META_TOOLS } from "./meta.js";
 import { estimateTokens, type ToolEntry } from "./catalog.js";
 import { newId } from "./recorder.js";
+import type { SavingsMeta } from "./savings.js";
 
 const VERSION = "0.1.5";
 
@@ -51,7 +52,9 @@ export function createMcpServer(m: Mycel, session: { capability?: CallContext["c
     ];
     const fp = m.contextFootprint();
     const shown = estimateTokens(tools) + estimateTokens(m.instructions());
-    m.recorder.record({ traceId, kind: "session", ok: true, tokensToModel: shown, tokensSaved: Math.max(0, fp.directTokens - shown), meta: { event: "tools/list", exposed: tools.length, catalog: fp.tools } });
+    const perTurn = Math.max(0, fp.directTokens - shown);
+    m.savings.noteToolsList(perTurn); // ESTIMATED: counted once per tools/list served, not per model turn
+    m.recorder.record({ traceId, kind: "session", ok: true, tokensToModel: shown, tokensSaved: perTurn, savings: { session: m.sessionId, estimated: { perTurnTokens: perTurn, basis: "tools/list" } }, meta: { event: "tools/list", exposed: tools.length, catalog: fp.tools } });
     return { tools };
   });
 
@@ -60,7 +63,11 @@ export function createMcpServer(m: Mycel, session: { capability?: CallContext["c
     const args = (req.params.arguments ?? {}) as Record<string, unknown>;
     const progressToken = req.params._meta?.progressToken;
     const caps = server.getClientCapabilities();
+    let savings: SavingsMeta | undefined;
     const ctx: CallContext = {
+      onSavings: (s) => {
+        savings = s;
+      },
       traceId,
       capability: session.capability,
       agent: session.agent,
@@ -94,7 +101,10 @@ export function createMcpServer(m: Mycel, session: { capability?: CallContext["c
         result = await m.call(t.id, args, ctx);
       }
       const isError = !!result && typeof result === "object" && ["error", "denied"].includes((result as { status?: string }).status ?? "");
-      return { content: [{ type: "text", text: typeof result === "string" ? result : JSON.stringify(result) }], isError };
+      const content: Array<{ type: "text"; text: string }> = [{ type: "text", text: typeof result === "string" ? result : JSON.stringify(result) }];
+      // Opt-in (ui.savingsLine): the one-line summary as a last text block, visible to the model. ~30-40 tokens per call.
+      if (savings && m.config.ui.savingsLine && !isError) content.push({ type: "text", text: savings.line });
+      return { content, isError, ...(savings ? { _meta: { "mycel/savings": savings } } : {}) };
     } catch (e) {
       return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }], isError: true };
     }

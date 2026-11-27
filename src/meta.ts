@@ -70,15 +70,19 @@ export function META_TOOLS(m: Mycel): MetaTool[] {
       name: "mycel_job",
       description: "Manage long-running jobs: status, wait (up to timeoutMs), cancel, retry, list.",
       inputSchema: obj({ action: { type: "string", enum: ["status", "wait", "cancel", "retry", "list"] }, id: { type: "string" }, timeoutMs: { type: "integer", minimum: 0, maximum: 600000 } }, ["action"]),
-      handler: async (a) => {
+      handler: async (a, ctx) => {
         const id = a.id as string;
+        const delivered = (v: ReturnType<Mycel["jobView"]>) => {
+          if (v.status === "succeeded") m.deliverJob(v.id, { id: v.usedTool ?? m.jobs.get(v.id)?.tool ?? "job", server: (v.usedTool ?? "").split(".")[0] }, v, ctx);
+          return v;
+        };
         switch (a.action) {
           case "list":
             return m.jobs.list().slice(0, 30).map((j) => ({ id: j.id, tool: j.tool, status: j.status, progress: j.progress, total: j.total, createdAt: j.createdAt, costUsd: j.costUsd, costEstimated: j.costEstimated }));
           case "status":
-            return m.jobView(must(m.jobs.get(id), id));
+            return delivered(m.jobView(must(m.jobs.get(id), id)));
           case "wait":
-            return m.jobView(await m.jobs.wait(id, Number(a.timeoutMs ?? 60000)));
+            return delivered(m.jobView(await m.jobs.wait(id, Number(a.timeoutMs ?? 60000))));
           case "cancel":
             return m.jobView(m.jobs.cancel(id));
           case "retry":

@@ -13,6 +13,7 @@ import { runBench, formatBench } from "./bench.js";
 import { mint, attenuate, inspect, newRootKey, parseDuration, type Caveat } from "./tokens.js";
 import { ApprovalQueue } from "./policy.js";
 import { Recorder } from "./recorder.js";
+import { formatStats } from "./savings.js";
 import { EFFECTS, isStdio, type Effect } from "./config.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -345,6 +346,18 @@ program
     const loaded = loadConfig(program.opts().config ? resolve(program.opts().config) : undefined);
     const rec = new Recorder(join(loaded.home, "traces"), { enabled: false, redact: true });
     for (const t of rec.traces(20)) out(`${c.g(t.traceId)}  ${t.start}  ${String(t.steps).padStart(3)} steps  ${t.errors ? c.y(`${t.errors} err`) : "      "}  saved ${t.tokensSaved} tok  ${t.title}`);
+  });
+
+program
+  .command("stats")
+  .description("Token savings for the latest session and today: measured (result size) and estimated (tool definitions), kept separate")
+  .option("--json", "print the totals as JSON")
+  .action((o: { json?: boolean }) => {
+    const loaded = loadConfig(program.opts().config ? resolve(program.opts().config) : undefined);
+    const rec = new Recorder(join(loaded.home, "traces"), { enabled: false, redact: true });
+    const r = rec.savingsReport();
+    if (o.json) return out(JSON.stringify(r, null, 2));
+    out(formatStats(r));
   });
 
 program

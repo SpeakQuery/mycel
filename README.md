@@ -15,7 +15,7 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 [![Node ≥ 20](https://img.shields.io/badge/node-%E2%89%A520-3DFFB0?style=flat-square)](package.json)
 [![MCP compatible](https://img.shields.io/badge/MCP-compatible-3DFFB0?style=flat-square)](https://modelcontextprotocol.io)
 [![A2A v0.3](https://img.shields.io/badge/A2A-v0.3-3DFFB0?style=flat-square)](https://a2a-protocol.org)
-[![Tests](https://img.shields.io/badge/tests-91%20passing-3DFFB0?style=flat-square)](tests)
+[![Tests](https://img.shields.io/badge/tests-102%20passing-3DFFB0?style=flat-square)](tests)
 
 [**▶ Watch the 90-second film**](https://mycel.speakquery.ai/#film) · [Quickstart](#-quickstart) · [Benchmark](#-the-numbers) · [How it works](#-how-it-works) · [All 20 features](#-features) · [Docs](docs/)
 
@@ -438,6 +438,30 @@ a2a:                                        # optional
 
 Full reference: [`docs/configuration.md`](docs/configuration.md).
 
+## 🧾 See what you save
+
+Mycel can put a one-line summary after each tool call. It keeps two kinds of numbers apart, because only one of them is exact:
+
+```
+Mycel · this call: 13,240 → 1,710 tokens (−87%, measured) · session: −48,300 tokens measured · tool definitions: ~−202k/turn (estimated)
+```
+
+- **Measured (exact for what Mycel saw).** The size of the raw result the upstream server returned vs the size Mycel actually returned to the model, in tokens (`chars / 4`, the same estimator used everywhere else). It covers `mycel_call`, direct tool calls in compact mode, and the inner calls of `mycel_run` (counted once, as the run). When Mycel returns *more* than the raw result (a small result plus its metadata) the line says `+N`, and it is subtracted from the session total, never counted as a saving. Calls that return an error, are denied or wait for approval have no measured figure.
+- **Estimated.** What a client that sends every tool definition on every turn would pay for the catalog, minus what Mycel exposes. Mycel cannot see how many turns your client makes or whether it already loads tools on demand, so this is shown per turn and counted once per `tools/list` served. It only applies if your client sends every tool definition each turn (Claude Code and recent Cursor load tools on demand).
+
+Where it shows (all on by default except the model-visible line):
+
+| Where | What |
+|---|---|
+| Flight log | a `savings` field on each call (or job delivery, or run) event: `measured`, and `estimated` on `tools/list` events |
+| Dashboard | a **Savings** panel: measured per call and session total; estimated shown separately, greyed, with the caveat |
+| `mycel serve` | the line on stderr (`ui.savingsLog: false` to silence) |
+| `mycel stats` | measured and estimated totals for the latest session and for today, printed separately (`--json` for scripts) |
+| MCP result | `_meta: { "mycel/savings": { line, measured, session, estimated } }`, which most clients do not show to the model |
+| Tool result text | **off by default.** Set `ui: { savingsLine: true }` to append the line as a last text block the model and you can see. It costs about 30-40 tokens per call, so it is a small tax on the very thing it measures. |
+
+Known limits: results of async tools that outlive a restart have no raw size and show no measured figure; the raw size of image and audio results counts their base64 text, which overstates what a model would be charged for them; `session` means one gateway process.
+
 ## 🧪 Code Mode
 
 ```js
@@ -517,6 +541,7 @@ export default defineAdapter({
 | `mycel pin [--accept]` | review / accept tool-definition drift |
 | `mycel token secret / mint / attenuate / inspect` | capability tokens |
 | `mycel traces` · `mycel replay <id>` | flight recorder |
+| `mycel stats [--json]` | measured and estimated token savings for the latest session and today |
 | `mycel refs [--gc 7d]` | ref store |
 
 ## 🛡️ Security model — honestly
@@ -533,7 +558,7 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What i
 
 ## Contributing
 
-PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (91 tests) in a few seconds.
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (102 tests) in a few seconds.
 
 ## 💚 Using Mycel? Show it
 

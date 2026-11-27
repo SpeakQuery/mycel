@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.4 — 2026-11-27
+
+From the fourth independent review (free primary tool with a paid fallback; the user saw `succeeded` while the provider billed twice or once more than Mycel recorded):
+
+- Fixed (money): job retry, resume and idempotency decisions now use the contract of the tool actually sent (`idempotent`, `retries`, `idempotencyKeyArg`, price), not the primary tool's. A paid fallback's lost reply is no longer re-sent because the free primary was idempotent with retries.
+- Fixed (money): after a restart, a job whose last request went to a paid tool with no recorded outcome is resumed only if that tool is `idempotent` and has `idempotencyKeyArg` (continuing at that tool with the same key). Otherwise it is `interrupted` and the estimate is charged once; the free primary is not re-run. This also applies to a paid tool declared `idempotent: true` without a key.
+- Fixed (money): a paid attempt with an unrecorded outcome is never dropped from the ledger when a later attempt (or a recovered primary) succeeds; every dispatch is charged exactly once.
+- Added: per-job `dispatches` (tool, `estCostUsd`, `outcome`, `charged`), persisted and shown in the job view. Jobs persisted by 0.1.3 are migrated on load.
+- Changed: an unknown outcome is never followed by a fallback, even if a later retry of the same tool is rejected; a keyed retry of the same request is charged once.
+- Docs: `errorsAreRejections` needs an end-to-end "not charged" guarantee and does not mean "never retries"; jobs money safety rules rewritten.
+- Docs: corrected over-broad claims from the fourth review. "Avoids automatic double submission" and "never re-run automatically" replaced by the precise rule (no automatic re-send of a paid request with an unknown outcome; restart resumes only idempotent keyed paid tools). "Everything is recorded" now means every tool call through Mycel (not client-side actions or provider-side effects). "Secrets never enter the model's context" now describes `{{secret:NAME}}` injection and scrubbing, with the unusual-encoding caveat. Budget caps are documented as per-call, not reserved before dispatch. Added "Known limits for paid jobs" (estimates may exceed charges, no reconcile tool yet, dashboard spend mixes estimates and confirmed charges); the paid-fallback config example is marked illustrative (mock provider). README test count is now 88.
+
 ## 0.1.3 — 2026-11-27
 
 From the third independent review (mock paid provider, $0.40 per accepted job; provider receipts now match or are below Mycel's ledger in every scenario):

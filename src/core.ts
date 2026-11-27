@@ -53,6 +53,8 @@ export interface JobView {
   usedTool?: string;
   costUsd?: number;
   costEstimated?: boolean;
+  /** Every attempt sent to a provider, with that tool's estimate, outcome and whether an estimate was charged. */
+  dispatches?: Array<{ tool: string; estCostUsd?: number; outcome?: string; charged: boolean }>;
   hint?: string;
 }
 
@@ -140,7 +142,7 @@ export class Mycel {
         // Read at the moment of dispatch and persisted with the job: the price actually in force, and whether to send a key.
         dispatchInfo: (tool) => {
           const t = this.catalog.get(tool);
-          return { estCostUsd: t?.contract.costUsd, idempotencyKeyArg: t?.contract.idempotencyKeyArg };
+          return { estCostUsd: t?.contract.costUsd, idempotencyKeyArg: t?.contract.idempotencyKeyArg, idempotent: t?.contract.idempotent, retries: t?.contract.retries };
         },
       },
     );
@@ -464,6 +466,7 @@ export class Mycel {
       usedTool: j.usedTool,
       ...(j.costUsd ? { costUsd: j.costUsd } : {}),
       ...(j.costEstimated ? { costEstimated: true } : {}),
+      ...(j.dispatches?.length ? { dispatches: j.dispatches.map((d) => ({ tool: d.tool, estCostUsd: d.estCostUsd, outcome: d.outcome, charged: d.charged })) } : {}),
       hint: j.status === "queued" || j.status === "running" ? `Still running. Check later with mycel_job {"action":"status","id":"${j.id}"} or wait with {"action":"wait"}.` : undefined,
     };
   }

@@ -181,7 +181,7 @@ export class Recorder extends EventEmitter {
           resource: { attributes: [attr("service.name", this.opts.serviceName ?? "mycel")] },
           scopeSpans: [
             {
-              scope: { name: "mycel", version: "0.1.3" },
+              scope: { name: "mycel", version: "0.1.4" },
               spans: batch.map((e) => ({
                 traceId: e.traceId.padEnd(32, "0").slice(0, 32),
                 spanId: e.spanId.padEnd(16, "0").slice(0, 16),

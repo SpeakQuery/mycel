@@ -230,7 +230,7 @@ describe("price persisted at dispatch", () => {
     const m = await boot(home, { pa: { provider: h.provider, tools: contract() } });
     m.call("pa.render", {}, { mode: "async" });
     await until(() => h.state.accepted === 1);
-    expect(JSON.parse(readFileSync(join(home, "jobs.json"), "utf8"))[0]).toMatchObject({ status: "running", estCostUsd: 0.4 });
+    expect(JSON.parse(readFileSync(join(home, "jobs.json"), "utf8"))[0]).toMatchObject({ status: "running", dispatches: [expect.objectContaining({ tool: "pa.render", estCostUsd: 0.4, idempotent: false, charged: false })] });
   });
 
   it("restart while the paid tool's upstream is missing: interrupted, estimate charged once, no 'declares no cost'", async () => {
@@ -254,12 +254,12 @@ describe("price persisted at dispatch", () => {
     expect(m.budget.spent().day).toBe(0.4);
   });
 
-  it("an idempotent job that was dispatched before the restart and then fails because its upstream is missing is charged the estimate once", async () => {
+  it("an idempotent paid job without a key that was dispatched before the restart is not re-run: interrupted, estimate charged once", async () => {
     const home = tmp();
     const id = persistJob(home, { status: "running", idempotent: true, attempts: 1, dispatchedAt: new Date().toISOString(), dispatchedTool: "pa.render", estCostUsd: 0.4 });
     const m = await boot(home, {});
     const job = await m.jobs.wait(id, 3000);
-    expect(job.status).toBe("failed");
+    expect(job.status).toBe("interrupted");
     expect(job).toMatchObject({ costUsd: 0.4, costEstimated: true });
     expect(job.error).toMatch(/may have been accepted/);
     expect(m.budget.spent().day).toBe(0.4);
@@ -318,7 +318,7 @@ describe("idempotency key", () => {
     expect(h1.state.receipts + h2.state.receipts).toBe(1);
   });
 
-  it("without idempotencyKeyArg the same resume produces a second receipt", async () => {
+  it("without idempotencyKeyArg a paid job is not resumed (it would be a second receipt): interrupted, estimate charged", async () => {
     const seen = new Set<string>();
     const h1 = holdingProvider("requestId", seen);
     const home1 = tmp();
@@ -331,8 +331,11 @@ describe("idempotency key", () => {
     writeFileSync(join(home2, "jobs.json"), JSON.stringify([persisted]));
     const h2 = holdingProvider("requestId", seen);
     h2.release();
-    await (await boot(home2, { pa: { provider: h2.provider, tools: contract({ idempotent: true }) } })).jobs.wait(persisted.id, 3000);
-    expect(h1.state.receipts + h2.state.receipts).toBe(2);
+    const m2 = await boot(home2, { pa: { provider: h2.provider, tools: contract({ idempotent: true }) } });
+    expect(m2.jobs.get(persisted.id)).toMatchObject({ status: "interrupted", costUsd: 0.4, costEstimated: true });
+    expect(h1.state.receipts + h2.state.receipts).toBe(1);
+    expect(h2.state.accepted).toBe(0);
+    expect(m2.budget.spent().day).toBe(0.4);
   });
 
   it("never overwrites a caller-provided value", async () => {
@@ -421,5 +424,122 @@ describe("headless approval", () => {
   it("a pre-approving allow rule really lets the call through", async () => {
     const m = await boot(tmp(), tools, { policy: [{ match: { tool: "pa.render" }, action: "allow" }, ...cfg.policy] });
     expect((await m.call("pa.render", {})).status).toBe("ok");
+  });
+});
+
+/** Free, idempotent primary that falls back to a paid, non-idempotent tool (round-4 escapes). */
+function freePrimary(behaviour: "rejects" | "ok") {
+  const state = { calls: 0 };
+  const provider: ToolProvider = {
+    listTools: async () => [{ name: "render", description: "Free render", inputSchema: { type: "object", properties: {} } }],
+    callTool: async () => {
+      state.calls++;
+      if (behaviour === "rejects") return { isError: true, content: [{ type: "text", text: "busy" }] };
+      return { content: [{ type: "text", text: JSON.stringify({ video: "free" }) }] };
+    },
+  };
+  return { provider, state };
+}
+const freeContract = (extra: Record<string, unknown> = {}) => contract({ costUsd: 0, idempotent: true, retries: 1, fallback: ["pb.render"], ...extra });
+
+describe("fallback chain: free primary -> paid fallback uses the fallback's own contract", () => {
+  it("1. paid fallback's lost reply is not re-sent (primary's idempotent/retries do not apply)", async () => {
+    const a = freePrimary("rejects");
+    const b = errorResultProvider(); // paid, accepts and reports isError
+    const m = await boot(tmp(), { pa: { provider: a.provider, tools: freeContract() }, pb: { provider: b.provider, tools: contract() } });
+    const out = await m.call("pa.render", {});
+    expect(out.status).toBe("error");
+    expect(b.state.accepted).toBe(1);
+    const [job] = m.jobs.list();
+    expect(job).toMatchObject({ status: "unknown", costUsd: 0.4, costEstimated: true });
+    expect(m.budget.spent().day).toBe(0.4);
+    expect(m.jobView(job).dispatches?.filter((d) => d.tool === "pb.render")).toEqual([expect.objectContaining({ outcome: "unknown", charged: true, estCostUsd: 0.4 })]);
+  }, 10000);
+
+  async function killedAtFallback(home: string) {
+    const a = freePrimary("rejects");
+    const h = holdingProvider();
+    const m1 = await boot(home, { pa: { provider: a.provider, tools: freeContract({ retries: 0 }) }, pb: { provider: h.provider, tools: contract() } });
+    await m1.call("pa.render", {}, { mode: "async" });
+    await until(() => h.state.accepted === 1);
+    const persisted = JSON.parse(readFileSync(join(home, "jobs.json"), "utf8"));
+    return { persisted, h };
+  }
+
+  it("2. restart after the paid fallback accepted: it is not re-sent; interrupted, estimate charged once", async () => {
+    const { persisted, h } = await killedAtFallback(tmp());
+    const home2 = tmp();
+    writeFileSync(join(home2, "jobs.json"), JSON.stringify(persisted));
+    const p2 = freePrimary("ok");
+    const h2 = holdingProvider();
+    h2.release();
+    const m2 = await boot(home2, { pa: { provider: p2.provider, tools: freeContract({ retries: 0 }) }, pb: { provider: h2.provider, tools: contract() } });
+    const job = m2.jobs.get(persisted[0].id)!;
+    await new Promise((r) => setTimeout(r, 100));
+    expect(job).toMatchObject({ status: "interrupted", costUsd: 0.4, costEstimated: true });
+    expect(h2.state.accepted).toBe(0);
+    expect(p2.state.calls).toBe(0);
+    expect(h.state.receipts + h2.state.receipts).toBe(1);
+    expect(m2.budget.spent().day).toBe(0.4);
+    await m2.close();
+    expect((await boot(home2, {})).budget.spent().day).toBe(0.4); // not charged again on the next restart
+  });
+
+  it("3. restart where the free primary has recovered: the earlier paid receipt stays on the ledger", async () => {
+    const { persisted } = await killedAtFallback(tmp());
+    const home2 = tmp();
+    writeFileSync(join(home2, "jobs.json"), JSON.stringify(persisted));
+    const p2 = freePrimary("ok");
+    const m2 = await boot(home2, { pa: { provider: p2.provider, tools: freeContract({ retries: 0 }) }, pb: { provider: holdingProvider().provider, tools: contract() } });
+    await new Promise((r) => setTimeout(r, 100));
+    expect(p2.state.calls).toBe(0); // nothing is re-dispatched while a paid request is unresolved
+    expect(m2.jobs.get(persisted[0].id)).toMatchObject({ status: "interrupted", costUsd: 0.4 });
+    expect(m2.budget.spent().day).toBe(0.4);
+  });
+
+  it("a paid fallback with idempotent + idempotencyKeyArg is resumed at that fallback with the same key (one receipt)", async () => {
+    const seen = new Set<string>();
+    const home = tmp();
+    const a = freePrimary("rejects");
+    const h = holdingProvider("requestId", seen);
+    const pbContract = contract({ idempotent: true, idempotencyKeyArg: "requestId" });
+    const m1 = await boot(home, { pa: { provider: a.provider, tools: freeContract({ retries: 0 }) }, pb: { provider: h.provider, tools: pbContract } });
+    await m1.call("pa.render", {}, { mode: "async" });
+    await until(() => h.state.accepted === 1);
+    const persisted = JSON.parse(readFileSync(join(home, "jobs.json"), "utf8"));
+    const home2 = tmp();
+    writeFileSync(join(home2, "jobs.json"), JSON.stringify(persisted));
+    const p2 = freePrimary("ok");
+    const h2 = holdingProvider("requestId", seen);
+    h2.release();
+    const m2 = await boot(home2, { pa: { provider: p2.provider, tools: freeContract({ retries: 0 }) }, pb: { provider: h2.provider, tools: pbContract } });
+    const job = await m2.jobs.wait(persisted[0].id, 3000);
+    expect(job.status).toBe("succeeded");
+    expect(p2.state.calls).toBe(0);
+    expect(h2.state.args[0].requestId).toBe(h.state.args[0].requestId);
+    expect(h.state.receipts + h2.state.receipts).toBe(1);
+    expect(job).toMatchObject({ costUsd: 0.4 }); // actual cost once; the interrupted dispatch was the same keyed request, not a second charge
+    expect(job.costEstimated).toBeUndefined();
+    expect(m2.budget.spent().day).toBe(0.4);
+  });
+
+  it("a paid idempotent tool WITHOUT a key is not retried after an unknown outcome (retries:2); one accept, estimate charged once", async () => {
+    const a = errorResultProvider();
+    const m = await boot(tmp(), { pa: { provider: a.provider, tools: contract({ idempotent: true, retries: 2 }) } });
+    await m.call("pa.render", {});
+    expect(a.state.accepted).toBe(1);
+    expect(m.jobs.list()[0]).toMatchObject({ status: "unknown", costUsd: 0.4 });
+    expect(m.budget.spent().day).toBe(0.4);
+  });
+
+  it("cancelling a job whose paid fallback was dispatched charges that fallback's estimate once", async () => {
+    const a = freePrimary("rejects");
+    const h = holdingProvider();
+    const m = await boot(tmp(), { pa: { provider: a.provider, tools: freeContract({ retries: 0 }) }, pb: { provider: h.provider, tools: contract() } });
+    const r = (await m.call("pa.render", {}, { mode: "async" })) as { job: { id: string } };
+    await until(() => h.state.accepted === 1);
+    expect(m.jobs.cancel(r.job.id)).toMatchObject({ status: "cancelled", costUsd: 0.4, costEstimated: true });
+    m.jobs.cancel(r.job.id);
+    expect(m.budget.spent().day).toBe(0.4);
   });
 });

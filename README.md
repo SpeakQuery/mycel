@@ -15,7 +15,7 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 [![Node ≥ 20](https://img.shields.io/badge/node-%E2%89%A520-3DFFB0?style=flat-square)](package.json)
 [![MCP compatible](https://img.shields.io/badge/MCP-compatible-3DFFB0?style=flat-square)](https://modelcontextprotocol.io)
 [![A2A v0.3](https://img.shields.io/badge/A2A-v0.3-3DFFB0?style=flat-square)](https://a2a-protocol.org)
-[![Tests](https://img.shields.io/badge/tests-82%20passing-3DFFB0?style=flat-square)](tests)
+[![Tests](https://img.shields.io/badge/tests-88%20passing-3DFFB0?style=flat-square)](tests)
 
 [**▶ Watch the 90-second film**](https://mycel.speakquery.ai/#film) · [Quickstart](#-quickstart) · [Benchmark](#-the-numbers) · [How it works](#-how-it-works) · [All 20 features](#-features) · [Docs](docs/)
 
@@ -76,8 +76,8 @@ This is one run per cell, not a statistical result. To be fair about the other s
 
 - ⚡ **17 calls, 1 round trip.** The model writes one small script; Mycel runs it in a WebAssembly sandbox and returns only the result (about +0.4 ms on a Mac, +1 ms in CI (Ubuntu, Windows); median of 15 local calls). 17 tool calls in 1 model round trip. A client that makes one tool call per turn needs 17 turns; an efficient direct path using batch tools (read_multiple_files) needs about 3. Code Mode assumes the model writes a working script first time; not yet measured with a live model.
 - 📦 **Refs instead of payloads.** A 20,000-row CSV becomes a reference plus a digest: 131k tokens → 187. The model can still ask for rows or hand the ref to another tool.
-- 🛡️ **Safe by default.** Untrusted content can't trigger a write without approval, secrets never enter the model's context, and changed tool definitions are blocked.
-- 👁️ **Everything is recorded.** Per-call spans, budgets, approvals and a live dashboard; sub-agents get narrowed capability tokens, never your keys.
+- 🛡️ **Safe by default.** Untrusted content can't trigger a write without approval, secrets referenced as `{{secret:NAME}}` are injected by Mycel and scrubbed from outputs, errors and traces, and changed tool definitions are blocked.
+- 👁️ **Every call is recorded.** Every tool call that passes through Mycel gets a span (client-side actions and provider-side effects are not covered); budgets, approvals and a live dashboard; sub-agents get narrowed capability tokens, never your keys.
 
 <p align="center"><img src="media/anim-guard.svg" alt="Animated: an untrusted web page payload telling the agent to write to ~/.ssh is stopped by a Mycel shield with approval required" width="860"></p>
 
@@ -114,15 +114,15 @@ Four kinds of users, each with an honest status. The evidence is a mock or scrip
 ### 📣 3. AI editors and content/marketing teams
 **Badge: PARTIAL.**
 - **Pain:** designs, docs and brand assets across many tools, and agents that can publish or send without a human looking.
-- **Scenario:** Canva, a docs server and storage. The agent finds designs with `mycel_search` and reads assets by ref. With the example policy, a publish or send (an `external` effect) needs approval (inline or `mycel approve`), and a per-day budget caps spend.
+- **Scenario:** Canva, a docs server and storage. The agent finds designs with `mycel_search` and reads assets by ref. With the example policy, a publish or send (an `external` effect) needs approval (inline or `mycel approve`), and a per-day budget cap is checked per call (not reserved before dispatch, so concurrent paid jobs can exceed it).
 - **Caveat:** in the mock publish test approval was needed only because of the example policy; the default policy allows a clean external call. The model also added unsourced claims to the text.
 
 ### 🎬 4. Video / voice producers running 5–6 agents
 **Badge: PARTIAL (pilot).**
 - **Pain:** media passed around as base64, renders that time out mid-call, every agent holding every key, a loop that quietly spends money.
-- **Measured (mock pipeline):** a 5-agent mock pipeline worked: per-role tokens, refs passed between agents, the budget cap rejected the second request, and the final file had video and audio (5.000 s).
+- **Measured (mock pipeline):** a 5-agent mock pipeline worked: per-role tokens, refs passed between agents, the budget cap rejected the second, sequential request, and the final file had video and audio (5.000 s).
 - **Not measured:** real Higgsfield/Canva timing and quality.
-- **Not yet recommended:** automatic fallback across paid providers. Mycel avoids automatic double submission: after an error or lost reply from a paid tool it marks the job `unknown`, records an estimated charge and does not fall back, unless you declare that the provider's errors mean nothing was charged (`errorsAreRejections: true`). For true exactly-once, the provider must deduplicate; Mycel can pass a stable per-job key (`idempotencyKeyArg`). Reconcile `unknown` jobs with the provider.
+- **Not yet recommended:** automatic fallback across paid providers. Mycel does not automatically re-send a paid request whose outcome is unknown: it marks the job `unknown`, records the estimated charge once, and sends nothing more (no retry, no fallback), unless you declare that the provider's errors mean nothing was charged (`errorsAreRejections: true`). After a restart, a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; otherwise it is marked `interrupted` and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Every paid dispatch is recorded once in the job's `dispatches` (actual cost on success, estimate otherwise). Reconcile `unknown` and `interrupted` jobs with the provider (there is no reconcile tool yet).
 
 > **Pilot:** we're looking for 5 users (data analyst, data-quality engineer, developer with 5+ MCP servers, content editor, video/voice producer) — 45 minutes, your machine, paid actions mocked. [Open an issue](https://github.com/SpeakQuery/mycel/issues/new) to join.
 
@@ -326,11 +326,18 @@ All 20 ship in v1. Every one is opt-in beyond the defaults, and a 10-line config
 | **1 · Smart Tool Router** | BM25 search (names ×3, server ×2, descriptions, params, synonyms) over every connected tool. Schemas load only on demand. Modes: `auto` (default — small catalogs get every tool directly plus `run`/`ref`/`job`; past ~4k tokens of definitions it switches to `meta`), `meta`, `hybrid` (meta-tools + your top-N most-used tools directly), `passthrough`. |
 | **2 · Code Mode** | The model writes one async JS script; it runs in a **QuickJS WebAssembly sandbox** (no fs, no network, no Node APIs, CPU/memory/call caps). Only the return value comes back. `Promise.all` works. |
 | **3 · Ref Store** | Content-addressed (`ref://<sha256>`) storage for anything big or binary, with model-sized **digests**: JSON shape + sample, table columns + stats, text outline, image/video/audio metadata, video keyframes (ffmpeg). Pass refs straight into tool args as text, JSON, base64, data URL or file path. |
-| **4 · Job Queue** | Slow tools become jobs: progress, cancel, retry with backoff, **provider fallback chains**, resume after restart (idempotent jobs only; non-idempotent jobs are never re-run automatically). |
-| **5 · Cost & Budget** | Per-tool cost/latency contracts, `dryRun` estimates, per-task / per-day / per-token spend caps. Tools without a declared cost count as $0; set `costUsd` (alias `cost`) per tool for budgets to be meaningful. |
+| **4 · Job Queue** | Slow tools become jobs: progress, cancel, retry with backoff, **provider fallback chains**, resume after restart (a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; see the paid-jobs note below). |
+| **5 · Cost & Budget** | Per-tool cost/latency contracts, `dryRun` estimates, per-task / per-day / per-token budget caps. Budget caps are checked per call; they are not reserved before dispatch, so concurrent paid jobs can exceed a cap at the provider. Estimated charges count against the cap. Tools without a declared cost count as $0; set `costUsd` (alias `cost`) per tool for budgets to be meaningful. |
 | **15 · Model Router** | `mycel_ask` hands self-contained sub-tasks (summarise, extract, classify) to a `fast`/`balanced`/`deep` tier — any OpenAI-compatible endpoint (Ollama, vLLM, LM Studio, OpenRouter…) or Anthropic. Refs in the prompt are expanded for the sub-model, not your main context. |
 
-> **Paid jobs, honestly — not yet recommended for automatic fallback across paid providers.** Mycel avoids automatic double submission: after an error or lost reply from a paid tool it marks the job `unknown`, records an estimated charge and does not fall back, unless you declare that the provider's errors mean nothing was charged (`errorsAreRejections: true`). For true exactly-once, the provider must deduplicate; Mycel can pass a stable per-job key (`idempotencyKeyArg`). Reconcile `unknown` jobs with the provider. Fallback providers are tried automatically only when the failure is known to be a rejection (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). If you cancel after dispatch, Mycel charges an estimate. Non-idempotent jobs interrupted by a restart after dispatch are marked `interrupted` and charged the same estimate.
+> **Paid jobs, honestly — not yet recommended for automatic fallback across paid providers.** Mycel does not automatically re-send a paid request whose outcome is unknown: it marks the job `unknown`, records the estimated charge once, and sends nothing more (no retry, no fallback), unless you declare that the provider's errors mean nothing was charged (`errorsAreRejections: true`). After a restart, a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; otherwise it is marked `interrupted` and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Every paid dispatch is recorded once in the job's `dispatches` (actual cost on success, estimate otherwise). Fallback providers are tried automatically only when the failure is known to be a rejection (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). If you cancel after dispatch, Mycel charges an estimate. Reconcile `unknown` and `interrupted` jobs with the provider.
+>
+> **Known limits for paid jobs:**
+>
+> - Estimates can exceed what the provider charged (for example when the provider never received the request): Mycel cannot tell "never accepted" from "reply lost" unless `errorsAreRejections` is set.
+> - There is no reconcile tool yet (planned).
+> - The dashboard "Spend today" mixes estimated and confirmed charges.
+> - No pre-dispatch reservation: Budget caps are checked per call; they are not reserved before dispatch, so concurrent paid jobs can exceed a cap at the provider. Estimated charges count against the cap.
 
 ### Trust
 | Feature | What it does |
@@ -346,7 +353,7 @@ All 20 ship in v1. Every one is opt-in beyond the defaults, and a 10-line config
 ### Visibility
 | Feature | What it does |
 |---|---|
-| **11 · Flight Recorder** | Every search, call, script, job, approval and policy decision is a span: timing, tokens saved, bytes offloaded, cost, taint. JSONL on disk + **OpenTelemetry (OTLP/HTTP)** export. `mycel replay <trace>`. |
+| **11 · Flight Recorder** | Every tool call that passes through Mycel (search, call, script, job, approval, policy decision) is a span: timing, tokens saved, bytes offloaded, cost, taint. JSONL on disk + **OpenTelemetry (OTLP/HTTP)** export. `mycel replay <trace>`. |
 | **12 · Live Dashboard** | Local web UI: savings, live activity, trace waterfalls, approvals, jobs, servers, drift, refs. Token-protected and DNS-rebinding-safe. |
 
 ### Mesh & integration
@@ -375,7 +382,7 @@ servers:
     url: https://studio.example.com/mcp
     headers: { Authorization: "Bearer {{secret:STUDIO_KEY}}" }
     tools:                                  # contract overrides
-      generate_video: { async: true, costUsd: 0.40, fallback: ["backup.generate_video"], retries: 1 }
+      generate_video: { async: true, costUsd: 0.40, fallback: ["backup.generate_video"], retries: 1 }   # illustrative (tested against a mock provider); paid fallback is not yet recommended
   web:
     command: node
     args: ["./web-server.mjs"]
@@ -492,7 +499,7 @@ export default defineAdapter({
 
 ## 🛡️ Security model — honestly
 
-Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What it guarantees: secrets never enter the model's context; destructive and tainted side-effects need a human by default; changed tool definitions are blocked; delegated agents can't exceed their token; everything is recorded. What it can't guarantee: that a trusted server is actually trustworthy, or that a model never misreads data as instructions. Code Mode runs in QuickJS/WASM with no ambient capabilities, but treat it as defence in depth, not a security boundary for hostile code. Supported deployment is single-user and local; see the "Supported deployment" section of [SECURITY.md](SECURITY.md). Report issues: [SECURITY.md](SECURITY.md).
+Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What it aims to guarantee: secrets referenced as `{{secret:NAME}}` are injected by Mycel and scrubbed from outputs, errors and traces (a server that echoes a secret in an unusual encoding could still leak it); destructive and tainted side-effects need a human by default; changed tool definitions are blocked; delegated agents can't exceed their token; every tool call that passes through Mycel is recorded (not client-side actions or provider-side effects). What it can't guarantee: that a trusted server is actually trustworthy, or that a model never misreads data as instructions. Code Mode runs in QuickJS/WASM with no ambient capabilities, but treat it as defence in depth, not a security boundary for hostile code. Supported deployment is single-user and local; see the "Supported deployment" section of [SECURITY.md](SECURITY.md). Report issues: [SECURITY.md](SECURITY.md).
 
 ## 🗺️ Roadmap
 
@@ -504,7 +511,7 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What i
 
 ## Contributing
 
-PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (82 tests) in a few seconds.
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (88 tests) in a few seconds.
 
 ## License
 

@@ -32,12 +32,12 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection.
 
 What Mycel aims to guarantee:
 
-- Secrets never enter the model's context (`{{secret:NAME}}` placeholders, scrubbed from outputs, errors and traces).
+- Secrets referenced as `{{secret:NAME}}` are injected by Mycel and scrubbed from outputs, errors and traces; a server that echoes a secret in an unusual encoding could still leak it.
 - Destructive actions, and side-effects driven by tainted input, need a human approval by default. A clean (untainted) `external` call such as publish or send is allowed by default; add a rule like `{ match: { effect: external }, action: approve }` if you want approval for those.
-- Paid tools: after an error or lost reply Mycel marks the job `unknown`, records an estimated charge and does not fall back, unless the contract sets `errorsAreRejections: true`. It avoids automatic double submission but is not exactly-once; the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Automatic fallback across paid providers is not yet recommended.
+- Paid tools: Mycel does not automatically re-send a paid request whose outcome is unknown: it marks the job `unknown`, records the estimated charge once, and sends nothing more (no retry, no fallback), unless you declare that the provider's errors mean nothing was charged (`errorsAreRejections: true`). After a restart, a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; otherwise it is marked `interrupted` and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Every paid dispatch is recorded once in the job's `dispatches` (actual cost on success, estimate otherwise). Automatic fallback across paid providers is not yet recommended. Budget caps are checked per call; they are not reserved before dispatch, so concurrent paid jobs can exceed a cap at the provider. Estimated charges count against the cap.
 - Changed tool definitions ("rug pulls") are blocked until a human accepts them with `mycel pin --accept`.
 - Delegated agents cannot exceed their capability token; tokens can only be narrowed.
-- Everything is recorded in the flight recorder.
+- Every tool call that passes through Mycel is recorded in the flight recorder. Not recorded: actions the client takes on its own, and what a provider does on its side (a recorded estimate can differ from what the provider charged).
 
 What Mycel cannot guarantee:
 

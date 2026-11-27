@@ -162,7 +162,9 @@ Limits for Code Mode scripts (QuickJS/WASM).
 
 | Field | Type | Default | Meaning |
 |---|---|---|---|
-| `asyncThresholdMs` | positive integer | `20000` | Calls expected to take longer become background jobs. |
+| `inlineWaitMs` | integer >= 0 | `120000` | How long `mycel_call` waits inline for an async tool before it returns a job id (which costs the model a `mycel_job` turn). While waiting, Mycel sends an MCP progress notification every `heartbeatMs`. A call can override it with `wait` (seconds; `0` = return the job at once). Clients that give up after ~60 s and do not reset their timeout on progress need a smaller value (e.g. `50000`), or raise their tool timeout (Claude Code: `MCP_TOOL_TIMEOUT`). |
+| `asyncThresholdMs` | positive integer | unset | Deprecated alias of `inlineWaitMs`, used only when `inlineWaitMs` is not set. (Before 0.1.7 the default was `20000`.) |
+| `heartbeatMs` | positive integer | `10000` | Interval of the progress notifications sent while a call waits inline (only when the client asked for progress). |
 | `concurrency` | positive integer | `4` | Jobs running at the same time. |
 
 ## `secrets`
@@ -280,7 +282,7 @@ budget: { perTaskUsd: 5, perDayUsd: 50 }
 refs: { inlineLimitBytes: 8000 }
 router: { mode: hybrid, hybridTop: 10 }
 sandbox: { timeoutMs: 30000, memoryMb: 64, maxToolCalls: 200 }
-jobs: { asyncThresholdMs: 20000, concurrency: 4 }
+jobs: { inlineWaitMs: 120000, concurrency: 4 }
 secrets: { source: file, file: ./.env.mycel, allow: [GITHUB_TOKEN, STUDIO_KEY, ANTHROPIC_API_KEY, MYCEL_TOKEN_SECRET, RESEARCHER_TOKEN] }
 pinning: { enabled: true, onDrift: block }
 recorder: { enabled: true, otlpEndpoint: "http://localhost:4318", redact: true }

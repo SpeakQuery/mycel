@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+Fewer model turns (from the Stitch case study: 13 turns direct vs 27 through Mycel; 6 of the 14 extra turns were `mycel_job` waits):
+
+- Changed: `mycel_call` now waits inline for async tools (names like generate/render/export, or `async: true` in the contract) up to `jobs.inlineWaitMs` (default **120000**; it was 20000 as `asyncThresholdMs`, which still works as an alias when `inlineWaitMs` is not set). A job id comes back only if the tool is still running after that. While waiting, Mycel sends an MCP progress notification every `jobs.heartbeatMs` (default 10000) when the client asked for progress, so clients that reset their request timeout on progress keep the call alive. Clients with a fixed ~60 s limit and no reset on progress should set a smaller `inlineWaitMs`. Money handling is unchanged (same job, same ledger; a job that outlives the wait is the same job as before).
+- Added: `mycel_call` argument `wait` (seconds, 0-1800; `0` = return the job at once) overrides the inline wait for one call. `mode: "async"` still returns the job immediately. Calls made inside `mycel_run` keep waiting at most 20 s.
+- Added: `mycel_search` with `limit` of 3 or less returns each of the top 3 hits' compact input schema (types, enums, required list, short descriptions; capped) instead of the one-line `params`, so the model can call directly without `mycel_describe`. Added `queries: [...]` (up to 6 searches in one call, merged and de-duplicated).
+- Changed: the one-line `params` now shows array item types and small nested objects (`screenIds?: string[]`, `options?: { dark?: boolean, size: integer }`) instead of `array` / `any`.
+- Added: when a call fails with an argument-looking error (invalid, required, validation, -32602, ...) or required arguments are missing, the error result includes `missingRequired` and the tool's compact `inputSchema`, so the fix takes one turn. Other errors (rate limits, outages) do not carry it.
+- Added: `mycel_job` `status` / `wait` accept `ids: [...]` and return one view per job.
+- Added: a JSON digest gains `keys` (up to 10 `id` / `name` / `title` / `uri` / `url` / `slug` strings by JSON path, 1,000 chars at most) for values deeper than the depth-limited `sample` shows. The next call usually needs exactly those (e.g. a screen's file name), and without them the model re-read the ref in 3-7 extra turns. Only present when there is something deeper to show; shallow data and big arrays of rows are unchanged.
+- Cost, measured: the always-present tool definitions plus instructions grow from 1,253 to 1,338 tokens on the 420-tool full-scale example (+85, chars/4); a `limit: 3` search on that catalog costs about 430 tokens instead of about 220, a default search about 600 instead of 590.
+- Unchanged: policy, approvals, taint, budgets and job ledger behaviour; the README/site headline figures (1.2k, 99.4%) are 0.1.6 numbers, the current build counts 1,338 (99.3%) in examples/full-scale.
+
 ## 0.1.6 — 2026-11-27
 
 - Added: a one-line savings summary after tool calls that keeps **measured** and **estimated** numbers apart. Measured is exact for what Mycel saw: raw upstream result tokens vs tokens returned to the model (`chars / 4`), per call and per session, for `mycel_call`, direct tool calls, `mycel_run` (the run, counted once) and finished async jobs. When Mycel returns more than the raw result it says `+N` and subtracts it from the session total. Estimated is the tool-definition saving, counted once per `tools/list` served, always labelled as only applying to clients that send every tool definition each turn.

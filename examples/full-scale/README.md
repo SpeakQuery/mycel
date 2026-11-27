@@ -40,7 +40,7 @@ Each of the 15 servers is a *replay server* (`replay-server.mjs`) that serves a 
 | thinking | sequential-thinking-server | 1.0.0 | 1 | 1,036 |
 | time | mcp-time | 2026.11.18 | 3 | 607 |
 | **Total direct** | | | **420** | **203,547** |
-| **Through Mycel** | | | 6 | **1,253** (0.62%) |
+| **Through Mycel** | | | 6 | **1,338** (0.66%) |
 
 The README's earlier "414 tools / ~204k" came from a lab run earlier; this capture has 6 more tools (420), most likely because the remote servers' tool lists changed since then (not verified). The token total matches (203.5k vs ~204k).
 

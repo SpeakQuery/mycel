@@ -2,7 +2,7 @@
 
 **Status: MEASURED (n=1, real service).** One run per arm on 2026-11-27, with the real Google Stitch MCP server. This is not a statistical result and not a design-quality comparison.
 
-**Takeaway:** cheaper and safer when tools return big artifacts; slower in turns today. Reducing search/describe/job-wait turns is on the roadmap.
+**Takeaway:** cheaper and safer when tools return big artifacts; slower in turns in this run (0.1.6). Mycel changes after this run (inline waits for async tools, schemas in narrow searches and in argument errors) remove the job-wait and describe turns; see the CHANGELOG and the mock-service re-measurement note below, not re-run on the real service.
 
 ## Setup
 
@@ -97,3 +97,19 @@ Mycel was slower and used more turns: search, describe and job-wait turns. Its t
 3. Run the same task prompt twice with Claude Code, once with Stitch and filesystem wired directly, once with only Mycel wired in (`mycel serve`, see the [Quickstart](../../README.md#-quickstart)). Use the same model and the same operational hints.
 4. Compare the CLI cost estimate, turns and wall time, and the size of the tool results in each transcript. See [See what you save](../../README.md#-see-what-you-save) for the per-call figures Mycel records.
 5. Protocol for fair comparisons: [benchmark-protocol.md](../benchmark-protocol.md).
+
+## Re-measurement after the fewer-turns changes (mock service, not the real Stitch)
+
+The real-service run above was not repeated (it spends Stitch quota). To measure turns without it, a mock "slow design" MCP server with Stitch-like tools (`create_project`, `generate_screen_from_text` taking 22-38 s and returning ~16 KB of JSON, `get_screen`, `list_screens` returning `{}`, `download_file` returning ~29 KB of HTML) and the filesystem server ran the same task in Claude Code (`claude-haiku-5-5`, built-in file tools disabled, `MCP_TOOL_TIMEOUT=1200000`, the same operational hints, `router.mode: meta`, a policy that allows the mock and the filesystem server). Three arms, n=2 each, arms run in parallel on one Mac; oracle: `payment.html` written and byte-identical to the checkout screen the mock served (all 8 runs passed).
+
+| | Direct | Mycel 0.1.6 | Mycel (this branch) |
+|---|---|---|---|
+| Turns (run 1 / run 2) | 15 / 13 | 30 / 31 | **15 / 13** |
+| Wall time, min | 4.1 / 4.0 | 4.0 / 3.7 | 3.6 / 3.5 |
+| Total input incl. cache reads, k tokens | 1,106 / 892 | 1,353 / 1,126 | **616 / 525** |
+| Uncached input tokens | 30 / 26 | 60 / 52 | 30 / 26 |
+| Output tokens | 16,135 / 16,137 | 10,456 / 6,505 | 4,493 / 3,599 |
+| CLI cost estimate | $0.122 / $0.111 | $0.026 / $0.020 | $0.014 / $0.012 |
+| Tool results in context, chars | 127,733 / 126,368 | 24,223 / 20,106 | 16,428 / 12,149 |
+
+Where the 0.1.6 turns went (run 1: 30 turns): 1 ToolSearch for the meta-tools, 1-2 searches, 6 generation calls, 6 `mycel_job wait` calls (plus a ToolSearch to load `mycel_job`), 4-9 `mycel_ref` / `mycel_run` reads to dig the screen ids out of the digested results, plus one failed generation (the model passed `projects/<id>` instead of the id; the direct arm made the same mistake). With the changes: no job waits (generation is waited for inline), one search (`queries`, `limit: 3`), and the ids are in the digest, so the tail is download, write. A first mock version whose HTML was filler text made one direct run refuse to save the file; that run is not included. The mock's delays are fixed (27, 35, 22, 38, 31, 24 s), the real service takes 1-3 minutes per screen and has its own failure modes. n=2, one model, one task: a direction, not a benchmark. The harness is not part of the repository.

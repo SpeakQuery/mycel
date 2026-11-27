@@ -133,8 +133,15 @@ export const MycelConfig = z.object({
     .prefault({}),
   jobs: z
     .object({
-      /** Calls expected to take longer than this become background jobs. */
-      asyncThresholdMs: z.number().int().positive().default(20000),
+      /**
+       * How long mycel_call waits inline for an async tool before returning a job id (the model then needs a
+       * mycel_job turn). Default 120000. Per call, the `wait` argument (seconds) overrides it.
+       */
+      inlineWaitMs: z.number().int().nonnegative().optional(),
+      /** Deprecated alias of inlineWaitMs (used only when inlineWaitMs is not set). */
+      asyncThresholdMs: z.number().int().positive().optional(),
+      /** While waiting inline, send an MCP progress notification this often (clients may reset their timeout on it). */
+      heartbeatMs: z.number().int().positive().default(10000),
       concurrency: z.number().int().positive().default(4),
     })
     .prefault({}),

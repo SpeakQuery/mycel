@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync, chmodSync, readdirSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync, chmodSync, readdirSync, statSync } from "node:fs";
 import { tmpdir, platform } from "node:os";
 import { join, dirname } from "node:path";
 import YAML from "yaml";
-import { runSetup, runUndo, listBackups } from "../src/setup.js";
+import { runSetup, runUndo, listBackups, restartPlan } from "../src/setup.js";
 
 let home: string;
 let cwd: string;
@@ -230,5 +230,78 @@ describe("mycel setup / undo", () => {
     lines = [];
     await runUndo({ list: true }, io());
     expect(lines[0]).toContain(listBackups()[0].id);
+  });
+});
+
+describe("mycel setup wizard: nothing to set by hand", () => {
+  const mcfg = () => join(home, ".mycel", "mycel.yaml");
+  const secretsFile = () => join(home, ".mycel", "secrets.env");
+
+  it("moves API keys into a private secrets file and points the config at it", async () => {
+    fixtures();
+    await runSetup({ yes: true, cwd }, io());
+    const env = rd(secretsFile());
+    expect(env).toContain("API_KEY=sk-SUPERSECRET-123");
+    expect(env).toContain("=tok-ABC");
+    expect(env).not.toContain("Bearer");
+    const y = YAML.parse(rd(mcfg()));
+    expect(y.secrets).toEqual({ source: "file", file: secretsFile() });
+    expect(y.servers.c.headers.Authorization).toMatch(/^Bearer \{\{secret:[A-Z_]+\}\}$/);
+    expect(rd(mcfg())).not.toContain("SUPERSECRET");
+    expect(rd(mcfg())).not.toContain("tok-ABC");
+    if (platform() !== "win32") expect(statSync(secretsFile()).mode & 0o777).toBe(0o600);
+    const text = lines.join("\n");
+    expect(text).not.toMatch(/Set these environment variables/);
+    expect(text).not.toContain("SUPERSECRET");
+    expect(text).toMatch(/you don't need to set anything/);
+  });
+
+  it("gives two servers that share a variable name with different values distinct secrets", async () => {
+    put(desktop(), JSON.stringify({ mcpServers: { alpha: { command: "a", env: { API_KEY: "key-one-111" } }, beta: { command: "b", env: { API_KEY: "key-two-222" } } } }));
+    await runSetup({ yes: true, cwd }, io());
+    const y = YAML.parse(rd(mcfg()));
+    const a = /\{\{secret:(\w+)\}\}/.exec(y.servers.alpha.env.API_KEY)![1];
+    const b = /\{\{secret:(\w+)\}\}/.exec(y.servers.beta.env.API_KEY)![1];
+    expect(a).not.toBe(b);
+    const env = rd(secretsFile());
+    expect(env).toContain(`${a}=key-one-111`);
+    expect(env).toContain(`${b}=key-two-222`);
+  });
+
+  it("reuses an existing secrets file and never duplicates a stored key", async () => {
+    put(secretsFile(), "API_KEY=sk-SUPERSECRET-123\n");
+    put(desktop(), JSON.stringify({ mcpServers: { gh: srv } }));
+    await runSetup({ yes: true, cwd }, io());
+    expect(rd(secretsFile())).toBe("API_KEY=sk-SUPERSECRET-123\n");
+    expect(YAML.parse(rd(mcfg())).servers.gh.env.API_KEY).toBe("{{secret:API_KEY}}");
+  });
+
+  it("asks before including a project file instead of needing --projects", async () => {
+    put(join(cwd, ".mcp.json"), JSON.stringify({ mcpServers: { p: { command: "p-srv" } } }));
+    put(desktop(), JSON.stringify({ mcpServers: { x: { command: "x-srv" } } }));
+    await runSetup({ cwd }, io(true, true));
+    expect(Object.keys(JSON.parse(rd(join(cwd, ".mcp.json"))).mcpServers)).toEqual(["mycel"]);
+  });
+
+  it("undo keeps the secrets file it created and says so", async () => {
+    fixtures();
+    await runSetup({ yes: true, cwd }, io());
+    lines = [];
+    await runUndo({ yes: true }, io());
+    expect(existsSync(secretsFile())).toBe(true);
+    expect(lines.join("\n")).toMatch(/Secrets file .* was created by setup/);
+  });
+
+  it("plans app restarts: automatic on macOS, never the app setup runs inside", () => {
+    const clients = ["Claude Desktop", "Claude Code", "Cursor"];
+    const mac = restartPlan(clients, "darwin", {});
+    expect(mac.auto.map((a) => a.client)).toEqual(["Claude Desktop", "Cursor"]);
+    expect(mac.manual.join("\n")).toMatch(/Claude Code: start a new session/);
+    const inside = restartPlan(clients, "darwin", { __CFBundleIdentifier: "com.anthropic.claudefordesktop" });
+    expect(inside.auto.map((a) => a.client)).toEqual(["Cursor"]);
+    expect(inside.manual.join("\n")).toMatch(/Claude Desktop: setup is running inside it/);
+    const lin = restartPlan(clients, "linux", {});
+    expect(lin.auto).toEqual([]);
+    expect(lin.manual).toHaveLength(3);
   });
 });

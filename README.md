@@ -327,9 +327,17 @@ npx -y @speakquery/mycel setup
 
 Or install globally with `npm i -g @speakquery/mycel`, then run `mycel setup`.
 
-**2. Say yes.** Mycel finds the MCP servers you already use in Claude Desktop, Claude Code, Cursor, Windsurf and Gemini CLI, shows exactly what it will change, backs everything up, and connects them through Mycel.
+**2. Answer yes or no. The wizard does the rest.** Mycel finds the MCP servers you already use in Claude Desktop, Claude Code, Cursor, VS Code, Windsurf and Gemini CLI, shows exactly what it will change, backs everything up, and connects them through Mycel. You never edit a file or set a variable:
 
-**3. Restart your app.** That's it. Your agent now finds tools on demand, keeps big results out of the chat, and asks before risky actions.
+| Step | What the wizard does | You |
+|---|---|---|
+| 🔑 API keys | Moves them out of your app configs into `~/.mycel/secrets.env`, readable only by you (Mycel reads it; the model never sees the keys) | nothing |
+| 📁 Team project files (`.mcp.json`) | Asks before touching a file your team shares | yes / no |
+| ✅ Test | Starts every server through Mycel and reports what works | nothing |
+| 🌐 Sign-in (Canva, Notion, Higgsfield…) | Opens your browser for the one-time sign-in; tokens refresh automatically | yes, then "Allow" |
+| 🔄 Restart | Restarts Claude Desktop / Cursor / Windsurf / VS Code for you on macOS (never the app it is running inside); tells you the one step left elsewhere | yes / no |
+
+**3. Done.** Your agent now finds tools on demand, keeps big results out of the chat, and asks before risky actions.
 
 **See what you save:**
 

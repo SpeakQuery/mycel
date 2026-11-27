@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.9 — 2026-11-28
+
+**Setup is now a wizard: you only answer yes or no.**
+- API keys found in your app configs are moved into `~/.mycel/secrets.env` (permissions 600) and the config points at it. No environment variables to set.
+- Two servers that use the same variable name (for example `API_KEY`) with different values now get separate secrets; before, one could silently use the other's key.
+- Project files shared with a team are offered with a yes/no question instead of needing `--projects`.
+- After applying, every server is started through Mycel and checked; servers that need OAuth open the browser for a one-time sign-in.
+- On macOS, Claude Desktop, Cursor, Windsurf and VS Code are restarted on a yes (never the app setup runs inside). Elsewhere the one remaining step is printed.
+- `--no-check` skips testing, sign-ins and restarts. `mycel undo` also restores the secrets file, or keeps one it created and says so.
+- `mycel login` now shares the wizard's sign-in code.
+
 ## 0.1.8 — 2026-11-27
 
 - Added: `mycel setup` (`npx -y @speakquery/mycel setup`): finds your MCP client configs (Claude Desktop, Claude Code incl. per-project lists, Cursor, VS Code, Windsurf, Gemini CLI), imports their servers into `~/.mycel/mycel.yaml` (merges into an existing file, never overwrites it), shows exactly what will change and asks y/N (`--yes` skips; without a terminal it is a dry run), backs up every file it touches to `~/.mycel/backups/<timestamp>/` with a manifest, then leaves each client with a single `mycel` entry. Files with comments (JSONC) are skipped, not rewritten. Project-level files are left alone unless `--projects`. Claude Code user scope uses the `claude mcp` CLI when it is installed. Secrets stay `{{secret:NAME}}` placeholders.

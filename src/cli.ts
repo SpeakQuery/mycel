@@ -10,17 +10,13 @@ import { createMcpServer } from "./server.js";
 import { startHttp } from "./http.js";
 import { discover, toMycelYaml, clientSnippet } from "./importer.js";
 import { runSetup, runUndo } from "./setup.js";
+import { signIn } from "./login.js";
 import { runBench, formatBench } from "./bench.js";
 import { mint, attenuate, inspect, newRootKey, parseDuration, type Caveat } from "./tokens.js";
 import { ApprovalQueue } from "./policy.js";
 import { Recorder } from "./recorder.js";
 import { formatStats } from "./savings.js";
 import { EFFECTS, isStdio, type Effect } from "./config.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js";
-import { oauthFor } from "./upstream.js";
-import { DEFAULT_CALLBACK_PORT, openBrowser, waitForCallback } from "./oauth.js";
 
 // Exit quietly when piped into something that closes early (e.g. `mycel traces | head -1`).
 process.stdout.on("error", (e: NodeJS.ErrnoException) => {
@@ -46,7 +42,7 @@ const program = new Command();
 program
   .name("mycel")
   .description("The connective layer for AI agents — MCP gateway + A2A mesh.")
-  .version("0.1.8")
+  .version("0.1.9")
   .option("-c, --config <path>", "path to mycel.yaml");
 
 program
@@ -74,11 +70,12 @@ program
     out(`\n  Then: ${c.g("mycel doctor")} · ${c.g("mycel bench")} · ${c.g("mycel dashboard")}\n`);
   });
 
-async function ask(q: string): Promise<boolean> {
+async function ask(q: string, def = false): Promise<boolean> {
   const { createInterface } = await import("node:readline/promises");
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
-    return /^y(es)?$/i.test((await rl.question(q)).trim());
+    const a = (await rl.question(q)).trim();
+    return a === "" ? def : /^(y(es)?|e(vet)?)$/i.test(a);
   } finally {
     rl.close();
   }
@@ -90,9 +87,10 @@ program
   .description("One-step install: import your MCP servers, point every client at Mycel, keep backups (undo with `mycel undo`)")
   .option("-y, --yes", "apply without asking")
   .option("-o, --out <path>", "write the Mycel config here instead of ~/.mycel/mycel.yaml")
-  .option("--projects", "also rewrite project-level files (.mcp.json, .cursor/mcp.json, .vscode/mcp.json)")
-  .action(async (o: { yes?: boolean; out?: string; projects?: boolean }) => {
-    process.exitCode = await runSetup({ yes: o.yes, config: o.out ?? program.opts().config, projects: o.projects }, sio());
+  .option("--projects", "also rewrite project-level files (.mcp.json, .cursor/mcp.json, .vscode/mcp.json) without asking")
+  .option("--no-check", "skip the wizard's last steps: testing each server, browser sign-ins and restarting apps")
+  .action(async (o: { yes?: boolean; out?: string; projects?: boolean; check: boolean }) => {
+    process.exitCode = await runSetup({ yes: o.yes, config: o.out ?? program.opts().config, projects: o.projects, check: o.check }, sio());
   });
 
 program
@@ -209,45 +207,13 @@ program
   .option("--no-browser", "print the sign-in link instead of opening a browser")
   .action(async (name: string, o: { browser: boolean }) => {
     const loaded = loadConfig(program.opts().config ? resolve(program.opts().config) : undefined);
-    const cfg = loaded.config.servers[name];
-    if (!cfg) throw new Error(`No server "${name}" in ${loaded.path ?? "config"}`);
-    if (isStdio(cfg)) return out(`${name} is a local (stdio) server; it doesn't need a sign-in.`);
-    const m = new Mycel(loaded, { log: () => {}, noConnect: true });
-    const provider = oauthFor(name, cfg, m.vault, {
-      home: loaded.home,
-      onRedirect: (url) => {
-        out(`\n  Sign in to ${c.b(name)} in your browser:\n  ${url.href}\n`);
-        if (o.browser) openBrowser(url.href);
-      },
-    });
-    if (!provider) return out(`OAuth is off for ${name} (oauth: false, or an Authorization header is set).`);
-    const port = (cfg.oauth || undefined)?.callbackPort ?? DEFAULT_CALLBACK_PORT;
-    const cb = waitForCallback(port, () => provider.expectedState());
-    await cb.ready;
-    const connect = async () => {
-      const client = new Client({ name: `mycel:${name}`, version: "0.1.8" }, { capabilities: {} });
-      const transport = new StreamableHTTPClientTransport(new URL(cfg.url), { requestInit: { headers: m.vault.inject(cfg.headers) }, authProvider: provider });
-      await client.connect(transport);
-      return { client, transport };
-    };
-    let conn: Awaited<ReturnType<typeof connect>>;
-    try {
-      conn = await connect();
-      cb.close();
-    } catch (e) {
-      if (!(e instanceof UnauthorizedError)) {
-        cb.close();
-        throw e;
-      }
-      out(c.d("  Waiting for you to finish signing in…"));
-      const code = await cb.code;
-      const transport = new StreamableHTTPClientTransport(new URL(cfg.url), { requestInit: { headers: m.vault.inject(cfg.headers) }, authProvider: provider });
-      await transport.finishAuth(code);
-      conn = await connect();
+    const r = await signIn(loaded, name, out, { browser: o.browser });
+    if (!r.ok) {
+      out(`  ${c.y("✗")} ${name}: ${r.reason}`);
+      process.exitCode = 1;
+      return;
     }
-    const { tools } = await conn.client.listTools();
-    out(`  ${c.g("✓")} ${name}: signed in, ${tools.length} tools available. Tokens refresh automatically.\n`);
-    await conn.client.close();
+    out(`  ${c.g("✓")} ${name}: signed in, ${r.tools} tools available. Tokens refresh automatically.\n`);
   });
 
 program

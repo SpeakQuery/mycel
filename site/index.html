@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=12">
+  <link rel="stylesheet" href="styles.css?v=13">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -343,13 +343,14 @@
           </li>
           <li class="reason who-card">
             <h3><span aria-hidden="true">🎧</span> Customer-support agents</h3>
-            <p class="who-badge wb-designed">DESIGNED FOR — not yet tested</p>
+            <p class="who-badge wb-warn">PARTIAL</p>
             <p class="who-value">Untrusted customer text can’t trigger a refund or an email without approval.</p>
             <details class="who-more">
               <summary>Scenario, pilot metric, not a fit</summary>
               <p><strong>Who:</strong> Support teams running an agent over tickets, orders and a knowledge base.</p>
               <p><strong>Typical MCP servers:</strong> ticketing/helpdesk, CRM, knowledge base, email, payments/refunds.</p>
               <p><strong>Pain:</strong> Ticket histories are long, and the customer’s text is untrusted input sitting next to tools that can refund or send mail.</p>
+              <p><strong>Evidence (independent review, mock services, 3 runs each):</strong> scripted runs 3/3 produced the right draft; a 1,800-line ticket history stayed as a ref; all 6 injected refund/email attempts stopped for approval (0 unapproved side effects, 0 unnecessary approvals). With a small local model (Qwen3-4B) 0/3 reached the right end state (wrong order id, no draft): a model limit, no Mycel-specific failure. Note: approval for trusted external actions (email, share, upload) requires an explicit <code>{ match: { effect: external }, action: approve }</code> rule; the default policy allows them.</p>
               <ol class="who-steps">
                 <li>Mark the ticketing and email servers <code>trust: untrusted</code>; the long ticket history comes back as a ref plus a digest instead of thousands of lines in the prompt.</li>
                 <li>The agent searches the knowledge base with <code>mycel_search</code> and greps the ref for the order id and earlier promises.</li>
@@ -383,13 +384,14 @@
           </li>
           <li class="reason who-card">
             <h3><span aria-hidden="true">⚖️</span> Legal / document review</h3>
-            <p class="who-badge wb-designed">DESIGNED FOR — not yet tested</p>
+            <p class="who-badge wb-warn">PARTIAL</p>
             <p class="who-value">Long contracts stay on disk as refs; clauses are found with grep and nothing leaves without approval.</p>
             <details class="who-more">
               <summary>Scenario, pilot metric, not a fit</summary>
               <p><strong>Who:</strong> Lawyers, paralegals and in-house teams reviewing documents on their own machine.</p>
               <p><strong>Typical MCP servers:</strong> filesystem or document store, PDF/text extraction, email or sharing tools.</p>
               <p><strong>Pain:</strong> Contracts and PDFs are long, versions differ in small ways, and confidential text must not be sent anywhere by accident.</p>
+              <p><strong>Evidence (independent review, mock services, 3 runs each):</strong> scripted runs 3/3 found all 3 changed clauses across two 36-page versions, 0 missed, 0 invented; with the explicit approval rule all 9 send attempts stopped. Small local model 0/3 (answered without opening the documents). Note: approval for trusted external actions (email, share, upload) requires an explicit <code>{ match: { effect: external }, action: approve }</code> rule; the default policy allows them.</p>
               <ol class="who-steps">
                 <li>Contracts and exhibits are read as refs; the model sees an outline digest instead of hundreds of pages.</li>
                 <li>It greps the refs for clauses (indemnity, termination, governing law) and reads only the matching lines.</li>
@@ -423,14 +425,15 @@
           </li>
           <li class="reason who-card">
             <h3><span aria-hidden="true">🛠️</span> Data engineering / ETL quality</h3>
-            <p class="who-badge wb-designed">DESIGNED FOR — not yet tested</p>
+            <p class="who-badge wb-warn">PARTIAL</p>
             <p class="who-value">Row-level checks run in Code Mode over refs, so mislabeled or unflagged records are found without reading the table.</p>
             <details class="who-more">
               <summary>Scenario, pilot metric, not a fit</summary>
               <p><strong>Who:</strong> Data engineers and data-quality owners checking pipeline outputs.</p>
               <p><strong>Typical MCP servers:</strong> SQL/warehouse query tool, filesystem, object storage, ticketing for reporting issues.</p>
               <p><strong>Pain:</strong> Result sets have thousands of rows and the bad ones are rare; a sample can miss them.</p>
-              <p><strong>Closest evidence:</strong> The closest evidence is the measured CSV case: in a 20,000-row dataset with two planted exceptions, a text search on the ref found one and a Code Mode numeric scan found both; the first report omitted both until asked to verify. This sector itself has not been run end-to-end.</p>
+              <p><strong>Evidence (independent review, mock services, 3 runs each):</strong> scripted runs 3/3 found all 3 issues in 50,001 rows, 0 false positives, both direct and through Mycel. Context size for the same 2-turn task: 583,980 tokens direct vs 602 through Mycel (requests + responses, chars/4). Local median latency 37.7 ms direct vs 319.3 ms Mycel. Small local model 0/3 in both arms.</p>
+              <p><strong>Closest evidence:</strong> The closest evidence is the measured CSV case: in a 20,000-row dataset with two planted exceptions, a text search on the ref found one and a Code Mode numeric scan found both; the first report omitted both until asked to verify. This sector's own scripted runs are in the evidence line above.</p>
               <ol class="who-steps">
                 <li>A SQL result comes back as a ref plus a digest (columns, row count, sample).</li>
                 <li>A text search on the ref is a quick first pass, but it can miss rows.</li>
@@ -861,7 +864,7 @@
     </div>
   </footer>
 
-  <script src="main.js?v=12" defer></script>
+  <script src="main.js?v=13" defer></script>
   <script type="module" src="assets/scene.js?v=4"></script>
 </body>
 </html>

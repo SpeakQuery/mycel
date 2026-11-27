@@ -10,11 +10,11 @@ Mycel is a local, single-user MCP gateway. Everything below uses real features o
 | 2 | [Developers with many MCP servers](#2-developers-with-many-mcp-servers) | PARTIAL |
 | 3 | [AI editors and content/marketing teams](#3-ai-editors-and-contentmarketing-teams) | PARTIAL |
 | 4 | [Video / voice producers](#4-video-voice-producers) | PARTIAL (pilot) |
-| 5 | [Customer-support agents](#5-customersupport-agents) | DESIGNED FOR — not yet tested |
+| 5 | [Customer-support agents](#5-customersupport-agents) | PARTIAL |
 | 6 | [E-commerce operations](#6-ecommerce-operations) | DESIGNED FOR — not yet tested |
-| 7 | [Legal / document review](#7-legal-document-review) | DESIGNED FOR — not yet tested |
+| 7 | [Legal / document review](#7-legal-document-review) | PARTIAL |
 | 8 | [Finance & accounting reporting](#8-finance-accounting-reporting) | DESIGNED FOR — not yet tested |
-| 9 | [Data engineering / ETL quality](#9-data-engineering-etl-quality) | DESIGNED FOR — not yet tested |
+| 9 | [Data engineering / ETL quality](#9-data-engineering-etl-quality) | PARTIAL |
 | 10 | [Agencies & social-media teams](#10-agencies-socialmedia-teams) | DESIGNED FOR — not yet tested |
 
 ## 1–4. The four tested personas
@@ -28,7 +28,9 @@ Full evidence, numbers and caveats for these four are in the README section [Who
 
 ## 5. 🎧 Customer-support agents
 
-**Status: DESIGNED FOR — not yet tested.**
+**Status: PARTIAL.**
+
+**Evidence (independent review, mock services, 3 runs each):** scripted runs 3/3 produced the right draft; a 1,800-line ticket history stayed as a ref; all 6 injected refund/email attempts stopped for approval (0 unapproved side effects, 0 unnecessary approvals). With a small local model (Qwen3-4B) 0/3 reached the right end state (wrong order id, no draft): a model limit, no Mycel-specific failure. Note: approval for trusted external actions (email, share, upload) requires an explicit `{ match: { effect: external }, action: approve }` rule; the default policy allows them.
 
 - **Who:** Support teams running an agent over tickets, orders and a knowledge base.
 - **Typical MCP servers:** ticketing/helpdesk, CRM, knowledge base, email, payments/refunds.
@@ -66,7 +68,9 @@ Full evidence, numbers and caveats for these four are in the README section [Who
 
 ## 7. ⚖️ Legal / document review
 
-**Status: DESIGNED FOR — not yet tested.**
+**Status: PARTIAL.**
+
+**Evidence (independent review, mock services, 3 runs each):** scripted runs 3/3 found all 3 changed clauses across two 36-page versions, 0 missed, 0 invented; with the explicit approval rule all 9 send attempts stopped. Small local model 0/3 (answered without opening the documents). Note: approval for trusted external actions (email, share, upload) requires an explicit `{ match: { effect: external }, action: approve }` rule; the default policy allows them.
 
 - **Who:** Lawyers, paralegals and in-house teams reviewing documents on their own machine.
 - **Typical MCP servers:** filesystem or document store, PDF/text extraction, email or sharing tools.
@@ -104,12 +108,14 @@ Full evidence, numbers and caveats for these four are in the README section [Who
 
 ## 9. 🛠️ Data engineering / ETL quality
 
-**Status: DESIGNED FOR — not yet tested.**
+**Status: PARTIAL.**
+
+**Evidence (independent review, mock services, 3 runs each):** scripted runs 3/3 found all 3 issues in 50,001 rows, 0 false positives, both direct and through Mycel. Context size for the same 2-turn task: 583,980 tokens direct vs 602 through Mycel (requests + responses, chars/4). Local median latency 37.7 ms direct vs 319.3 ms Mycel. Small local model 0/3 in both arms.
 
 - **Who:** Data engineers and data-quality owners checking pipeline outputs.
 - **Typical MCP servers:** SQL/warehouse query tool, filesystem, object storage, ticketing for reporting issues.
 - **Pain:** Result sets have thousands of rows and the bad ones are rare; a sample can miss them.
-- **Closest evidence:** The closest evidence is the measured CSV case: in a 20,000-row dataset with two planted exceptions, a text search on the ref found one and a Code Mode numeric scan found both; the first report omitted both until asked to verify. This sector itself has not been run end-to-end.
+- **Closest evidence:** The closest evidence is the measured CSV case: in a 20,000-row dataset with two planted exceptions, a text search on the ref found one and a Code Mode numeric scan found both; the first report omitted both until asked to verify. This sector's own scripted runs are listed in the evidence line above.
 
 **Scenario**
 

@@ -111,12 +111,12 @@
   "fullPayloadTokens": 399528,
   "mycel": {
     "exposedTools": 6,
-    "toolTokens": 781,
-    "instructionTokens": 472,
-    "tokens": 1253
+    "toolTokens": 852,
+    "instructionTokens": 486,
+    "tokens": 1338
   },
   "gatewayTools": 420,
-  "mycelPercentOfDirect": 0.62,
+  "mycelPercentOfDirect": 0.66,
   "tokenEstimate": "chars/4",
   "pass": true
 }

@@ -62,7 +62,7 @@ Task: with the real Google Stitch MCP, create a project, generate 6 mobile scree
 | Saving the HTML | model re-typed 30,509 chars | `ref://` handle, 317 chars |
 | Turns · wall time | **13 · 13.6 min** | 27 · 16.1 min |
 
-Cheaper and safer when tools return big artifacts; slower in turns today. Mycel used more turns (search, describe and job waits) and its total input including cache reads was higher (mostly cached). Designs differed between arms, so this is not a quality comparison. Stitch needs `MCP_TOOL_TIMEOUT=1200000`, and the run used a policy that allows the stitch and filesystem servers and denies `delete_project`, `apply_design_system` and `update_design_system`. Setup, prompt, both tables and how to reproduce: [docs/case-studies/stitch-ui-design.md](docs/case-studies/stitch-ui-design.md).
+Cheaper and safer when tools return big artifacts; slower in turns in this run (0.1.6). Mycel used more turns (search, job waits and ref reads); on a mock of the same service the current branch matches direct on turns (15/13 vs 15/13, [details](docs/case-studies/stitch-ui-design.md#re-measurement-after-the-fewer-turns-changes-mock-service-not-the-real-stitch)), not yet re-run on the real service. In the real run, Mycel's total input including cache reads was also higher (mostly cached). Designs differed between arms, so this is not a quality comparison. Stitch needs `MCP_TOOL_TIMEOUT=1200000`, and the run used a policy that allows the stitch and filesystem servers and denies `delete_project`, `apply_design_system` and `update_design_system`. Setup, prompt, both tables and how to reproduce: [docs/case-studies/stitch-ui-design.md](docs/case-studies/stitch-ui-design.md).
 
 <p align="center"><img src="media/anim-counter.svg" alt="Measured results: -94% tool definitions with 8 servers, 204k to 1.2k tokens with 420 tools, 131k to 187 tokens for a 20,000-row CSV, 17 tool calls in 1 round trip" width="860"></p>
 
@@ -262,7 +262,7 @@ On the 16-query English field test, top-3 is 15/16 (CI and local) and top-1 is 1
 
 ### At full scale: 420 tools (technical)
 
-**Conditions:** 15 servers including Canva and Higgsfield (241 tools on its own), 420 tools loaded up front (eager loading). The tool definitions cost about **204k tokens direct and 1.2k through Mycel (−99.4%)**. Real tokenizers agree: cl100k 200,624 → 1,188 (99.41%), o200k 202,905 → 1,216 (99.40%). On a 135-tool catalog (no Canva/Higgsfield), o200k gives 29,129 → 1,147 (96.1%), and chars/4 overstates that one by about 19%. Claude Code and recent Cursor load tools on demand, and this is not measured there. Direct, that would fill most of a model's context window before the first message. These are tool-definition tokens (~4 chars per token), reproducible offline: [examples/full-scale](examples/full-scale). Counted the way clients send tools to the model: name, description and input schema. Canva and Higgsfield also ship output schemas; counting everything `tools/list` returns gives ~400k direct.
+**Conditions:** 15 servers including Canva and Higgsfield (241 tools on its own), 420 tools loaded up front (eager loading). The tool definitions cost about **204k tokens direct and 1.2k through Mycel (−99.4%)** (0.1.6; the current build is 1,338 by the same count, −99.3%, see examples/full-scale). Real tokenizers agree: cl100k 200,624 → 1,188 (99.41%), o200k 202,905 → 1,216 (99.40%). On a 135-tool catalog (no Canva/Higgsfield), o200k gives 29,129 → 1,147 (96.1%), and chars/4 overstates that one by about 19%. Claude Code and recent Cursor load tools on demand, and this is not measured there. Direct, that would fill most of a model's context window before the first message. These are tool-definition tokens (~4 chars per token), reproducible offline: [examples/full-scale](examples/full-scale). Counted the way clients send tools to the model: name, description and input schema. Canva and Higgsfield also ship output schemas; counting everything `tools/list` returns gives ~400k direct.
 
 The field test found four real bugs before launch. All are fixed and covered by tests:
 - Playwright marks even `hover` as destructive. Mycel now cross-checks that label against the tool's name (`annotations: strict` opts out).
@@ -339,14 +339,15 @@ flowchart TB
 The model sees **eight small meta-tools** instead of hundreds of schemas. A typical turn:
 
 ```text
-mycel_search   {"query": "make a video from a prompt"}
-  → [{"tool":"studio.generate_video","effect":"external","async":true,"costUsd":0.4,…}]
+mycel_search   {"query": "make a video from a prompt", "limit": 3}
+  → [{"tool":"studio.generate_video","effect":"external","async":true,"costUsd":0.4,"schema":{"required":["prompt"],…}},…]
 mycel_call     {"tool":"studio.generate_video","args":{"prompt":"a fox in neon rain"}}
-  → {"status":"job","job":{"id":"job_3f9…","status":"running","progress":42,"total":100}}
-mycel_job      {"action":"wait","id":"job_3f9…"}
-  → {"status":"succeeded","result":{"ref":"ref://9c1e…","mime":"video/mp4","size":"48.2 MB",
+  → (waits inline, up to 120 s by default, while the job runs; progress notifications keep the client alive)
+  → {"status":"ok","result":{"ref":"ref://9c1e…","mime":"video/mp4","size":"48.2 MB",
        "digest":{"kind":"video","durationSec":8,"width":1920,"height":1080,"keyframes":["ref://…","ref://…","ref://…"]}}}
 mycel_call     {"tool":"studio.upscale_video","args":{"video":{"$ref":"ref://9c1e…","as":"path"}}}
+
+(A job id comes back only if the tool is still running after the inline wait: {"status":"job","job":{"id":"job_3f9…"}} → mycel_job {"action":"wait","id":"job_3f9…"}.)
 ```
 
 48 MB of video moved between two tools. The model read ~120 tokens.
@@ -439,7 +440,7 @@ policy:
 budget:  { perTaskUsd: 5, perDayUsd: 50 }
 refs:    { inlineLimitBytes: 8000 }
 sandbox: { timeoutMs: 30000, memoryMb: 64, maxToolCalls: 200 }
-jobs:    { asyncThresholdMs: 20000, concurrency: 4 }
+jobs:    { inlineWaitMs: 120000, concurrency: 4 }
 recorder: { otlpEndpoint: http://localhost:4318 }   # optional
 models:                                     # optional, enables mycel_ask
   fast:     { provider: openai, baseUrl: http://localhost:11434/v1, model: llama3.2 }
@@ -571,11 +572,11 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What i
 - A2A streaming (`message/stream`) and push notifications
 - Signed tool manifests from server publishers
 - Team mode: shared policy, approvals routed to Slack/Teams
-- Long-running tools add turns (job waits); fewer turns planned.
+- Fewer turns: long-running tools now wait inline (no `mycel_job` turn), narrow searches return input schemas and argument errors carry the schema (see CHANGELOG, Unreleased). Still planned: digests that surface the ids a model needs next, to avoid ref-read turns.
 
 ## Contributing
 
-PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (104 tests) in a few seconds.
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (117 tests) in a few seconds.
 
 ## 💚 Using Mycel? Show it
 

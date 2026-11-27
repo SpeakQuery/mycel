@@ -19,7 +19,7 @@ export interface RefMeta {
 }
 
 export type Digest =
-  | { kind: "json"; shape: unknown; length?: number; sample: unknown }
+  | { kind: "json"; shape: unknown; length?: number; sample: unknown; /** id/name/title/uri strings found deeper than the sample shows, by path: what a model usually needs next. */ keys?: Record<string, string> }
   | { kind: "table"; columns: string[]; rows: number; sample: string[][]; stats: Record<string, { min: number; max: number; mean: number }> }
   | { kind: "text"; chars: number; lines: number; outline: string[]; head: string; tail: string }
   | { kind: "image"; width?: number; height?: number; format?: string }
@@ -369,8 +369,37 @@ function truncate(v: unknown, depth = 0): unknown {
   return v;
 }
 
+const KEY_NAMES = new Set(["id", "name", "title", "uri", "url", "slug"]);
+
+/**
+ * id/name/title strings that sit deeper than `sample` shows (it cuts objects at depth 3), keyed by JSON path. Without
+ * them the model reads the ref again just to learn an id it needs for the next call. Capped: 10 entries, 1,000 chars.
+ */
+function deepKeys(v: unknown): Record<string, string> | undefined {
+  const out: Record<string, string> = {};
+  let budget = 1000;
+  let visited = 0;
+  const walk = (x: unknown, path: string, depth: number) => {
+    if (Object.keys(out).length >= 10 || budget <= 0 || ++visited > 5000) return;
+    if (Array.isArray(x)) return x.slice(0, 6).forEach((y, i) => walk(y, `${path}[${i}]`, depth + 1));
+    if (!x || typeof x !== "object") return;
+    for (const [k, y] of Object.entries(x as Record<string, unknown>)) {
+      if (typeof y === "string" && depth > 2 && KEY_NAMES.has(k) && y.length <= 100) {
+        const key = `${path}.${k}`;
+        if (Object.keys(out).length < 10 && budget - key.length - y.length > 0) {
+          out[key] = y;
+          budget -= key.length + y.length;
+        }
+      } else if (y && typeof y === "object") walk(y, `${path}.${k}`, depth + 1);
+    }
+  };
+  walk(v, "$", 0);
+  return Object.keys(out).length ? out : undefined;
+}
+
 export function jsonDigest(v: unknown): Digest {
-  return { kind: "json", shape: shapeOf(v), length: Array.isArray(v) ? v.length : undefined, sample: truncate(v) };
+  const keys = deepKeys(v);
+  return { kind: "json", shape: shapeOf(v), length: Array.isArray(v) ? v.length : undefined, sample: truncate(v), ...(keys ? { keys } : {}) };
 }
 
 function textDigest(s: string): Digest {

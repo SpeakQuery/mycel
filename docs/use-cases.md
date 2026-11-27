@@ -173,7 +173,7 @@ Full evidence, numbers and caveats for these four are in the README section [Who
 
 - **Setup notes:** Stitch generation takes 1–3 minutes per screen, so raise Claude Code's MCP tool timeout (`MCP_TOOL_TIMEOUT=1200000`). With the default policy, `stitch.create_project` needed approval and Claude Code print mode auto-declined it, so pre-approve the servers you trust in policy.
 - **What to measure in a pilot:** Tool-result size entering the context, CLI cost, turns and wall time, and whether the saved file matches the service's output.
-- **Not a fit:** Tasks with small results (Mycel adds turns without saving context), or workflows where turn count and latency matter more than cost today. Fewer search/describe/job-wait turns are on the roadmap.
+- **Not a fit:** Tasks with small results (Mycel adds turns without saving context), or workflows where turn count and latency matter more than cost today. Unreleased changes (inline waits for slow tools, schemas in narrow searches and in argument errors, ids in digests) remove most of these extra turns on a mock service; not yet re-measured on a real one.
 
 ## Also
 

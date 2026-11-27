@@ -19,9 +19,17 @@ export function META_TOOLS(m: Mycel): MetaTool[] {
     {
       name: "mycel_search",
       description: "Find tools across all connected servers. Returns tool ids, one-line descriptions, params and effect (read/write/external/destructive). Write the query in English, even if the user writes in another language.",
-      inputSchema: obj({ query: { type: "string", description: "What you want to do, e.g. 'list open github issues'. \"*\" lists all tools (pair with server)" }, limit: { type: "integer", minimum: 1, maximum: 25 }, server: { type: "string" }, effect: { type: "string", enum: ["read", "write", "external", "destructive"] } }, ["query"]),
+      inputSchema: obj({ query: { type: "string", description: "What you want to do, e.g. 'list open github issues'. \"*\" lists all tools (pair with server)" }, queries: { type: "array", items: { type: "string" }, maxItems: 6 }, limit: { type: "integer", minimum: 1, maximum: 25, description: "3 or less adds input schemas" }, server: { type: "string" }, effect: { type: "string", enum: ["read", "write", "external", "destructive"] } }),
       annotations: { readOnlyHint: true },
-      handler: async (a, ctx) => m.search(String(a.query), { limit: a.limit as number, server: a.server as string, effect: a.effect as string }, ctx),
+      handler: async (a, ctx) => {
+        const qs = Array.isArray(a.queries) && a.queries.length ? (a.queries as unknown[]).map(String) : typeof a.query === "string" ? [a.query] : undefined;
+        if (!qs) throw new Error("mycel_search needs query (string) or queries (array of strings)");
+        const o = { limit: a.limit as number, server: a.server as string, effect: a.effect as string };
+        if (qs.length === 1) return m.search(qs[0], o, ctx);
+        // Several intents in one turn: per-query results, merged without duplicates.
+        const seen = new Set<string>();
+        return qs.flatMap((q) => m.search(q, { ...o, limit: o.limit ?? 5 }, ctx)).filter((r) => (seen.has(r.tool) ? false : (seen.add(r.tool), true)));
+      },
     },
     {
       name: "mycel_describe",
@@ -36,9 +44,9 @@ export function META_TOOLS(m: Mycel): MetaTool[] {
     },
     {
       name: "mycel_call",
-      description: "Call a tool by id. Args may contain ref:// handles. dryRun returns cost/policy estimate without running. Slow tools return a job.",
-      inputSchema: obj({ tool: { type: "string" }, args: { type: "object" }, approval: { type: "string", description: "Approval id granted by the user" }, dryRun: { type: "boolean" }, mode: { type: "string", enum: ["auto", "sync", "async"] } }, ["tool"]),
-      handler: async (a, ctx) => m.call(String(a.tool), (a.args ?? {}) as Record<string, unknown>, { ...ctx, approval: a.approval as string, dryRun: !!a.dryRun, mode: a.mode as CallContext["mode"] }),
+      description: "Call a tool by id. Args may contain ref:// handles. dryRun returns cost/policy estimate without running. Slow tools wait inline (wait = seconds, default 120), then return a job.",
+      inputSchema: obj({ tool: { type: "string" }, args: { type: "object" }, approval: { type: "string", description: "Approval id granted by the user" }, dryRun: { type: "boolean" }, mode: { type: "string", enum: ["auto", "sync", "async"] }, wait: { type: "number", minimum: 0, maximum: 1800 } }, ["tool"]),
+      handler: async (a, ctx) => m.call(String(a.tool), (a.args ?? {}) as Record<string, unknown>, { ...ctx, approval: a.approval as string, dryRun: !!a.dryRun, mode: a.mode as CallContext["mode"], ...(a.wait !== undefined && Number.isFinite(Number(a.wait)) ? { waitMs: Math.round(Math.min(1800, Math.max(0, Number(a.wait))) * 1000) } : {}) }),
     },
     {
       name: "mycel_run",
@@ -68,10 +76,11 @@ export function META_TOOLS(m: Mycel): MetaTool[] {
     },
     {
       name: "mycel_job",
-      description: "Manage long-running jobs: status, wait (up to timeoutMs), cancel, retry, list.",
-      inputSchema: obj({ action: { type: "string", enum: ["status", "wait", "cancel", "retry", "list"] }, id: { type: "string" }, timeoutMs: { type: "integer", minimum: 0, maximum: 600000 } }, ["action"]),
+      description: "Manage long-running jobs: status, wait (up to timeoutMs; ids for several), cancel, retry, list.",
+      inputSchema: obj({ action: { type: "string", enum: ["status", "wait", "cancel", "retry", "list"] }, id: { type: "string" }, ids: { type: "array", items: { type: "string" }, maxItems: 20 }, timeoutMs: { type: "integer", minimum: 0, maximum: 600000 } }, ["action"]),
       handler: async (a, ctx) => {
         const id = a.id as string;
+        const ids = Array.isArray(a.ids) && a.ids.length ? (a.ids as unknown[]).map(String) : undefined;
         const delivered = (v: ReturnType<Mycel["jobView"]>) => {
           if (v.status === "succeeded") m.deliverJob(v.id, { id: v.usedTool ?? m.jobs.get(v.id)?.tool ?? "job", server: (v.usedTool ?? "").split(".")[0] }, v, ctx);
           return v;
@@ -80,9 +89,14 @@ export function META_TOOLS(m: Mycel): MetaTool[] {
           case "list":
             return m.jobs.list().slice(0, 30).map((j) => ({ id: j.id, tool: j.tool, status: j.status, progress: j.progress, total: j.total, createdAt: j.createdAt, costUsd: j.costUsd, costEstimated: j.costEstimated }));
           case "status":
+            if (ids) return ids.map((i) => delivered(m.jobView(must(m.jobs.get(i), i))));
             return delivered(m.jobView(must(m.jobs.get(id), id)));
-          case "wait":
-            return delivered(m.jobView(await m.jobs.wait(id, Number(a.timeoutMs ?? 60000))));
+          case "wait": {
+            const ms = Number(a.timeoutMs ?? 60000);
+            // Several ids: one shared deadline, results in the same order.
+            if (ids) return (await Promise.all(ids.map((i) => m.jobs.wait(i, ms)))).map((j) => delivered(m.jobView(j)));
+            return delivered(m.jobView(await m.jobs.wait(id, ms)));
+          }
           case "cancel":
             return m.jobView(m.jobs.cancel(id));
           case "retry":

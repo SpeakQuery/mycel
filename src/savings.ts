@@ -10,6 +10,7 @@
  *             request served and always labelled as an estimate.
  */
 
+export const TOKEN_UNIT = "chars/4 tokens (approx.)";
 export const ESTIMATE_CAVEAT = "estimated — only applies if your client sends every tool definition each turn (Claude Code and recent Cursor load tools on demand)";
 
 export interface MeasuredSavings {
@@ -66,13 +67,16 @@ export function fmtSigned(net: number): string {
   return net > 0 ? `−${fmtInt(net)}` : net < 0 ? `+${fmtInt(-net)}` : "0";
 }
 
-/** One line, e.g. `Mycel · this call: 13,240 → 1,710 tokens (−87%, measured) · session: −48,300 tokens measured · tool definitions: ~−202k/turn (estimated)` */
+/**
+ * One line, e.g. `Mycel · this call: ≈13,240 → ≈1,710 tokens (−87% size, measured · tokens ≈ chars/4) · session: ≈−48,300 · tool definitions: ~−202k/turn (estimated)`.
+ * What is measured is the SIZE (characters); "tokens" are chars/4, which real tokenizers can disagree with by a lot on small or unusual text.
+ */
 export function formatSavingsLine(m: MeasuredSavings, session: SessionSavings, definitionsPerTurn = 0): string {
-  const change = m.savedTokens > 0 ? `−${m.pct}%` : m.addedTokens > 0 ? `+${fmtInt(m.addedTokens)}` : "no change";
+  const change = m.savedTokens > 0 ? `−${m.pct}% size` : m.addedTokens > 0 ? `+${fmtInt(m.addedTokens)}` : "no change";
   const parts = [
     "Mycel",
-    `this call: ${fmtInt(m.rawTokens)} → ${fmtInt(m.returnedTokens)} tokens (${change}, measured)`,
-    `session: ${fmtSigned(session.netTokens)} tokens measured`,
+    `this call: ≈${fmtInt(m.rawTokens)} → ≈${fmtInt(m.returnedTokens)} tokens (${change}, measured · tokens ≈ chars/4)`,
+    `session: ≈${fmtSigned(session.netTokens)}`,
   ];
   if (definitionsPerTurn > 0) parts.push(`tool definitions: ~−${fmtCompact(definitionsPerTurn)}/turn (estimated)`);
   return parts.join(" · ");
@@ -118,6 +122,7 @@ export class SavingsTracker {
 /** What goes into `_meta["mycel/savings"]` on an MCP tool result. */
 export interface SavingsMeta {
   line: string;
+  unit: typeof TOKEN_UNIT;
   measured: MeasuredSavings;
   session: SessionSavings;
   estimated: { toolDefinitionTokensPerTurn: number; label: string };
@@ -127,13 +132,13 @@ export interface SavingsMeta {
 export function formatStats(r: { session?: { id: string; start: string; measured: SessionSavings & { calls: number }; estimated: { toolsListServed: number; definitionTokens: number } }; day: { date: string; measured: SessionSavings & { calls: number }; estimated: { toolsListServed: number; definitionTokens: number } } }): string {
   const block = (title: string, t: NonNullable<typeof r.session>["measured"], e: { toolsListServed: number; definitionTokens: number }) => [
     title,
-    `  measured    ${fmtSigned(t.netTokens)} tokens net over ${fmtInt(t.calls)} call${t.calls === 1 ? "" : "s"} (saved ${fmtInt(t.savedTokens)}, added ${fmtInt(t.addedTokens)})`,
-    `  estimated   ${e.toolsListServed ? `~−${fmtInt(e.definitionTokens)} tokens of tool definitions over ${fmtInt(e.toolsListServed)} tools/list served` : "no tools/list served"}`,
+    `  measured    ≈${fmtSigned(t.netTokens)} tokens (chars/4) net over ${fmtInt(t.calls)} call${t.calls === 1 ? "" : "s"} (saved ${fmtInt(t.savedTokens)}, added ${fmtInt(t.addedTokens)})`,
+    `  estimated   ${e.toolsListServed ? `~−${fmtInt(e.definitionTokens)} tokens (chars/4) of tool definitions over ${fmtInt(e.toolsListServed)} tools/list served` : "no tools/list served"}`,
   ];
   return [
     ...(r.session ? block(`session ${r.session.id} (since ${r.session.start})`, r.session.measured, r.session.estimated) : ["session: nothing recorded yet"]),
     ...block(`today ${r.day.date} (UTC)`, r.day.measured, r.day.estimated),
-    `measured = raw upstream result vs what Mycel returned, in chars/4 tokens. Counted per call; calls inside mycel_run are counted once, as the run.`,
+    `measured = size of the raw upstream result vs what Mycel returned. Tokens are approximated as chars/4; real tokenizers differ (sometimes by tens of percent on a small body). Counted per call; calls inside mycel_run are counted once, as the run.`,
     `${ESTIMATE_CAVEAT}. Counted once per tools/list served, not per model turn.`,
   ].join("\n");
 }

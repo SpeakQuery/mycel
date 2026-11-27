@@ -12,7 +12,7 @@ import { verify, type CapabilityClaims } from "./tokens.js";
 import { ModelRouter } from "./models.js";
 import { A2AClient } from "./a2a-client.js";
 import { META_TOOLS } from "./meta.js";
-import { SavingsTracker, measure, formatSavingsLine, ESTIMATE_CAVEAT, type MeasuredSavings, type EventSavings, type SavingsMeta } from "./savings.js";
+import { SavingsTracker, measure, formatSavingsLine, ESTIMATE_CAVEAT, TOKEN_UNIT, type MeasuredSavings, type EventSavings, type SavingsMeta } from "./savings.js";
 
 export interface CallContext {
   traceId?: string;
@@ -220,7 +220,7 @@ export class Mycel {
     const perTurn = this.definitionsPerTurn();
     const line = formatSavingsLine(mv, session, perTurn);
     if (counted && this.config.ui.savingsLog) this.log(line);
-    const meta: SavingsMeta = { line, measured: mv, session, estimated: { toolDefinitionTokensPerTurn: perTurn, label: ESTIMATE_CAVEAT } };
+    const meta: SavingsMeta = { line, unit: TOKEN_UNIT, measured: mv, session, estimated: { toolDefinitionTokensPerTurn: perTurn, label: ESTIMATE_CAVEAT } };
     ctx.onSavings?.(meta);
     return meta;
   }
@@ -311,6 +311,7 @@ export class Mycel {
     try {
       tool = this.mustTool(id);
     } catch (e) {
+      this.recorder.record({ traceId, spanId, kind: "call", tool: id.slice(0, 200), ok: false, error: (e as Error).message.slice(0, 500), agent: ctx.agent });
       return { status: "error", tool: id, error: (e as Error).message };
     }
     if (this.blocked.has(tool.id)) {
@@ -325,6 +326,7 @@ export class Mycel {
     try {
       ({ args: resolved, refs: usedRefs } = this.refs.resolveArgs(args));
     } catch (e) {
+      this.recorder.record({ traceId, spanId, kind: "call", tool: tool.id, server: tool.server, ok: false, error: this.vault.scrub((e as Error).message), agent: ctx.agent });
       return { status: "error", tool: tool.id, error: (e as Error).message };
     }
     const taintSources = [...(ctx.taintSources ?? []), ...usedRefs.filter((r) => r.taint === "untrusted").map((r) => r.source?.server ?? r.id)];
@@ -334,6 +336,7 @@ export class Mycel {
     const cost = tool.contract.costUsd;
 
     if (ctx.dryRun) {
+      this.recorder.record({ traceId, spanId, kind: "call", tool: tool.id, server: tool.server, ok: true, decision: `dryrun:${decision.action}`, agent: ctx.agent });
       const s = this.budget.spent(traceId);
       return { status: "estimate", tool: tool.id, effect: tool.contract.effect, costUsd: cost, latencyMs: tool.contract.latencyMs, async: tool.contract.async, decision: decision.action, reason: decision.reason, budget: { spentToday: s.day, perDayUsd: this.config.budget.perDayUsd, perTaskUsd: this.config.budget.perTaskUsd } };
     }

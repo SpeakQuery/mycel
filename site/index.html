@@ -355,7 +355,7 @@
                 <li>The agent searches the knowledge base with <code>mycel_search</code> and greps the ref for the order id and earlier promises.</li>
                 <li>Its draft reply and refund call carry taint from the customer text, so the default policy (tainted + side-effect → approve) stops them until an agent supervisor approves inline or with <code>mycel approve</code>.</li>
                 <li>Refund and send calls are <code>external</code>/<code>destructive</code> contracts; add a per-day budget if the payments tool declares <code>costUsd</code>.</li>
-                <li>Every search, call and approval decision appears as a span in the flight recorder for later review.</li>
+                <li>Every search, describe, call, run, ref, job and approval decision appears as a span in the flight recorder for later review.</li>
               </ol>
               <p><strong>Measure in a pilot:</strong> Share of tickets where the model needed the full history in the prompt, approvals raised vs. approvals that were correct, and any tainted write that got through (target: zero).</p>
               <p><strong>Not a fit:</strong> A hosted, multi-tenant support desk serving many customers from one gateway: Mycel is local and single-user today.</p>

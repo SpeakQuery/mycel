@@ -3,7 +3,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
 import type { Mycel, CallContext } from "./core.js";
 import { META_TOOLS } from "./meta.js";
 import { estimateTokens, type ToolEntry } from "./catalog.js";
-import { newId } from "./recorder.js";
+import { newId, type EventKind } from "./recorder.js";
 import type { SavingsMeta } from "./savings.js";
 
 const VERSION = "0.1.5";
@@ -91,10 +91,20 @@ export function createMcpServer(m: Mycel, session: { capability?: CallContext["c
           }
         : undefined,
     };
+    const t0 = Date.now();
+    const metaKind: Record<string, EventKind> = { mycel_search: "search", mycel_describe: "describe", mycel_call: "call", mycel_run: "run", mycel_ref: "ref", mycel_job: "job", mycel_delegate: "a2a", mycel_ask: "ask" };
     try {
       const meta = exposedMeta().find((t) => t.name === name);
       let result: unknown;
-      if (meta) result = await meta.handler(args, ctx);
+      if (meta) {
+        result = await meta.handler(args, ctx);
+        // describe / ref / job reads have no event of their own in core: record size and ids only, never content or arguments.
+        if (name === "mycel_describe" || name === "mycel_ref" || name === "mycel_job") {
+          const ids = name === "mycel_describe" ? (Array.isArray(args.tools) ? args.tools : [args.tool ?? args.tools]).filter((x) => typeof x === "string").slice(0, 10) : undefined;
+          const failed = !!result && typeof result === "object" && ["error", "denied"].includes((result as { status?: string }).status ?? "");
+          m.recorder.record({ traceId, kind: metaKind[name], tool: name, ok: !failed, durationMs: Date.now() - t0, tokensToModel: estimateTokens(result), agent: session.agent, meta: { action: args.action ?? (name === "mycel_ref" ? (args.ref ? "read" : "list") : undefined), ...(typeof args.ref === "string" ? { ref: args.ref.slice(0, 40) } : {}), ...(typeof args.id === "string" ? { id: args.id.slice(0, 40) } : {}), ...(ids ? { tools: ids } : {}) } });
+        }
+      }
       else {
         const t = m.catalog.all().find((x) => directName(x) === name);
         if (!t) throw new Error(`Unknown tool ${name}`);
@@ -106,6 +116,8 @@ export function createMcpServer(m: Mycel, session: { capability?: CallContext["c
       if (savings && m.config.ui.savingsLine && !isError) content.push({ type: "text", text: savings.line });
       return { content, isError, ...(savings ? { _meta: { "mycel/savings": savings } } : {}) };
     } catch (e) {
+      // Every request that reaches Mycel leaves a trace, including meta-tool and unknown-tool failures.
+      m.recorder.record({ traceId, kind: metaKind[name] ?? "call", tool: name, ok: false, durationMs: Date.now() - t0, error: m.vault.scrub((e as Error).message).slice(0, 500), agent: session.agent });
       return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }], isError: true };
     }
   });

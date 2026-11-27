@@ -419,7 +419,7 @@ footer .mono { font-size: 11.5px; }
     <div class="panel-head"><h2 id="h-savings">Savings</h2></div>
     <div class="sv">
       <div>
-        <h3>Measured <span class="faint" style="text-transform:none;letter-spacing:0">· result size, exact</span></h3>
+        <h3>Measured <span class="faint" style="text-transform:none;letter-spacing:0">· result size, tokens ≈ chars/4</span></h3>
         <div class="big" id="sv-session">—</div>
         <div class="note" id="sv-session-sub">this session</div>
         <ul id="sv-recent" aria-label="Measured savings per call"></ul>
@@ -1570,13 +1570,13 @@ footer .mono { font-size: 11.5px; }
   function renderSavings() {
     const sv = S.overview && S.overview.savings; if (!sv) return;
     const ses = sv.session || {};
-    $("sv-session").textContent = signedTok(ses.netTokens || 0) + " tokens";
+    $("sv-session").textContent = "≈" + signedTok(ses.netTokens || 0) + " tokens (chars/4)";
     $("sv-session-sub").textContent = "this session · " + num(ses.calls) + " call" + (ses.calls === 1 ? "" : "s") + " (saved " + num(ses.savedTokens) + ", added " + num(ses.addedTokens) + ")";
     $("sv-est").textContent = sv.definitionsPerTurn > 0 ? "~−" + compact(sv.definitionsPerTurn) + "/turn" : "—";
     $("sv-est-sub").textContent = "estimated · " + num(sv.toolsListServed) + " tools/list served this session";
     const rows = (S.savingsRecent || sv.recent || []).slice(-8).reverse().map((r) => {
       const change = r.savedTokens > 0 ? "−" + r.pct + "%" : r.addedTokens > 0 ? "+" + num(r.addedTokens) : "no change";
-      return h("li", {}, h("span", { text: r.tool }), h("span", { text: num(r.rawTokens) + " → " + num(r.returnedTokens) + " tok (" + change + ")" }));
+      return h("li", {}, h("span", { text: r.tool }), h("span", { text: "≈" + num(r.rawTokens) + " → ≈" + num(r.returnedTokens) + " tok (" + change + (r.savedTokens > 0 ? " size" : "") + ")" }));
     });
     setKids($("sv-recent"), rows);
   }

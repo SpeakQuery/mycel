@@ -192,7 +192,7 @@ Limits for Code Mode scripts (QuickJS/WASM).
 
 | Field | Type | Default | Meaning |
 |---|---|---|---|
-| `savingsLine` | boolean | `false` | Append the one-line savings summary (`Mycel · this call: 13,240 → 1,710 tokens (−87%, measured) · session: … · tool definitions: … (estimated)`) to each tool result as a final text block, so the model and you can see it. It costs about 30-40 tokens per call. The same data is always attached to MCP results as `_meta["mycel/savings"]` and recorded in the flight log. See [See what you save](../README.md#-see-what-you-save). |
+| `savingsLine` | boolean | `false` | Append the one-line savings summary (`Mycel · this call: ≈13,240 → ≈1,710 tokens (−87% size, measured · tokens ≈ chars/4) · session: ≈−48,300 · tool definitions: ~−202k/turn (estimated)`) to each tool result as a final text block, so the model and you can see it. It costs about 30-40 tokens per call. The same data is always attached to MCP results as `_meta["mycel/savings"]` and recorded in the flight log. See [See what you save](../README.md#-see-what-you-save). |
 | `savingsLog` | boolean | `true` | Log the same line to stderr in `mycel serve`. |
 
 ## `dashboard`

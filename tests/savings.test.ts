@@ -41,9 +41,9 @@ describe("savings computation", () => {
   it("formats the one-line summary", () => {
     const t = new SavingsTracker();
     const s = t.record(measure(13240, 1710));
-    expect(formatSavingsLine(measure(13240, 1710), s, 202_345)).toBe("Mycel · this call: 13,240 → 1,710 tokens (−87%, measured) · session: −11,530 tokens measured · tool definitions: ~−202k/turn (estimated)");
-    expect(formatSavingsLine(measure(40, 66), { calls: 1, savedTokens: 0, addedTokens: 26, netTokens: -26 }, 0)).toBe("Mycel · this call: 40 → 66 tokens (+26, measured) · session: +26 tokens measured");
-    expect(formatSavingsLine(measure(50, 50), { calls: 1, savedTokens: 0, addedTokens: 0, netTokens: 0 }, 850)).toBe("Mycel · this call: 50 → 50 tokens (no change, measured) · session: 0 tokens measured · tool definitions: ~−850/turn (estimated)");
+    expect(formatSavingsLine(measure(13240, 1710), s, 202_345)).toBe("Mycel · this call: ≈13,240 → ≈1,710 tokens (−87% size, measured · tokens ≈ chars/4) · session: ≈−11,530 · tool definitions: ~−202k/turn (estimated)");
+    expect(formatSavingsLine(measure(40, 66), { calls: 1, savedTokens: 0, addedTokens: 26, netTokens: -26 }, 0)).toBe("Mycel · this call: ≈40 → ≈66 tokens (+26, measured · tokens ≈ chars/4) · session: ≈+26");
+    expect(formatSavingsLine(measure(50, 50), { calls: 1, savedTokens: 0, addedTokens: 0, netTokens: 0 }, 850)).toBe("Mycel · this call: ≈50 → ≈50 tokens (no change, measured · tokens ≈ chars/4) · session: ≈0 · tool definitions: ~−850/turn (estimated)");
   });
 
   it("session totals net saved against added, and uncounted calls do not count", () => {
@@ -77,7 +77,8 @@ describe("savings through the gateway", () => {
     expect(meta.measured.pct).toBeGreaterThan(90);
     expect(meta.session.netTokens).toBe(meta.measured.savedTokens);
     expect(meta.estimated.label).toBe(ESTIMATE_CAVEAT);
-    expect(meta.line).toMatch(/^Mycel · this call: .* → .* tokens \(−\d+%, measured\) · session: −.* tokens measured/);
+    expect(meta.line).toMatch(/^Mycel · this call: ≈.* → ≈.* tokens \(−\d+% size, measured · tokens ≈ chars\/4\) · session: ≈−/)
+    expect((r._meta as Record<string, { unit: string }>)["mycel/savings"].unit).toBe("chars/4 tokens (approx.)");
     console.log("sample line:", meta.line);
     const ev = m.recorder.load({ days: 1 }).filter((e) => e.savings?.measured);
     expect(ev).toHaveLength(1);
@@ -92,8 +93,8 @@ describe("savings through the gateway", () => {
     expect(meta.measured.savedTokens).toBe(0);
     expect(meta.measured.addedTokens).toBeGreaterThan(0);
     expect(meta.session.netTokens).toBe(-meta.measured.addedTokens);
-    expect(meta.line).toContain(`(+${meta.measured.addedTokens}, measured)`);
-    expect(meta.line).toContain(`session: +${meta.measured.addedTokens} tokens measured`);
+    expect(meta.line).toContain(`(+${meta.measured.addedTokens}, measured · tokens ≈ chars/4)`);
+    expect(meta.line).toContain(`session: ≈+${meta.measured.addedTokens}`);
     const ev = m.recorder.load({ days: 1 }).filter((e) => e.savings?.measured);
     expect(ev.map((e) => e.kind)).toEqual(["call"]);
     expect(ev[0].savings!.measured).toEqual(meta.measured);
@@ -177,8 +178,8 @@ describe("mycel stats", () => {
     expect(report.session!.estimated.toolsListServed).toBe(1);
     expect(report.day.measured.calls).toBe(2);
     const text = formatStats(report);
-    expect(text).toMatch(/measured {4}−[\d,]+ tokens net over 2 calls/);
-    expect(text).toMatch(/estimated {3}~−[\d,]+ tokens of tool definitions over 1 tools\/list served/);
+    expect(text).toMatch(/measured {4}≈−[\d,]+ tokens \(chars\/4\) net over 2 calls/);
+    expect(text).toMatch(/estimated {3}~−[\d,]+ tokens \(chars\/4\) of tool definitions over 1 tools\/list served/);
     expect(text).toContain(ESTIMATE_CAVEAT);
 
     const cli = join(__dirname, "..", "dist", "cli.js");
@@ -188,5 +189,35 @@ describe("mycel stats", () => {
       expect(r.stdout).toBe(text + "\n");
       console.log(r.stdout);
     }
+  });
+});
+
+describe("every meta-tool request leaves a trace", () => {
+  it("search, describe, call, run, ref and job each produce an event; failures too", async () => {
+    const { client, m } = await connect();
+    const kinds = () => m.recorder.load({ days: 1 }).filter((e) => e.kind !== "session").map((e) => `${e.kind}:${e.tool ?? ""}:${e.ok}`);
+    const step = async (name: string, args: Record<string, unknown>, expected: RegExp) => {
+      const before = kinds().length;
+      await client.callTool({ name, arguments: args });
+      const added = kinds().slice(before);
+      expect(added.some((k) => expected.test(k)), `${name} -> ${added.join(",")}`).toBe(true);
+    };
+    await step("mycel_search", { query: "csv" }, /^search:/);
+    await step("mycel_describe", { tools: ["warehouse.ping"] }, /^describe:mycel_describe:true/);
+    await step("mycel_call", { tool: "warehouse.ping", args: {} }, /^call:warehouse.ping:true/);
+    await step("mycel_run", { code: "return 1" }, /^run:/);
+    await step("mycel_ref", { action: "list" }, /^ref:mycel_ref:true/);
+    await step("mycel_job", { action: "list" }, /^job:mycel_job:true/);
+    // failures and edge requests
+    await step("mycel_describe", {}, /^describe:mycel_describe:false/);
+    await step("mycel_ref", { ref: "ref://" + "0".repeat(24) }, /^ref:mycel_ref:false/);
+    await step("mycel_call", { tool: "nope.nothing", args: {} }, /^call:nope.nothing:false/);
+    await step("mycel_call", { tool: "warehouse.ping", args: {}, dryRun: true }, /^call:warehouse.ping:true/);
+    await step("mycel_job", { action: "status", id: "missing" }, /^job:mycel_job:false/);
+    // the describe/ref events hold ids and sizes, not content
+    const d = m.recorder.load({ days: 1 }).find((e) => e.kind === "describe")!;
+    expect(d.tokensToModel).toBeGreaterThan(0);
+    expect(d.meta).toMatchObject({ tools: ["warehouse.ping"] });
+    expect(d.result).toBeUndefined();
   });
 });

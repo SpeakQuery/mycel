@@ -19,8 +19,11 @@ const put = (p: string, s: string) => {
 const rd = (p: string) => readFileSync(p, "utf8");
 const srv = { command: "npx", args: ["-y", "some-server"], env: { API_KEY: "sk-SUPERSECRET-123", MODE: "x" } };
 const mac = platform() === "darwin";
-const desktop = () => (mac ? join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json") : join(home, ".config", "Claude", "claude_desktop_config.json"));
-const vscode = () => (mac ? join(home, "Library", "Application Support", "Code", "User", "mcp.json") : join(home, ".config", "Code", "User", "mcp.json"));
+const win = platform() === "win32";
+// Same locations as candidatePaths(): macOS Application Support, Windows %APPDATA% (pointed into the temp home below), Linux ~/.config.
+const appDir = () => (mac ? join(home, "Library", "Application Support") : win ? join(home, "AppData", "Roaming") : join(home, ".config"));
+const desktop = () => join(appDir(), "Claude", "claude_desktop_config.json");
+const vscode = () => join(appDir(), "Code", "User", "mcp.json");
 
 function fixtures() {
   return {
@@ -36,9 +39,10 @@ function fixtures() {
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "mycel-home-"));
   cwd = mkdtempSync(join(tmpdir(), "mycel-cwd-"));
-  saved = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, MYCEL_HOME: process.env.MYCEL_HOME, PATH: process.env.PATH, MYCEL_NO_CLAUDE_CLI: process.env.MYCEL_NO_CLAUDE_CLI };
+  saved = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, MYCEL_HOME: process.env.MYCEL_HOME, PATH: process.env.PATH, MYCEL_NO_CLAUDE_CLI: process.env.MYCEL_NO_CLAUDE_CLI, APPDATA: process.env.APPDATA };
   process.env.HOME = home;
   process.env.USERPROFILE = home;
+  process.env.APPDATA = join(home, "AppData", "Roaming");
   delete process.env.MYCEL_HOME;
   process.env.PATH = "/nonexistent-bin";
   process.env.MYCEL_NO_CLAUDE_CLI = "1";

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.6 — 2026-11-27
 
 - Added: a one-line savings summary after tool calls that keeps **measured** and **estimated** numbers apart. Measured is exact for what Mycel saw: raw upstream result tokens vs tokens returned to the model (`chars / 4`), per call and per session, for `mycel_call`, direct tool calls, `mycel_run` (the run, counted once) and finished async jobs. When Mycel returns more than the raw result it says `+N` and subtracts it from the session total. Estimated is the tool-definition saving, counted once per `tools/list` served, always labelled as only applying to clients that send every tool definition each turn.
 - Added: a `savings` field on flight-recorder events, a **Savings** panel in the dashboard, the line on stderr in `mycel serve` (`ui.savingsLog`), `_meta["mycel/savings"]` on MCP tool results, and `mycel stats [--json]` (latest session and today, measured and estimated printed separately).

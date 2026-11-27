@@ -51,7 +51,7 @@ export class A2AServer {
       name: this.m.config.a2a.name,
       description: this.m.config.a2a.description,
       url: new URL("/a2a", baseUrl).toString(),
-      version: "0.1.5",
+      version: "0.1.6",
       preferredTransport: "JSONRPC",
       capabilities: { streaming: false, pushNotifications: false },
       defaultInputModes: ["application/json", "text/plain"],

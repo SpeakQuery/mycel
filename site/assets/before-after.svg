@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 500" width="860" height="500" role="img" aria-labelledby="t d">
+<title id="t">Same job. Normally versus with Mycel</title>
+<desc id="d">Four measured examples. Find one bad row in a 20,000-row spreadsheet: about 130k tokens normally, about 26k with Mycel, 81 percent cheaper (single Claude Code run). Design 6 app screens with Google Stitch: $0.095 normally, $0.022 with Mycel, 77 percent cheaper (single run, Mycel 0.1.6). Check 50,000 rows for 3 hidden errors: 583,980 tokens versus 602, about 970 times less (mock data, scripted). Connect 15 MCP servers with 420 tools: about 204k tokens of tool descriptions versus 1,338, 99.3 percent less (clients that send every tool description each turn).</desc>
+<style>
+text{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;fill:#E6F2EC}
+.dim{fill:#86A497}.mid{fill:#A9C4B8}.g{fill:#3DFFB0}.b{font-weight:800}
+.card{animation:in 9s ease-out infinite}
+.c2{animation-delay:.25s}.c3{animation-delay:.5s}.c4{animation-delay:.75s}
+@keyframes in{0%{opacity:0;transform:translateY(14px)}6%{opacity:1;transform:translateY(0)}92%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
+.badge{transform-box:fill-box;transform-origin:center;animation:pop 9s ease-out infinite}
+@keyframes pop{0%,10%{transform:scale(.6);opacity:0}18%{transform:scale(1.08);opacity:1}24%,92%{transform:scale(1);opacity:1}100%{opacity:0}}
+.bar{transform-box:fill-box;transform-origin:left center;animation:grow 9s ease-out infinite}
+@keyframes grow{0%,8%{transform:scaleX(0)}28%,100%{transform:scaleX(1)}}
+@media (prefers-reduced-motion: reduce){.card,.badge,.bar{animation:none !important;opacity:1;transform:none}}
+</style>
+<rect width="860" height="500" rx="16" fill="#07110D"/>
+<text x="430" y="40" font-size="26" text-anchor="middle" class="b">Same job. <tspan class="dim">Normally</tspan> → <tspan class="g">With Mycel</tspan></text>
+<g class="card c1"><rect x="20" y="62" width="410" height="200" rx="14" fill="#10231A" stroke="#1C3A2D"/><rect x="20" y="62" width="410" height="4" rx="2" fill="#3DFFB0"/>
+<text x="36" y="92" font-size="16" class="b">Find one bad row</text><text x="36" y="111" font-size="13" class="mid">in a 20,000-row spreadsheet</text>
+<text x="36" y="134" font-size="11" class="dim">NORMALLY</text><text x="36" y="162" font-size="24" class="b mid">~130k tokens</text>
+<text x="236" y="134" font-size="11" class="g">WITH MYCEL</text><text x="236" y="162" font-size="24" class="b g">~26k tokens</text>
+<rect x="36" y="174" width="170" height="6" rx="3" fill="#2A4A3C"/><rect class="bar" x="236" y="174" width="34" height="6" rx="3" fill="#3DFFB0"/>
+<g class="badge"><rect x="36" y="194" width="104" height="34" rx="17" fill="#3DFFB0"/><text x="88" y="218" font-size="20" text-anchor="middle" class="b" style="fill:#032015">−81%</text></g>
+<text x="150" y="216" font-size="12" class="mid">cheaper · $0.0151 → $0.0029</text>
+<text x="36" y="247" font-size="11" class="dim">12 turns · 34.5 s → 4 turns · 6.6 s</text></g>
+<g class="card c2"><rect x="430" y="62" width="410" height="200" rx="14" fill="#10231A" stroke="#1C3A2D"/><rect x="430" y="62" width="410" height="4" rx="2" fill="#3DFFB0"/>
+<text x="446" y="92" font-size="16" class="b">Design 6 app screens</text><text x="446" y="111" font-size="13" class="mid">with Google Stitch, save one</text>
+<text x="446" y="134" font-size="11" class="dim">NORMALLY</text><text x="446" y="162" font-size="24" class="b mid">$0.095</text>
+<text x="646" y="134" font-size="11" class="g">WITH MYCEL</text><text x="646" y="162" font-size="24" class="b g">$0.022</text>
+<rect x="446" y="174" width="170" height="6" rx="3" fill="#2A4A3C"/><rect class="bar" x="646" y="174" width="39" height="6" rx="3" fill="#3DFFB0"/>
+<g class="badge"><rect x="446" y="194" width="104" height="34" rx="17" fill="#3DFFB0"/><text x="498" y="218" font-size="20" text-anchor="middle" class="b" style="fill:#032015">−77%</text></g>
+<text x="560" y="216" font-size="12" class="mid">cheaper · ~35k → ~6k tokens</text>
+<text x="446" y="247" font-size="11" class="dim">re-types 30 KB → passes 317 chars</text></g>
+<g class="card c3"><rect x="20" y="276" width="410" height="200" rx="14" fill="#10231A" stroke="#1C3A2D"/><rect x="20" y="276" width="410" height="4" rx="2" fill="#3DFFB0"/>
+<text x="36" y="306" font-size="16" class="b">Check 50,000 rows</text><text x="36" y="325" font-size="13" class="mid">for 3 hidden errors</text>
+<text x="36" y="348" font-size="11" class="dim">NORMALLY</text><text x="36" y="376" font-size="24" class="b mid">583,980 tokens</text>
+<text x="236" y="348" font-size="11" class="g">WITH MYCEL</text><text x="236" y="376" font-size="24" class="b g">602 tokens</text>
+<rect x="36" y="388" width="170" height="6" rx="3" fill="#2A4A3C"/><rect class="bar" x="236" y="388" width="3" height="6" rx="3" fill="#3DFFB0"/>
+<g class="badge"><rect x="36" y="408" width="104" height="34" rx="17" fill="#3DFFB0"/><text x="88" y="432" font-size="20" text-anchor="middle" class="b" style="fill:#032015">~970×</text></g>
+<text x="150" y="430" font-size="12" class="mid">less · same 3/3 answers</text>
+<text x="36" y="461" font-size="11" class="dim">independent review · mock data</text></g>
+<g class="card c4"><rect x="430" y="276" width="410" height="200" rx="14" fill="#10231A" stroke="#1C3A2D"/><rect x="430" y="276" width="410" height="4" rx="2" fill="#3DFFB0"/>
+<text x="446" y="306" font-size="16" class="b">Connect 15 MCP servers</text><text x="446" y="325" font-size="13" class="mid">(420 tools)</text>
+<text x="446" y="348" font-size="11" class="dim">NORMALLY</text><text x="446" y="376" font-size="24" class="b mid">~204k tokens</text>
+<text x="646" y="348" font-size="11" class="g">WITH MYCEL</text><text x="646" y="376" font-size="24" class="b g">1,338 tokens</text>
+<rect x="446" y="388" width="170" height="6" rx="3" fill="#2A4A3C"/><rect class="bar" x="646" y="388" width="3" height="6" rx="3" fill="#3DFFB0"/>
+<g class="badge"><rect x="446" y="408" width="104" height="34" rx="17" fill="#3DFFB0"/><text x="498" y="432" font-size="20" text-anchor="middle" class="b" style="fill:#032015">−99.3%</text></g>
+<text x="560" y="430" font-size="12" class="mid">of tool descriptions</text>
+<text x="446" y="461" font-size="11" class="dim">a full 200k window before you type</text></g>
+<text x="430" y="488" font-size="11" text-anchor="middle" class="dim">Measured values; single runs unless noted. Card 4: clients that send every tool description each turn. Details below.</text>
+</svg>

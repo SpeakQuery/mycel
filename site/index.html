@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=16">
+  <link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -69,6 +69,54 @@
         </div>
         <p class="hint">Imports your existing Claude, Cursor, VS Code and Windsurf MCP configs. No account. No telemetry.</p>
         <p class="sr-only" role="status" aria-live="polite" id="copy-status"></p>
+
+
+        <div class="ba4" id="same-job" role="region" aria-labelledby="ba4-title">
+          <h2 class="ba4-head" id="ba4-title">Same job. <span class="ba4-dim">Normally</span> <span aria-hidden="true">→</span> <span class="glow">With Mycel</span></h2>
+          <div class="ba4-grid">
+        <article class="ba4-card">
+          <h3 class="ba4-title">Find one bad row in a 20,000-row spreadsheet</h3>
+          <div class="ba4-row">
+            <div class="ba4-side ba4-before"><span class="ba4-k">Normally</span><span class="ba4-n"><span data-count="130" data-pre="~" data-suf="k" data-dec="0">~130k</span></span><span class="ba4-u">tokens read</span><span class="ba4-x">12 turns · 34.5 s</span></div>
+            <span class="ba4-arrow" aria-hidden="true">→</span>
+            <div class="ba4-side ba4-after"><span class="ba4-k">With Mycel</span><span class="ba4-n"><span data-count="26" data-pre="~" data-suf="k" data-dec="0">~26k</span></span><span class="ba4-u">tokens read</span><span class="ba4-x">4 turns · 6.6 s</span></div>
+          </div>
+          <p class="ba4-badge-wrap"><span class="ba4-badge"><span data-count="81" data-pre="−" data-suf="%">−81%</span></span> <span class="ba4-badge-label">cheaper ($0.0151 → $0.0029)</span></p>
+          <p class="ba4-foot">Real Claude Code session, Haiku, cache off, single run (n=1). <a href="#real-session">Details</a></p>
+        </article>
+        <article class="ba4-card">
+          <h3 class="ba4-title">Design 6 app screens with Google Stitch and save one to your project</h3>
+          <div class="ba4-row">
+            <div class="ba4-side ba4-before"><span class="ba4-k">Normally</span><span class="ba4-n"><span data-count="0.095" data-pre="$" data-suf="" data-dec="3">$0.095</span></span><span class="ba4-u">cost</span><span class="ba4-x">model re-types 30 KB of HTML</span></div>
+            <span class="ba4-arrow" aria-hidden="true">→</span>
+            <div class="ba4-side ba4-after"><span class="ba4-k">With Mycel</span><span class="ba4-n"><span data-count="0.022" data-pre="$" data-suf="" data-dec="3">$0.022</span></span><span class="ba4-u">cost</span><span class="ba4-x">passes a 317-char reference</span></div>
+          </div>
+          <p class="ba4-badge-wrap"><span class="ba4-badge"><span data-count="77" data-pre="−" data-suf="%">−77%</span></span> <span class="ba4-badge-label">cheaper (<!-- STITCH-0.1.7 -->~35k → ~6k tokens of results)</span></p>
+          <p class="ba4-foot">Real Google Stitch, Claude Code Haiku, n=1, Mycel 0.1.6; re-run with 0.1.7 in progress. <a href="#stitch-session">Details</a></p>
+        </article>
+        <article class="ba4-card">
+          <h3 class="ba4-title">Check 50,000 rows of data for 3 hidden errors</h3>
+          <div class="ba4-row">
+            <div class="ba4-side ba4-before"><span class="ba4-k">Normally</span><span class="ba4-n"><span data-count="583980" data-pre="" data-suf="" data-dec="0">583,980</span></span><span class="ba4-u">tokens</span></div>
+            <span class="ba4-arrow" aria-hidden="true">→</span>
+            <div class="ba4-side ba4-after"><span class="ba4-k">With Mycel</span><span class="ba4-n"><span data-count="602" data-pre="" data-suf="" data-dec="0">602</span></span><span class="ba4-u">tokens</span></div>
+          </div>
+          <p class="ba4-badge-wrap"><span class="ba4-badge"><span data-count="970" data-pre="~" data-suf="× less">~970× less</span></span> <span class="ba4-badge-label">tokens, same 3 of 3 answers</span></p>
+          <p class="ba4-foot">Independent review, mock data, scripted, 3/3 correct both ways. <a href="https://github.com/SpeakQuery/mycel/blob/main/README.md#-who-is-it-for">Details</a></p>
+        </article>
+        <article class="ba4-card">
+          <h3 class="ba4-title">Connect 15 MCP servers (420 tools)</h3>
+          <div class="ba4-row">
+            <div class="ba4-side ba4-before"><span class="ba4-k">Normally</span><span class="ba4-n"><span data-count="204" data-pre="~" data-suf="k" data-dec="0">~204k</span></span><span class="ba4-u">tokens</span></div>
+            <span class="ba4-arrow" aria-hidden="true">→</span>
+            <div class="ba4-side ba4-after"><span class="ba4-k">With Mycel</span><span class="ba4-n"><span data-count="1338" data-pre="" data-suf="" data-dec="0">1,338</span></span><span class="ba4-u">tokens</span></div>
+          </div>
+          <p class="ba4-badge-wrap"><span class="ba4-badge"><span data-count="99.3" data-pre="−" data-suf="%" data-dec="1">−99.3%</span></span> <span class="ba4-badge-label">of tool descriptions</span></p>
+          <p class="ba4-foot">Before you type: a full 200k window. Applies to clients that send every tool description each turn; Claude Code and recent Cursor load tools on demand. <a href="https://github.com/SpeakQuery/mycel/tree/main/examples/full-scale">Reproduce it</a>.</p>
+        </article>
+          </div>
+          <p class="ba4-honest">With 1–2 small servers Mycel costs more context, not less — it pays off with many tools and big results. <a href="#how">How it works ↓</a></p>
+        </div>
 
         <dl class="hero-stats" aria-label="Benchmark headline">
           <div><dt>Tools in context</dt><dd><span data-stat="toolsDirect">180</span> <span class="arrow" aria-label="becomes">→</span> <strong data-stat="toolsMycel">8</strong></dd></div>
@@ -175,7 +223,7 @@
             </ul>
           </article>
         </div>
-        <div class="real-run">
+        <div class="real-run" id="real-session">
           <h3>Measured in a real Claude Code session (single run, n=1)</h3>
           <p class="section-lede">Big MCP results stay local: the agent reads the line it needs and passes the file to the next tool by reference. Task: "find the one rare row in a 20,000-row CSV". Both arms found the right row. Claude Code 2.1.316, model <code>claude-haiku-5-5</code>, built-in tools off.</p>
           <div class="table-scroll" tabindex="0" role="region" aria-label="Real session results">
@@ -188,7 +236,7 @@
             </table>
           </div>
           <p class="fine">One run per cell, not a statistical result. Honestly: on small-file tasks Mycel took about one extra turn (e.g. "find a decision in a small file", cache on: direct 3 turns / 5.2 s vs Mycel 4 / 6.0 s), and write tasks stopped for approval in a non-interactive client, by design (pre-approve writes for headless use: see Configuration → policy in the docs; some clients, e.g. Claude Code in print mode, turn an approval request into their own denial, so the model sees "denied by the user"). A run with a 1.7B local model completed no task in either arm, so we make no claim from it. Protocol: <code>docs/benchmark-protocol.md</code>.</p>
-          <h3>Second real session: UI design with Google Stitch (single run per arm, n=1)</h3>
+          <h3 id="stitch-session">Second real session: UI design with Google Stitch (single run per arm, n=1)</h3>
           <p class="section-lede">Real Google Stitch MCP, <code>claude-haiku-5-5</code>, 2026-11-27, identical prompts: generate 6 mobile screens for a food-delivery app, then save the checkout HTML to <code>payment.html</code>. Both arms completed and the saved file matched.</p>
           <div class="table-scroll" tabindex="0" role="region" aria-label="Stitch session results">
             <table class="vs fit-table">
@@ -927,7 +975,7 @@
     </div>
   </footer>
 
-  <script src="main.js?v=16" defer></script>
+  <script src="main.js?v=17" defer></script>
   <script type="module" src="assets/scene.js?v=4"></script>
 </body>
 </html>

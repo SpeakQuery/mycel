@@ -23,6 +23,23 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 
 ---
 
+<div align="center">
+
+<img src="media/before-after.svg" alt="Same job, normally versus with Mycel: four measured examples. Find one bad row in a 20,000-row spreadsheet, about 130k to 26k tokens (-81% cost). Design 6 app screens with Google Stitch, $0.095 to $0.022 (-77%). Check 50,000 rows for 3 hidden errors, 583,980 to 602 tokens (~970x less). Connect 15 MCP servers, ~204k to 1,338 tokens of tool descriptions (-99.3%)." width="860">
+
+</div>
+
+| Same job | Normally | With Mycel | Change | Conditions |
+|---|---:|---:|:---:|:---|
+| Find one bad row in a 20,000-row spreadsheet | 12 turns · 34.5 s · ~130k tokens read · $0.0151 | 4 turns · 6.6 s · ~26k tokens · $0.0029 | **−81%** | Claude Code, Haiku, cache off, single run (n=1). [Details](#measured-in-a-real-claude-code-session-single-run-n1) |
+| Design 6 app screens with Google Stitch and save one to your project | $0.095 · ~35k tokens of results · model re-types 30 KB of HTML | $0.022 · ~6k tokens · passes a 317-char reference | **−77%** | Real Stitch, Claude Code Haiku, n=1, Mycel 0.1.6; re-run with 0.1.7 in progress. [Details](#second-real-session-ui-design-with-google-stitch-single-run-per-arm-n1) <!-- STITCH-0.1.7 --> |
+| Check 50,000 rows of data for 3 hidden errors | 583,980 tokens | 602 tokens | **~970× less** | Independent review, mock data, scripted, 3/3 correct both ways. [Details](#-who-is-it-for) |
+| Connect 15 MCP servers (420 tools) | ~204k tokens of tool descriptions before you type (a full 200k window) | 1,338 tokens | **−99.3%** | Clients that send every tool description each turn; Claude Code and recent Cursor load tools on demand. [Reproduce](examples/full-scale) |
+
+*With 1–2 small servers Mycel costs more context, not less — it pays off with many tools and big results.* [How it works ↓](#-how-it-works)
+
+---
+
 ```bash
 mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers and imports them
 ```

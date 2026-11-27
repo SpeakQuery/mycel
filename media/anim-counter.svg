@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 218" width="860" height="218" role="img" aria-labelledby="t d">
-<title id="t">Mycel headline numbers</title><desc id="d">Four measured results: minus 94 percent tool definitions with 8 servers, 204k to 1.2k tokens with 420 tools, 131k to 187 tokens for a 20,000-row CSV, and 17 tool calls in 1 round trip with Code Mode (not yet measured with a live model). The 420-tool figure is tool-definition tokens, reproducible offline (examples/full-scale).</desc>
+<title id="t">Mycel headline numbers</title><desc id="d">Four measured results: minus 93.5 percent tool definitions with 8 servers, 204k to 1.34k tokens with 420 tools, 131k to 187 tokens for a 20,000-row CSV, and 17 tool calls in 1 round trip with Code Mode (not yet measured with a live model). The 420-tool figure is tool-definition tokens, reproducible offline (examples/full-scale).</desc>
 <style>text{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;fill:#E6F2EC}.m{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.dim{fill:#7E968B}.g{fill:#3DFFB0}.r{fill:#FF6B5B}.b{font-weight:700}
 .fb{transform-box:fill-box;transform-origin:left center}.fc{transform-box:fill-box;transform-origin:center}
 .tl0{animation:k_tl0 10.0s linear infinite;}@keyframes k_tl0{0%{opacity:0;transform:translateY(16px)}4.0%{opacity:0;transform:translateY(16px)}9.0%{opacity:1;transform:translateY(0)}92.0%{opacity:1;transform:translateY(0)}97.0%{opacity:0;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
@@ -14,10 +14,10 @@
 <g class="tl0"><rect x="20" y="20" width="195" height="150" rx="12" fill="#10231A" stroke="#1C3A2D"/><rect x="20" y="20" width="195" height="4" rx="2" fill="#3DFFB0"/>
 <text class="st0 g b" x="117.5" y="92" font-size="44" text-anchor="middle" style="opacity:0">−19%</text>
 <text class="st1 g b" x="117.5" y="92" font-size="44" text-anchor="middle" style="opacity:0">−86%</text>
-<text class="st2 g b" x="117.5" y="92" font-size="44" text-anchor="middle" style="opacity:1">−94%</text>
+<text class="st2 g b" x="117.5" y="92" font-size="44" text-anchor="middle" style="opacity:1">−93.5%</text>
 <text x="117.5" y="124" font-size="16" text-anchor="middle" class="b">8 servers</text><text x="117.5" y="146" font-size="12" text-anchor="middle" class="dim">tool definitions in context</text></g>
 <g class="tl1"><rect x="235" y="20" width="195" height="150" rx="12" fill="#10231A" stroke="#1C3A2D"/><rect x="235" y="20" width="195" height="4" rx="2" fill="#3DFFB0"/>
-<text class="g b" x="332.5" y="92" font-size="27" text-anchor="middle">204k → 1.2k</text>
+<text class="g b" x="332.5" y="92" font-size="27" text-anchor="middle">204k → 1.34k</text>
 <text x="332.5" y="124" font-size="16" text-anchor="middle" class="b">420 tools</text><text x="332.5" y="146" font-size="12" text-anchor="middle" class="dim">per turn, 15 servers</text></g>
 <g class="tl2"><rect x="450" y="20" width="195" height="150" rx="12" fill="#10231A" stroke="#1C3A2D"/><rect x="450" y="20" width="195" height="4" rx="2" fill="#3DFFB0"/>
 <text class="g b" x="547.5" y="92" font-size="27" text-anchor="middle">131k → 187</text>
@@ -25,5 +25,5 @@
 <g class="tl3"><rect x="665" y="20" width="195" height="150" rx="12" fill="#10231A" stroke="#1C3A2D"/><rect x="665" y="20" width="195" height="4" rx="2" fill="#3DFFB0"/>
 <text class="g b" x="762.5" y="92" font-size="44" text-anchor="middle">17 → 1</text>
 <text x="762.5" y="124" font-size="16" text-anchor="middle" class="b">calls → 1 round trip</text><text x="762.5" y="146" font-size="12" text-anchor="middle" class="dim">Code Mode; no live model yet</text></g>
-<text x="430" y="198" font-size="12" text-anchor="middle" class="dim">−94%: reproducible (examples/field-test) · 204k: tool-definition tokens, reproducible (examples/full-scale) · overhead ~+0.4 ms Mac, +1 ms CI</text>
+<text x="430" y="198" font-size="12" text-anchor="middle" class="dim">−93.5%: reproducible (examples/field-test) · 204k: tool-definition tokens, reproducible (examples/full-scale) · overhead ~+0.4 ms Mac, +1 ms CI</text>
 </svg>

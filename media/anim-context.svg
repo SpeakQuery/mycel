@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 490" width="860" height="490" role="img" aria-labelledby="t d">
-<title id="t">Context window: direct MCP versus Mycel</title><desc id="d">Animation of a 200k-token context window. Adding servers one by one fills the direct bar with red blocks up to 17.8k tokens for 8 servers, while Mycel stays a thin 1k slice. A heavy setup of 15 servers and 420 tools needs about 204k tokens, filling the window, versus about 1.2k through Mycel. Reproducible offline from examples/full-scale. Applies to clients that send every definition each turn.</desc>
+<title id="t">Context window: direct MCP versus Mycel</title><desc id="d">Animation of a 200k-token context window. Adding servers one by one fills the direct bar with red blocks up to 17.9k tokens for 8 servers, while Mycel stays a thin 1k slice. A heavy setup of 15 servers and 420 tools needs about 204k tokens, filling the window, versus about 1.34k through Mycel. Reproducible offline from examples/full-scale. Applies to clients that send every definition each turn.</desc>
 <style>text{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;fill:#E6F2EC}.m{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.dim{fill:#7E968B}.g{fill:#3DFFB0}.r{fill:#FF6B5B}.b{font-weight:700}
 .fb{transform-box:fill-box;transform-origin:left center}.fc{transform-box:fill-box;transform-origin:center}
 .cn1{animation:k_cn1 8.0s linear infinite;}@keyframes k_cn1{0%{opacity:0}5.0%{opacity:0}5.625%{opacity:1}8.75%{opacity:1}9.375%{opacity:0}100%{opacity:0}}
@@ -56,11 +56,11 @@
 <rect class="ba5" x="83.9" y="111" width="7.7" height="28" rx="2" fill="#FF6B5B"/>
 <rect class="ba6" x="92.6" y="111" width="7.7" height="28" rx="2" fill="#FF6B5B"/>
 <rect class="ba7" x="101.2" y="111" width="7.7" height="28" rx="2" fill="#FF6B5B"/>
-<text class="la r b" x="119" y="131" font-size="15">17.8k tokens, re-sent every turn</text>
+<text class="la r b" x="119" y="131" font-size="15">17.9k tokens, re-sent every turn</text>
 <text x="40" y="164" font-size="14" class="g b">MYCEL · same 8 servers</text>
 <rect x="40" y="170" width="780" height="34" rx="6" fill="#10231A" stroke="#1C3A2D"/>
 <rect class="gb fb" x="41" y="173" width="3.9" height="28" rx="2" fill="#3DFFB0"/>
-<text class="lb g b" x="56" y="193" font-size="15">~1k tokens, flat (-94%)</text>
+<text class="lb g b" x="56" y="193" font-size="15">~1.16k tokens, flat (-93.5%)</text>
 <line x1="40" y1="240" x2="820" y2="240" stroke="#1C3A2D" stroke-dasharray="4 6"/>
 <text class="hc r b" x="40" y="274" font-size="14">DIRECT MCP · 15 servers, 420 tools (the heavy setup)</text>
 <rect x="40" y="280" width="780" height="34" rx="6" fill="#10231A" stroke="#1C3A2D"/>
@@ -70,7 +70,7 @@
 <text class="hd g b" x="40" y="336" font-size="14">MYCEL · all 420 tools, still searchable</text>
 <rect x="40" y="342" width="780" height="34" rx="6" fill="#10231A" stroke="#1C3A2D"/>
 <rect class="gd fb" x="41" y="345" width="4.7" height="28" rx="2" fill="#3DFFB0"/>
-<text class="ld g b" x="57" y="365" font-size="15">~1.2k tokens (-99.4%)</text>
+<text class="ld g b" x="57" y="365" font-size="15">~1.34k tokens (-99.3%)</text>
 <text class="msg b" x="430" y="408" font-size="19" text-anchor="middle" style="fill:#FF6B5B">420 tools → 204k if the client sends them all (examples/full-scale).</text>
 <text x="430" y="440" font-size="12" text-anchor="middle" class="dim">Measured with mycel bench and the 8-server field test. Each red block ≈ one server (8-server average, ≈2.2k tokens).</text>
 </svg>

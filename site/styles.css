@@ -428,6 +428,7 @@ p { margin: 0 0 12px; }
 .who-steps li { margin: 4px 0; }
 .real-run { margin: 32px 0 8px; }
 .real-run h3 { margin: 0 0 8px; }
+.real-run h4 { margin: 24px 0 8px; font-size: 1.05rem; }
 
 /* who: sector cards */
 .wb-designed { color: var(--text-2); border-style: dashed; }

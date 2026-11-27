@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.7 — 2026-11-27
 
 Fewer model turns (from the Stitch case study: 13 turns direct vs 27 through Mycel; 6 of the 14 extra turns were `mycel_job` waits):
 

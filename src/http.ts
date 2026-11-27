@@ -181,7 +181,7 @@ async function api(m: Mycel, req: IncomingMessage, res: ServerResponse, url: URL
   if (p === "/api/overview") {
     const fp = m.contextFootprint();
     return send(res, 200, {
-      version: "0.1.6",
+      version: "0.1.7",
       session: m.sessionId,
       router: m.routerMode(),
       servers: [...m.upstreams.values()].map((u) => ({ name: u.name, status: u.status, error: u.error, tools: u.tools.length, trust: m.config.servers[u.name]?.trust ?? u.tools[0]?.trust ?? "trusted" })),

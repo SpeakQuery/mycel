@@ -4,6 +4,40 @@
 
 **Takeaway:** cheaper and safer when tools return big artifacts; slower in turns in this run (0.1.6). Mycel changes after this run (inline waits for async tools, schemas in narrow searches and in argument errors) remove the job-wait and describe turns; see the CHANGELOG and the mock-service re-measurement note below, not re-run on the real service.
 
+## At a glance (real Stitch, `claude-haiku-5-5`, n=1 per arm, Mycel 0.1.6)
+
+| | Direct MCP | Through Mycel | Verdict |
+|---|---:|---:|:---|
+| 💰 CLI cost | $0.0950 | **$0.0221** | −77% ✅ |
+| 📦 Tool results in context | ~35.2k tokens | **~6.2k tokens** | −82% ✅ |
+| 🎨 Data returned by the 6 generations | 109,879 chars | **2,028 chars** | −98% ✅ |
+| 💾 Saving the HTML | model re-typed 30,509 chars | **`ref://` handle, 317 chars** | −99% ✅ |
+| ✍️ Output tokens | 17,018 | **6,950** | −59% ✅ |
+| 🧰 Tool definitions | ~15,118 tokens | **~915 tokens** | −94% ✅ |
+| 🔁 Turns | **13** | 27 | 2× more ❌ |
+| ⏱️ Wall time | **13.6 min** | 16.1 min | +18% ❌ |
+| ✔️ Correct result | yes | yes (byte-identical to Stitch's HTML) | equal |
+
+Scripted check of the same 6-screen project (no model): ~48.3k tokens direct vs ~3.0k through Mycel (−94%).
+
+### After the turn fix (0.1.7, mock Stitch-like service, n=2)
+
+| Run 1 · run 2 | Direct | Mycel 0.1.6 | Mycel 0.1.7 |
+|---|---:|---:|---:|
+| 🔁 Turns | 15 · 13 | 30 · 31 | **15 · 13** |
+| 💰 CLI cost | $0.122 · $0.111 | $0.026 · $0.020 | **$0.014 · $0.012** |
+| ✍️ Output tokens | 16.1k · 16.1k | 10.5k · 6.5k | **4.5k · 3.6k** |
+| 📦 Tool-result chars | 127.7k · 126.4k | 24.2k · 20.1k | **16.4k · 12.1k** |
+| 📥 Total input incl. cache | 1,106k · 892k | 1,353k · 1,126k | **616k · 525k** |
+| ✔️ Oracle (file saved, byte-identical) | 2/2 | 2/2 | 2/2 |
+
+Honest limits: the second table uses a mock service with fixed 22–38 s generations, so wall time is not meaningful, and the real Stitch has not yet been re-run with 0.1.7. Both tables are small samples (n=1 real, n=2 mock) and the designs differed between arms: this is not a quality comparison.
+
+- **Gained:** in the real run, cost −77%, tool results in context −82%, output tokens −59%, and the HTML saved by handle instead of re-typed. On the mock, the 0.1.7 turn fix brings turns back to the direct count (15 · 13) while keeping the cost and output savings.
+- **Lost:** in the real run (0.1.6), 2× the turns and +18% wall time; total input including cache reads was also higher (mostly cached). Not yet shown on the real service with 0.1.7.
+
+The sections below keep the full detail: setup, prompt, all measures, limitations and the mock-service re-measurement.
+
 ## Setup
 
 - Client: Claude Code (print mode), model `claude-haiku-5-5`.
@@ -102,7 +136,7 @@ Mycel was slower and used more turns: search, describe and job-wait turns. Its t
 
 The real-service run above was not repeated (it spends Stitch quota). To measure turns without it, a mock "slow design" MCP server with Stitch-like tools (`create_project`, `generate_screen_from_text` taking 22-38 s and returning ~16 KB of JSON, `get_screen`, `list_screens` returning `{}`, `download_file` returning ~29 KB of HTML) and the filesystem server ran the same task in Claude Code (`claude-haiku-5-5`, built-in file tools disabled, `MCP_TOOL_TIMEOUT=1200000`, the same operational hints, `router.mode: meta`, a policy that allows the mock and the filesystem server). Three arms, n=2 each, arms run in parallel on one Mac; oracle: `payment.html` written and byte-identical to the checkout screen the mock served (all 8 runs passed).
 
-| | Direct | Mycel 0.1.6 | Mycel (this branch) |
+| | Direct | Mycel 0.1.6 | Mycel 0.1.7 |
 |---|---|---|---|
 | Turns (run 1 / run 2) | 15 / 13 | 30 / 31 | **15 / 13** |
 | Wall time, min | 4.1 / 4.0 | 4.0 / 3.7 | 3.6 / 3.5 |

@@ -45,7 +45,7 @@ Works on macOS, Linux and Windows. S7 and S8 open https://example.com.
 ## Results (macOS, Node 22, November 2026)
 
 All 10 checks pass. Highlights:
-- Context for 80 tools: 17.8k → 1.0k tokens.
+- Context for 80 tools: 17.9k → 1.16k tokens (−93.5%, S1 on the current build).
 - 20,000-row CSV: 131k → 187 tokens.
 - 17 calls → 1 round trip.
 - Per-call overhead: +0.4 ms.
@@ -56,7 +56,9 @@ All 10 checks pass. Highlights:
 | 2 | 4 | 1,451 | 1,498 | −3% |
 | 3 | 18 | 4,729 | 3,832 | 19% |
 | 4 | 32 | 6,658 | 919 | 86% |
-| 8 | 80 | 17,798 | 1,032 | 94% |
+| 8 | 80 | 17,882 | 1,160 | 93.5% |
+
+_Rows 1–7 are from 0.1.x measurements (`scale.json`); the 8-server row is S1 on the current build._
 
 **Takeaway:** with 1–2 small servers, Mycel adds a few percent and you don't need it for context savings. From about 4 servers, or with one large server, it pays for itself on every turn.
 

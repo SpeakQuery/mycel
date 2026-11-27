@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 480" width="860" height="480" role="img" aria-labelledby="t d">
 <title id="t">Cumulative definition tokens over a 30-turn session with 8 servers</title>
-<desc id="d">Line chart. Direct MCP re-sends 17.8k tokens each turn, reaching 534k by turn 30. Mycel sends about 1.0k per turn, reaching 31k.</desc>
+<desc id="d">Line chart. Direct MCP re-sends 17.9k tokens each turn, reaching 536k by turn 30. Mycel sends about 1.16k per turn, reaching 35k.</desc>
 <rect width="860" height="480" rx="16" fill="#07110D"/>
 <rect x="1" y="1" width="858" height="478" rx="15" fill="none" stroke="#3DFFB0" stroke-opacity=".18"/>
 <text x="30" y="38" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="20" fill="#E6F2EC"  font-weight="700">A 30-turn session, 8 MCP servers</text>
@@ -21,10 +21,10 @@
 <text x="696.6666666666666" y="422" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8FB0A2" text-anchor="middle" >25</text>
 <text x="820" y="422" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8FB0A2" text-anchor="middle" >30</text>
 <text x="450" y="442" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8FB0A2" text-anchor="middle" >conversation turns</text>
-<path d="M80,400 L820,113.96071428571429 L820 400 Z" fill="#FF6B5B" fill-opacity=".09"/><line x1="80" y1="400" x2="820" y2="113.96071428571429" stroke="#FF6B5B" stroke-width="3.5" stroke-linecap="round"/><line x1="80" y1="400" x2="820" y2="383.4142857142857" stroke="#3DFFB0" stroke-width="3.5" stroke-linecap="round"/><circle cx="820" cy="113.96071428571429" r="6" fill="#07110D" stroke="#FF6B5B" stroke-width="3"/><circle cx="820" cy="383.4142857142857" r="6" fill="#07110D" stroke="#3DFFB0" stroke-width="3"/><text x="808" y="117.96071428571429" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="22" fill="#FFB4AA" text-anchor="end" font-weight="800">534k</text>
-<text x="808" y="137.9607142857143" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8FB0A2" text-anchor="end" >17.8k × 30 turns</text>
-<text x="808" y="359.4142857142857" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="22" fill="#9BFFD6" text-anchor="end" font-weight="800">31k</text>
-<text x="808" y="375.4142857142857" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8FB0A2" text-anchor="end" >1.0k × 30 turns</text>
+<path d="M80,400 L820,112.62 L820 400 Z" fill="#FF6B5B" fill-opacity=".09"/><line x1="80" y1="400" x2="820" y2="112.62" stroke="#FF6B5B" stroke-width="3.5" stroke-linecap="round"/><line x1="80" y1="400" x2="820" y2="381.36" stroke="#3DFFB0" stroke-width="3.5" stroke-linecap="round"/><circle cx="820" cy="112.62" r="6" fill="#07110D" stroke="#FF6B5B" stroke-width="3"/><circle cx="820" cy="381.36" r="6" fill="#07110D" stroke="#3DFFB0" stroke-width="3"/><text x="808" y="116.62" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="22" fill="#FFB4AA" text-anchor="end" font-weight="800">536k</text>
+<text x="808" y="136.62" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8FB0A2" text-anchor="end" >17.9k × 30 turns</text>
+<text x="808" y="357.36" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="22" fill="#9BFFD6" text-anchor="end" font-weight="800">35k</text>
+<text x="808" y="373.36" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8FB0A2" text-anchor="end" >1.16k × 30 turns</text>
 <rect x="425.3333333333333" y="108" width="200" height="26" rx="13" fill="#3DFFB0"/><text x="525.3333333333333" y="126" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="13" fill="#032015" text-anchor="middle" font-weight="700">17× less context spent</text>
 <text x="30" y="464" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8FB0A2"  >Ignores prompt caching, which lowers cost, not context size.</text>
 </svg>

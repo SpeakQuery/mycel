@@ -23,7 +23,7 @@ Mycel is a local, single-user MCP gateway. Everything below uses real features o
 Full evidence, numbers and caveats for these four are in the README section [Who is it for?](../README.md#-who-is-it-for). In short:
 
 - **1. 🔬 Researchers and data analysts** — **MEASURED (with caveat).** A 20,000-row CSV becomes a ref plus a digest; a Code Mode scan finds what a text search missed.
-- **2. 🧑‍💻 Developers with many MCP servers** — **PARTIAL.** 8 servers, 80 tools: 17.8k → 1.0k definition tokens where the client sends them all.
+- **2. 🧑‍💻 Developers with many MCP servers** — **PARTIAL.** 8 servers, 80 tools: 17.9k → 1.16k definition tokens where the client sends them all.
 - **3. 📣 AI editors and content/marketing teams** — **PARTIAL.** Find designs, read assets by ref; publish or send needs approval under the example policy.
 - **4. 🎬 Video / voice producers** — **PARTIAL (pilot).** Refs between agents, budget caps and jobs for slow renders; automatic paid fallback not yet recommended.
 

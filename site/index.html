@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=15">
+  <link rel="stylesheet" href="styles.css?v=16">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -112,7 +112,7 @@
             </div>
             <figcaption class="gl-hud" aria-live="polite">
               <span class="gl-mode" id="gl-mode">Direct MCP</span>
-              <span class="gl-tok" id="gl-tok">17.8k tokens</span>
+              <span class="gl-tok" id="gl-tok">17.9k tokens</span>
               <span class="gl-pct" id="gl-pct">9% of a 200k window</span>
             </figcaption>
             <p class="gl-hint" aria-hidden="true">Drag to rotate</p>
@@ -133,9 +133,9 @@
 
         <ul class="reasons" aria-label="Three reasons">
           <li class="reason">
-            <p class="r-big" aria-hidden="true">−94%</p>
-            <h3>−94% context with 8 servers</h3>
-            <p>17.8k tokens of tool definitions per turn become 1.0k (reproducible: examples/field-test (CI runs it on Ubuntu and Windows)). The model searches the catalog and loads a schema only when it needs one.</p>
+            <p class="r-big" aria-hidden="true">−93.5%</p>
+            <h3>−93.5% context with 8 servers</h3>
+            <p>17.9k tokens of tool definitions per turn become 1.16k (reproducible: examples/field-test (CI runs it on Ubuntu and Windows)). The model searches the catalog and loads a schema only when it needs one.</p>
           </li>
           <li class="reason">
             <p class="r-big" aria-hidden="true">17 calls, 1 trip</p>
@@ -192,16 +192,41 @@
           <p class="section-lede">Real Google Stitch MCP, <code>claude-haiku-5-5</code>, 2026-11-27, identical prompts: generate 6 mobile screens for a food-delivery app, then save the checkout HTML to <code>payment.html</code>. Both arms completed and the saved file matched.</p>
           <div class="table-scroll" tabindex="0" role="region" aria-label="Stitch session results">
             <table class="vs fit-table">
-              <thead><tr><th scope="col">Measure</th><th scope="col">Direct MCP</th><th scope="col" class="vs-m">Through Mycel</th></tr></thead>
+              <thead><tr><th scope="col">Measure</th><th scope="col">Direct MCP</th><th scope="col" class="vs-m">Through Mycel</th><th scope="col">Verdict</th></tr></thead>
               <tbody>
-                <tr><th scope="row">CLI cost estimate</th><td>$0.0950</td><td class="vs-m">$0.0221 (−77%)</td></tr>
-                <tr><th scope="row">Tool results in context</th><td>~140,819 chars (~35.2k tokens)</td><td class="vs-m">~24,632 chars (~6.2k tokens)</td></tr>
-                <tr><th scope="row">Saving the HTML</th><td>re-typed 30,509 chars</td><td class="vs-m"><code>ref://</code> handle, 317 chars</td></tr>
-                <tr><th scope="row">Turns · wall time</th><td>13 · 13.6 min</td><td class="vs-m">27 · 16.1 min</td></tr>
+                <tr><th scope="row">💰 CLI cost</th><td>$0.0950</td><td class="vs-m">$0.0221</td><td class="fit-pos">−77% ✅</td></tr>
+                <tr><th scope="row">📦 Tool results in context</th><td>~35.2k tokens</td><td class="vs-m">~6.2k tokens</td><td class="fit-pos">−82% ✅</td></tr>
+                <tr><th scope="row">🎨 Data returned by the 6 generations</th><td>109,879 chars</td><td class="vs-m">2,028 chars</td><td class="fit-pos">−98% ✅</td></tr>
+                <tr><th scope="row">💾 Saving the HTML</th><td>model re-typed 30,509 chars</td><td class="vs-m"><code>ref://</code> handle, 317 chars</td><td class="fit-pos">−99% ✅</td></tr>
+                <tr><th scope="row">✍️ Output tokens</th><td>17,018</td><td class="vs-m">6,950</td><td class="fit-pos">−59% ✅</td></tr>
+                <tr><th scope="row">🧰 Tool definitions</th><td>~15,118 tokens</td><td class="vs-m">~915 tokens</td><td class="fit-pos">−94% ✅</td></tr>
+                <tr><th scope="row">🔁 Turns</th><td>13</td><td class="vs-m">27</td><td class="fit-neg">2× more ❌</td></tr>
+                <tr><th scope="row">⏱️ Wall time</th><td>13.6 min</td><td class="vs-m">16.1 min</td><td class="fit-neg">+18% ❌</td></tr>
+                <tr><th scope="row">✔️ Correct result</th><td>yes</td><td class="vs-m">yes (byte-identical to Stitch's HTML)</td><td class="">equal</td></tr>
               </tbody>
             </table>
           </div>
-          <p class="fine">Cheaper and safer when tools return big artifacts; slower in turns today (search, describe and job waits), and total input including cache reads was higher, though mostly cached. Designs differed between arms: not a quality comparison. Fewer turns are on the roadmap. <a href="https://github.com/SpeakQuery/mycel/blob/main/docs/case-studies/stitch-ui-design.md" rel="noopener">Case study</a>.</p>
+          <p class="fine">Scripted check of the same 6-screen project (no model): ~48.3k tokens direct vs ~3.0k through Mycel (−94%). Real Stitch, single run per arm, Mycel 0.1.6.</p>
+          <h4>After the turn fix (0.1.7, mock Stitch-like service, n=2)</h4>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="Turn fix re-measurement on a mock service">
+            <table class="vs fit-table">
+              <thead><tr><th scope="col">Run 1 · run 2</th><th scope="col">Direct</th><th scope="col">Mycel 0.1.6</th><th scope="col" class="vs-m">Mycel 0.1.7</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">🔁 Turns</th><td>15 · 13</td><td>30 · 31</td><td class="vs-m"><strong>15 · 13</strong></td></tr>
+                <tr><th scope="row">💰 CLI cost</th><td>$0.122 · $0.111</td><td>$0.026 · $0.020</td><td class="vs-m"><strong>$0.014 · $0.012</strong></td></tr>
+                <tr><th scope="row">✍️ Output tokens</th><td>16.1k · 16.1k</td><td>10.5k · 6.5k</td><td class="vs-m"><strong>4.5k · 3.6k</strong></td></tr>
+                <tr><th scope="row">📦 Tool-result chars</th><td>127.7k · 126.4k</td><td>24.2k · 20.1k</td><td class="vs-m"><strong>16.4k · 12.1k</strong></td></tr>
+                <tr><th scope="row">📥 Total input incl. cache</th><td>1,106k · 892k</td><td>1,353k · 1,126k</td><td class="vs-m"><strong>616k · 525k</strong></td></tr>
+                <tr><th scope="row">✔️ Oracle (file saved, byte-identical)</th><td>2/2</td><td>2/2</td><td class="vs-m"><strong>2/2</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="fine">Honest limits: a mock service with fixed 22–38 s generations, so wall time is not meaningful; the real Stitch has not yet been re-run with 0.1.7. Small samples (n=1 real, n=2 mock), and the designs differed between arms: not a quality comparison.</p>
+          <ul class="fit-list">
+            <li><strong>Gained:</strong> real run: cost −77%, tool results in context −82%, output tokens −59%, the HTML saved by handle instead of re-typed. Mock: the 0.1.7 turn fix brings turns back to the direct count while keeping the cost and output savings.</li>
+            <li><strong>Lost:</strong> real run (0.1.6): 2× the turns and +18% wall time; total input including cache reads was also higher (mostly cached). Not yet shown on the real service with 0.1.7.</li>
+          </ul>
+          <p class="fine"><a href="https://github.com/SpeakQuery/mycel/blob/main/docs/case-studies/stitch-ui-design.md" rel="noopener">Case study</a>.</p>
         </div>
         <p class="fine">Reproduce it yourself: <code>mycel bench</code>. Numbers vary with your catalog and task. The direct round-trip count in this bench is computed, not a recorded session.</p>
       </div>
@@ -213,7 +238,7 @@
       <div class="wrap">
         <p class="kicker">How much do you save?</p>
         <h2 class="mega" id="savings-title">Costs more at 2 servers. <span class="glow">Real money at 8.</span></h2>
-        <p class="section-lede big">A client that sends every tool definition on every turn re-sends them all. Mycel stays flat at about 1k tokens. Set your own numbers and watch the gap.</p>
+        <p class="section-lede big">A client that sends every tool definition on every turn re-sends them all. Mycel stays flat at about 1.2-1.3k tokens. Set your own numbers and watch the gap.</p>
 
         <div class="calc" id="calc" role="group" aria-labelledby="calc-title">
           <h3 id="calc-title" class="sr-only">Savings calculator</h3>
@@ -258,20 +283,20 @@
         </div>
 
         <figure class="sv-chart">
-          <img src="assets/chart-scaling.svg" width="860" height="480" loading="lazy" alt="Line chart of tool-definition tokens per turn for 1 to 8 MCP servers. Direct MCP grows from 1.1k to 17.8k; Mycel stays near 1k. Break-even is around 3 servers.">
+          <img src="assets/chart-scaling.svg" width="860" height="480" loading="lazy" alt="Line chart of tool-definition tokens per turn for 1 to 8 MCP servers. Direct MCP grows from 1.1k to 17.9k; Mycel stays near 1k-1.2k. Break-even is around 3 servers.">
           <figcaption class="fine">Measured with 8 real open-source MCP servers added one at a time. Break-even at about 3 servers.</figcaption>
         </figure>
 
         <ul class="sv-cards" aria-label="Worked examples">
           <li class="sv-card">
             <p class="sv-tag">A client that sends every tool definition each turn: 8 servers, 30 turns</p>
-            <p class="sv-big"><span class="sv-from">534k</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">31k</span></p>
-            <p class="sv-sub">tokens of tool definitions per session (17.8k × 30 vs 1.0k × 30). This is arithmetic, not a recorded session. Prompt caching lowers the price, not the context size.</p>
+            <p class="sv-big"><span class="sv-from">536k</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">35k</span></p>
+            <p class="sv-sub">tokens of tool definitions per session (17.9k × 30 vs 1.16k × 30). This is arithmetic, not a recorded session. Prompt caching lowers the price, not the context size.</p>
           </li>
           <li class="sv-card">
             <p class="sv-tag">All 15 servers, 420 tools</p>
-            <p class="sv-big"><span class="sv-from">204k</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">1.2k</span></p>
-            <p class="sv-sub">tool-definition tokens per turn (~4 chars per token), reproducible offline: examples/full-scale. Technical: this is for 420 tools loaded up front. Real tokenizers agree (cl100k 200,624 → 1,188 = 99.41%; o200k 202,905 → 1,216 = 99.40%). On a 135-tool catalog (no Canva/Higgsfield) o200k gives 29,129 → 1,147 (96.1%), and chars/4 overstates that one by about 19%. Not measured on Claude Code or Cursor, which load tools on demand.</p>
+            <p class="sv-big"><span class="sv-from">204k</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">1.34k</span></p>
+            <p class="sv-sub">tool-definition tokens per turn (~4 chars per token), reproducible offline: examples/full-scale. Technical: this is for 420 tools loaded up front. Real tokenizers agreed on 0.1.2, whose Mycel side was smaller than today's 1,338 (cl100k 200,624 → 1,188 = 99.41%; o200k 202,905 → 1,216 = 99.40%). On a 135-tool catalog (no Canva/Higgsfield) o200k gives 29,129 → 1,147 (96.1%), and chars/4 overstates that one by about 19%. Not measured on Claude Code or Cursor, which load tools on demand.</p>
           </li>
           <li class="sv-card">
             <p class="sv-tag">Read a 20,000-row CSV</p>
@@ -285,7 +310,7 @@
           </li>
         </ul>
 
-        <p class="fine">Estimates for 9–15 servers assume about 2.2k tokens per extra server for direct MCP and about 28 for Mycel, so they are far lower than the heavy 15-server setup (420 tools, ~204k vs ~1.2k) measured above (tool-definition tokens (~4 chars per token), reproducible offline: examples/full-scale). Money figures are before prompt caching and depend on your model and price.</p>
+        <p class="fine">Estimates for 9–15 servers assume about 2.2k tokens per extra server for direct MCP and about 28 for Mycel, so they are far lower than the heavy 15-server setup (420 tools, ~204k vs ~1.34k) measured above (tool-definition tokens (~4 chars per token), reproducible offline: examples/full-scale). Money figures are before prompt caching and depend on your model and price.</p>
       </div>
     </section>
 
@@ -314,12 +339,12 @@
           <li class="reason who-card">
             <h3><span aria-hidden="true">🧑‍💻</span> Developers with many MCP servers</h3>
             <p class="who-badge wb-warn">PARTIAL</p>
-            <p class="who-value">8 servers, 80 tools: 17.8k → 1.0k definition tokens where the client sends them all.</p>
+            <p class="who-value">8 servers, 80 tools: 17.9k → 1.16k definition tokens where the client sends them all.</p>
             <details class="who-more">
               <summary>Scenario and evidence</summary>
             <p><strong>Pain:</strong> git, filesystem, Playwright, a database and docs (e.g. context7) in a client or framework that sends every definition up front.</p>
             <ol class="who-steps">
-              <li>8 servers, 80 tools: 17.8k → 1.0k definition tokens (chars/4).</li>
+              <li>8 servers, 80 tools: 17.9k → 1.16k definition tokens (chars/4).</li>
               <li>A scripted fix flow (git + browser + db) works; a model-written patch failed.</li>
               <li>Turkish search put the right tool in the top 3 in 0/5 queries; English is much better.</li>
               <li><strong>Not for you</strong> if you run 1–2 small servers, or use Claude Code/Cursor only for definition savings.</li>
@@ -533,7 +558,7 @@
       <div class="wrap">
         <p class="kicker">Do you need Mycel?</p>
         <h2 id="fit-title">The more MCP servers you use, the more it pays off.</h2>
-        <p class="section-lede">Measured with 8 real open-source MCP servers (filesystem, git, fetch, time, memory, Playwright and more), added one at a time. Mycel's own footprint stays flat at about 1k tokens. Direct MCP grows with every server, and a client that sends every definition makes the model re-read it on every turn. Reproducible: examples/field-test (CI runs it on Ubuntu and Windows).</p>
+        <p class="section-lede">Measured with 8 real open-source MCP servers (filesystem, git, fetch, time, memory, Playwright and more), added one at a time. Mycel's own footprint stays flat at about 1.2-1.3k tokens. Direct MCP grows with every server, and a client that sends every definition makes the model re-read it on every turn. Reproducible: examples/field-test (CI runs it on Ubuntu and Windows).</p>
         <div class="table-scroll" tabindex="0" role="region" aria-labelledby="fit-title">
           <table class="vs fit-table">
             <thead>
@@ -545,10 +570,11 @@
               <tr><th scope="row">3</th><td>18</td><td>4.7k</td><td class="vs-m">3.8k</td><td>19%</td></tr>
               <tr class="fit-break"><th scope="row">4</th><td>32</td><td>6.7k</td><td class="vs-m">0.9k</td><td class="fit-pos">86%</td></tr>
               <tr><th scope="row">6</th><td>42</td><td>10.6k</td><td class="vs-m">1.0k</td><td class="fit-pos">91%</td></tr>
-              <tr><th scope="row">8</th><td>80</td><td>17.8k</td><td class="vs-m">1.0k</td><td class="fit-pos">94%</td></tr>
+              <tr><th scope="row">8</th><td>80</td><td>17.9k</td><td class="vs-m">1.16k</td><td class="fit-pos">93.5%</td></tr>
             </tbody>
           </table>
         </div>
+        <p class="fine">Rows 1–7 were measured on 0.1.x builds; the 8-server row is the current build (17,882 → 1,160 tokens, −93.5%).</p>
         <div class="ba fit-cards">
           <article class="ba-card ba-after" aria-labelledby="fit-yes">
             <h3 id="fit-yes">Use it if</h3>
@@ -901,7 +927,7 @@
     </div>
   </footer>
 
-  <script src="main.js?v=15" defer></script>
+  <script src="main.js?v=16" defer></script>
   <script type="module" src="assets/scene.js?v=4"></script>
 </body>
 </html>

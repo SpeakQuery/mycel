@@ -214,11 +214,12 @@ window.MycelModel = (function () {
   "use strict";
   var CTX = 200000;
   // Measured tokens of tool definitions per turn, 1..8 servers (real open-source servers).
-  var DIRECT = [1089, 1451, 4729, 6658, 9424, 10585, 12498, 17798];
-  var MYCEL = [1128, 1498, 3832, 919, 951, 962, 995, 1032];
+  // Points 1-7 are from 0.1.x measurements; the 8-server point is the current build (field-test S1: 17,882 -> 1,160).
+  var DIRECT = [1089, 1451, 4729, 6658, 9424, 10585, 12498, 17882];
+  var MYCEL = [1128, 1498, 3832, 919, 951, 962, 995, 1160];
   var st = { n: 8, heavy: false, mode: "direct" };
   function point(n, heavy) {
-    if (heavy) return { d: 204000, m: 1200, est: false, heavy: true }; // measured: 15 servers incl. Canva + Higgsfield, 420 tools
+    if (heavy) return { d: 204000, m: 1338, est: false, heavy: true }; // measured: 15 servers incl. Canva + Higgsfield, 420 tools; 203,547 -> 1,338 (examples/full-scale, current build)
     n = Math.max(1, Math.min(15, Math.round(n) || 1));
     if (n <= 8) return { d: DIRECT[n - 1], m: MYCEL[n - 1], est: false };
     return { d: DIRECT[7] + 2200 * (n - 8), m: MYCEL[7] + 28 * (n - 8), est: true };
@@ -339,7 +340,7 @@ window.MycelModel = (function () {
     gauge("d", p.d); gauge("m", p.m);
     $("c-est").hidden = !p.est;
     $("c-note").textContent = p.heavy
-      ? "Reproducible offline: examples/full-scale. 15 servers including Canva and Higgsfield, 420 tools. About 204k tool-definition tokens direct, 1.2k through Mycel. In a client that sends every definition, direct MCP fills the whole 200k window before the first message."
+      ? "Reproducible offline: examples/full-scale. 15 servers including Canva and Higgsfield, 420 tools. About 204k tool-definition tokens direct, 1.34k through Mycel (current build). In a client that sends every definition, direct MCP fills the whole 200k window before the first message."
       : saved <= 0 ? "With " + v.servers + (v.servers === 1 ? " server" : " servers") + " Mycel's meta-tools cost about as much as your tool list, so there is no gain and it can cost more context (about 58% more on a 4-tool catalog with a real tokenizer). Don't use it for that; use it for Code Mode, refs or the safety layer."
       : p.est ? "Estimate: beyond 8 measured servers we assume about 2.2k extra tokens per server (direct) and about 28 (Mycel). Heavy real setups are larger."
       : "Measured with real open-source MCP servers.";

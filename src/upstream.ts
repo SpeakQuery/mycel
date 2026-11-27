@@ -173,7 +173,7 @@ export async function connectMcp(name: string, cfg: ServerConfig, vault: SecretV
       authProvider: oauthFor(name, cfg, vault, opts),
     });
   }
-  const client = new Client({ name: `mycel:${name}`, version: "0.1.6" }, { capabilities: {} });
+  const client = new Client({ name: `mycel:${name}`, version: "0.1.7" }, { capabilities: {} });
   await client.connect(transport);
   return new McpProvider(client);
 }

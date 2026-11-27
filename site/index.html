@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -279,12 +279,15 @@
     <section class="section" id="who" aria-labelledby="who-title">
       <div class="wrap">
         <p class="kicker">Who it's for</p>
-        <h2 id="who-title">Four kinds of users, <span class="glow">each with an honest status.</span></h2>
+        <h2 id="who-title">Ten sectors, <span class="glow">each with an honest status.</span></h2>
         <p class="section-lede">The evidence is a mock or scripted setup with a small n, not a field result. Local, single-user, read-heavy use is the recommended pilot; paid jobs with automatic fallback are not.</p>
-        <ul class="reasons who-grid" aria-label="Personas">
-          <li class="reason">
+        <ul class="reasons who-grid" aria-label="Sectors">
+          <li class="reason who-card">
             <h3><span aria-hidden="true">🔬</span> Researchers and data analysts</h3>
             <p class="who-badge wb-ok">MEASURED (with caveat)</p>
+            <p class="who-value">Big CSV/SQL results become a ref plus a digest; a Code Mode scan found what a text search missed.</p>
+            <details class="who-more">
+              <summary>Scenario and evidence</summary>
             <p><strong>Pain:</strong> big CSV/SQL results and PDFs flowing through the prompt.</p>
             <ol class="who-steps">
               <li>In a 20,000-row dataset with two exceptions, a text search on the ref found one and missed the other. A Code Mode numeric scan over the ref found both.</li>
@@ -292,10 +295,14 @@
               <li><strong>Lesson:</strong> verify against the full data; digests don't guarantee every exception is seen.</li>
               <li>Earlier single run: rare row in a 20,000-row CSV, cache off: direct 12 turns / 34.5 s vs Mycel 4 turns / 6.6 s.</li>
             </ol>
+            </details>
           </li>
-          <li class="reason">
+          <li class="reason who-card">
             <h3><span aria-hidden="true">🧑‍💻</span> Developers with many MCP servers</h3>
             <p class="who-badge wb-warn">PARTIAL</p>
+            <p class="who-value">8 servers, 80 tools: 17.8k → 1.0k definition tokens where the client sends them all.</p>
+            <details class="who-more">
+              <summary>Scenario and evidence</summary>
             <p><strong>Pain:</strong> git, filesystem, Playwright, a database and docs (e.g. context7) in a client or framework that sends every definition up front.</p>
             <ol class="who-steps">
               <li>8 servers, 80 tools: 17.8k → 1.0k definition tokens (chars/4).</li>
@@ -303,10 +310,14 @@
               <li>Turkish search put the right tool in the top 3 in 0/5 queries; English is much better.</li>
               <li><strong>Not for you</strong> if you run 1–2 small servers, or use Claude Code/Cursor only for definition savings.</li>
             </ol>
+            </details>
           </li>
-          <li class="reason">
+          <li class="reason who-card">
             <h3><span aria-hidden="true">📣</span> AI editors and content/marketing teams</h3>
             <p class="who-badge wb-warn">PARTIAL</p>
+            <p class="who-value">Find designs, read assets by ref; publish or send needs approval under the example policy.</p>
+            <details class="who-more">
+              <summary>Scenario and evidence</summary>
             <p><strong>Pain:</strong> designs, docs and brand assets across many tools, and agents that can publish or send unseen.</p>
             <ol class="who-steps">
               <li>Servers: Canva, docs, storage. The agent finds designs with <code>mycel_search</code> and reads assets by ref.</li>
@@ -314,18 +325,145 @@
               <li>In the mock publish test, approval was needed only because of that policy; the default policy allows a clean external call.</li>
               <li>The model added unsourced claims to the text.</li>
             </ol>
+            </details>
           </li>
-          <li class="reason">
+          <li class="reason who-card">
             <h3><span aria-hidden="true">🎬</span> Video / voice producers</h3>
             <p class="who-badge wb-warn">PARTIAL (pilot)</p>
+            <p class="who-value">Refs between agents, budget caps and jobs for slow renders; automatic paid fallback not yet recommended.</p>
+            <details class="who-more">
+              <summary>Scenario and evidence</summary>
             <p><strong>Pain:</strong> base64 media in the prompt, renders that time out mid-call, every agent holding every key, runaway spend.</p>
             <ol class="who-steps">
               <li>A 5-agent mock pipeline worked: per-role tokens, refs passed between agents, the budget cap rejected the second, sequential request, and the final file had video and audio (5.000 s).</li>
               <li>Real Higgsfield/Canva timing and quality were not measured.</li>
               <li><strong>Not yet recommended:</strong> automatic fallback across paid providers. After a paid request with an unknown outcome Mycel never falls back to another provider. It re-sends to the same tool only if that tool is <code>idempotent</code>, has <code>idempotencyKeyArg</code> (the same key is re-sent) and has retries left; otherwise it marks the job <code>unknown</code> and sends nothing more. The estimated charge is recorded once per (tool, key). A request is treated as rejected, and so may fall back, only when it is known not to have been accepted (connection refused before dispatch, or an error from a tool whose contract sets <code>errorsAreRejections: true</code>). After a restart, a job whose last request went to a paid tool resumes only if that tool is <code>idempotent</code> and has <code>idempotencyKeyArg</code>; otherwise it is marked <code>interrupted</code> and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via <code>idempotencyKeyArg</code>). Attempts that the job queue sends are recorded in the job's <code>dispatches</code>; retries inside a single call's transport loop are not. On success the budget records the tool's declared <code>costUsd</code> for the call (the contract amount, not a provider invoice); otherwise it records the estimate, and <code>charged</code> in <code>dispatches</code> only means an estimate was written (a definite rejection writes none). A manual <code>mycel_job retry</code> of a job whose last paid dispatch is unresolved deliberately reuses the same idempotency key, so a deduplicating provider can collapse it into one receipt; per (tool, key) only one estimate is kept, and a later success replaces it with the actual charge (never both). Dispatches without a key are each charged. Reconcile paid jobs with the provider statement whatever their final status, not only <code>unknown</code> and <code>interrupted</code> (no reconcile tool yet; jobs recorded by 0.1.3 or earlier are not re-settled on upgrade). Estimates can exceed what the provider charged, and the dashboard spend mixes estimated and confirmed charges.</li>
             </ol>
+            </details>
+          </li>
+          <li class="reason who-card">
+            <h3><span aria-hidden="true">🎧</span> Customer-support agents</h3>
+            <p class="who-badge wb-designed">DESIGNED FOR — not yet tested</p>
+            <p class="who-value">Untrusted customer text can’t trigger a refund or an email without approval.</p>
+            <details class="who-more">
+              <summary>Scenario, pilot metric, not a fit</summary>
+              <p><strong>Who:</strong> Support teams running an agent over tickets, orders and a knowledge base.</p>
+              <p><strong>Typical MCP servers:</strong> ticketing/helpdesk, CRM, knowledge base, email, payments/refunds.</p>
+              <p><strong>Pain:</strong> Ticket histories are long, and the customer’s text is untrusted input sitting next to tools that can refund or send mail.</p>
+              <ol class="who-steps">
+                <li>Mark the ticketing and email servers <code>trust: untrusted</code>; the long ticket history comes back as a ref plus a digest instead of thousands of lines in the prompt.</li>
+                <li>The agent searches the knowledge base with <code>mycel_search</code> and greps the ref for the order id and earlier promises.</li>
+                <li>Its draft reply and refund call carry taint from the customer text, so the default policy (tainted + side-effect → approve) stops them until an agent supervisor approves inline or with <code>mycel approve</code>.</li>
+                <li>Refund and send calls are <code>external</code>/<code>destructive</code> contracts; add a per-day budget if the payments tool declares <code>costUsd</code>.</li>
+                <li>Every search, call and approval decision appears as a span in the flight recorder for later review.</li>
+              </ol>
+              <p><strong>Measure in a pilot:</strong> Share of tickets where the model needed the full history in the prompt, approvals raised vs. approvals that were correct, and any tainted write that got through (target: zero).</p>
+              <p><strong>Not a fit:</strong> A hosted, multi-tenant support desk serving many customers from one gateway: Mycel is local and single-user today.</p>
+            </details>
+          </li>
+          <li class="reason who-card">
+            <h3><span aria-hidden="true">🛒</span> E-commerce operations</h3>
+            <p class="who-badge wb-designed">DESIGNED FOR — not yet tested</p>
+            <p class="who-value">Bulk catalog and price changes in one script, with approval before anything goes live.</p>
+            <details class="who-more">
+              <summary>Scenario, pilot metric, not a fit</summary>
+              <p><strong>Who:</strong> Shop operators and catalog/merchandising teams.</p>
+              <p><strong>Typical MCP servers:</strong> product catalog (CSV or database), storefront/admin API, image generation or editing, file storage.</p>
+              <p><strong>Pain:</strong> Catalogs run to thousands of rows, price updates are repetitive, and a wrong publish is visible to customers.</p>
+              <ol class="who-steps">
+                <li>Export the catalog; it becomes a ref with a table digest (columns, row count, sample) rather than rows in the prompt.</li>
+                <li>The model writes one Code Mode script that loops over the ref, computes new prices and prepares the update payloads in a single round trip.</li>
+                <li>Image generation or editing calls run as jobs with progress, cancel and retry; results are refs passed on to the storefront tool.</li>
+                <li>The publish/price-update tool is an <code>external</code> effect: the policy requires approval, bound to the exact arguments.</li>
+                <li>Declare <code>costUsd</code> on image tools and set a per-day cap so a loop can’t quietly spend.</li>
+              </ol>
+              <p><strong>Measure in a pilot:</strong> Rows changed per approval, wrong prices caught at the approval step, turns and time for a 1,000-row price change vs. direct tools.</p>
+              <p><strong>Not a fit:</strong> A handful of products or one-off edits: direct tools are simpler. Paid image jobs with automatic fallback are not yet recommended (see the paid-jobs note in the README).</p>
+            </details>
+          </li>
+          <li class="reason who-card">
+            <h3><span aria-hidden="true">⚖️</span> Legal / document review</h3>
+            <p class="who-badge wb-designed">DESIGNED FOR — not yet tested</p>
+            <p class="who-value">Long contracts stay on disk as refs; clauses are found with grep and nothing leaves without approval.</p>
+            <details class="who-more">
+              <summary>Scenario, pilot metric, not a fit</summary>
+              <p><strong>Who:</strong> Lawyers, paralegals and in-house teams reviewing documents on their own machine.</p>
+              <p><strong>Typical MCP servers:</strong> filesystem or document store, PDF/text extraction, email or sharing tools.</p>
+              <p><strong>Pain:</strong> Contracts and PDFs are long, versions differ in small ways, and confidential text must not be sent anywhere by accident.</p>
+              <ol class="who-steps">
+                <li>Contracts and exhibits are read as refs; the model sees an outline digest instead of hundreds of pages.</li>
+                <li>It greps the refs for clauses (indemnity, termination, governing law) and reads only the matching lines.</li>
+                <li>To compare two versions it runs a Code Mode script over both refs and returns only the differing clauses.</li>
+                <li>Any email, share or upload tool is an <code>external</code> effect and needs approval before anything leaves the machine.</li>
+                <li>The flight recorder keeps a local record of which documents were read and what was sent.</li>
+              </ol>
+              <p><strong>Measure in a pilot:</strong> Clauses found by grep vs. a manual read of the same documents, missed differences in version comparison, and tokens used per document.</p>
+              <p><strong>Not a fit:</strong> Shared or multi-user matter workspaces, or anything that needs client-level access control: Mycel is single-user and local. It is a reading aid, not legal advice, and it does not guarantee that a search sees every clause: verify against the full text.</p>
+            </details>
+          </li>
+          <li class="reason who-card">
+            <h3><span aria-hidden="true">📊</span> Finance &amp; accounting reporting</h3>
+            <p class="who-badge wb-designed">DESIGNED FOR — not yet tested</p>
+            <p class="who-value">Big ledger exports stay out of the prompt; paid data lookups are capped and every call is recorded.</p>
+            <details class="who-more">
+              <summary>Scenario, pilot metric, not a fit</summary>
+              <p><strong>Who:</strong> Finance analysts and accountants preparing reports and reconciliations.</p>
+              <p><strong>Typical MCP servers:</strong> ledger/ERP export, spreadsheet or database, paid market or reference-data APIs, file storage.</p>
+              <p><strong>Pain:</strong> Ledger exports and spreadsheets are huge, reconciliation is many small steps, and paid data APIs can be called in a loop.</p>
+              <ol class="who-steps">
+                <li>The ledger export and the bank statement become refs with table digests.</li>
+                <li>A Code Mode script matches the two over the refs and returns only unmatched lines, one round trip instead of many.</li>
+                <li>Paid data APIs get <code>costUsd</code> in their contracts and a per-task or per-day budget cap checked on each call.</li>
+                <li>Writes to the accounting system are <code>write</code>/<code>external</code> and go through approval.</li>
+                <li>The flight recorder gives a timed audit trail of what ran; money is read from the budget ledger, which holds estimates and declared costs, not provider invoices.</li>
+              </ol>
+              <p><strong>Measure in a pilot:</strong> Reconciliation turns and time vs. direct tools, unmatched items missed vs. a manual check, and budget-ledger spend vs. the provider statement.</p>
+              <p><strong>Not a fit:</strong> Anything needing a regulated, tamper-proof audit log: the flight recorder is local JSONL, not a certified control. Not for multi-user ledgers.</p>
+            </details>
+          </li>
+          <li class="reason who-card">
+            <h3><span aria-hidden="true">🛠️</span> Data engineering / ETL quality</h3>
+            <p class="who-badge wb-designed">DESIGNED FOR — not yet tested</p>
+            <p class="who-value">Row-level checks run in Code Mode over refs, so mislabeled or unflagged records are found without reading the table.</p>
+            <details class="who-more">
+              <summary>Scenario, pilot metric, not a fit</summary>
+              <p><strong>Who:</strong> Data engineers and data-quality owners checking pipeline outputs.</p>
+              <p><strong>Typical MCP servers:</strong> SQL/warehouse query tool, filesystem, object storage, ticketing for reporting issues.</p>
+              <p><strong>Pain:</strong> Result sets have thousands of rows and the bad ones are rare; a sample can miss them.</p>
+              <p><strong>Closest evidence:</strong> The closest evidence is the measured CSV case: in a 20,000-row dataset with two planted exceptions, a text search on the ref found one and a Code Mode numeric scan found both; the first report omitted both until asked to verify. This sector itself has not been run end-to-end.</p>
+              <ol class="who-steps">
+                <li>A SQL result comes back as a ref plus a digest (columns, row count, sample).</li>
+                <li>A text search on the ref is a quick first pass, but it can miss rows.</li>
+                <li>A Code Mode script scans every row of the ref against the rule (for example label vs. value, missing flag) and returns only violations.</li>
+                <li>The model reports counts and ids, and is asked to verify against the full file before concluding.</li>
+                <li>Writing fixes back or opening tickets goes through policy and approval.</li>
+              </ol>
+              <p><strong>Measure in a pilot:</strong> Planted exceptions found by the text search vs. the Code Mode scan, and the model’s first report vs. its verified report.</p>
+              <p><strong>Not a fit:</strong> Streaming or very large tables that don’t fit as a single ref; 1–2 small servers where Mycel only adds context.</p>
+            </details>
+          </li>
+          <li class="reason who-card">
+            <h3><span aria-hidden="true">📱</span> Agencies &amp; social-media teams</h3>
+            <p class="who-badge wb-designed">DESIGNED FOR — not yet tested</p>
+            <p class="who-value">Each agent gets its own narrowed token, so a posting agent can’t touch billing, and posts need approval.</p>
+            <details class="who-more">
+              <summary>Scenario, pilot metric, not a fit</summary>
+              <p><strong>Who:</strong> Agencies and in-house social teams running several agents over many client accounts.</p>
+              <p><strong>Typical MCP servers:</strong> Canva or other design tools, scheduling/publishing, analytics, ad or billing tools, storage.</p>
+              <p><strong>Pain:</strong> Many client tools, many agents, and one over-privileged key means a posting agent could reach billing.</p>
+              <ol class="who-steps">
+                <li>A human mints a capability token per role with <code>mycel token mint</code> (and agents can narrow it with <code>mycel token attenuate</code>): the design agent gets design tools, the posting agent gets scheduling only, each with a lower effect ceiling and a small budget.</li>
+                <li>Designs are found with <code>mycel_search</code> and passed between agents as refs.</li>
+                <li>Posting and scheduling are <code>external</code> effects; the policy requires approval before anything is published.</li>
+                <li>Tokens expire and can only be narrowed further, never widened.</li>
+                <li>The flight recorder shows which agent called which tool, and the budget shows spend per task.</li>
+              </ol>
+              <p><strong>Measure in a pilot:</strong> Calls a token correctly refused (billing from the posting agent), approvals needed per campaign, and spend per client.</p>
+              <p><strong>Not a fit:</strong> Hosting many clients’ credentials for many users on one shared gateway: Mycel is single-user and local today. One or two tools: no need.</p>
+            </details>
           </li>
         </ul>
+        <p class="fine"><strong>Statuses:</strong> MEASURED = run end-to-end with recorded results; PARTIAL = parts tested with mocks/scripts; DESIGNED FOR = not yet tested. Want your sector tested? <a href="https://github.com/SpeakQuery/mycel/issues/new" rel="noopener">Open an issue</a>; pilot plan in <code>docs/benchmark-protocol.md</code>. Also designed for, not yet tested: education content, and health/biomedical literature review (reading aid, no medical-advice claims). Full scenarios: <a href="https://github.com/SpeakQuery/mycel/blob/main/docs/use-cases.md" rel="noopener"><code>docs/use-cases.md</code></a>.</p>
         <p class="fine"><strong>Pilot:</strong> we're looking for 5 users (data analyst, data-quality engineer, developer with 5+ MCP servers, content editor, video/voice producer) — 45 minutes, your machine, paid actions mocked. <a href="https://github.com/SpeakQuery/mycel/issues/new" rel="noopener">Open an issue</a> to join.</p>
         <p class="fine">Run one of these and tell us: <a href="https://github.com/SpeakQuery/mycel/issues/new" rel="noopener">open an issue</a> with your numbers (see <code>docs/benchmark-protocol.md</code>).</p>
       </div>
@@ -712,7 +850,7 @@
     </div>
   </footer>
 
-  <script src="main.js?v=10" defer></script>
+  <script src="main.js?v=11" defer></script>
   <script type="module" src="assets/scene.js?v=4"></script>
 </body>
 </html>

@@ -95,7 +95,28 @@ This is one run per cell, not a statistical result. To be fair about the other s
 
 ## 👥 Who is it for?
 
-Four kinds of users, each with an honest status. The evidence is a mock or scripted setup with a small n, not a field result. Local, single-user, read-heavy use is the recommended pilot; paid jobs with automatic fallback are not.
+Ten sectors, each with an honest status. The evidence is a mock or scripted setup with a small n, not a field result. Local, single-user, read-heavy use is the recommended pilot; paid jobs with automatic fallback are not.
+
+> **Statuses:** MEASURED = run end-to-end with recorded results; PARTIAL = parts tested with mocks/scripts; DESIGNED FOR = not yet tested. Want your sector tested? [Open an issue](https://github.com/SpeakQuery/mycel/issues/new) — pilot plan in [docs/benchmark-protocol.md](docs/benchmark-protocol.md).
+
+| # | Sector | What Mycel does for you | Status |
+|---:|---|---|---|
+| 1 | 🔬 Researchers and data analysts | A 20,000-row CSV becomes a ref plus a digest; a Code Mode scan finds what a text search missed. | MEASURED (with caveat) |
+| 2 | 🧑‍💻 Developers with many MCP servers | 8 servers, 80 tools: 17.8k → 1.0k definition tokens where the client sends them all. | PARTIAL |
+| 3 | 📣 AI editors and content/marketing teams | Find designs, read assets by ref; publish or send needs approval under the example policy. | PARTIAL |
+| 4 | 🎬 Video / voice producers | Refs between agents, budget caps and jobs for slow renders; automatic paid fallback not yet recommended. | PARTIAL (pilot) |
+| 5 | 🎧 Customer-support agents | Untrusted customer text can’t trigger a refund or an email without approval. | DESIGNED FOR — not yet tested |
+| 6 | 🛒 E-commerce operations | Bulk catalog and price changes in one script, with approval before anything goes live. | DESIGNED FOR — not yet tested |
+| 7 | ⚖️ Legal / document review | Long contracts stay on disk as refs; clauses are found with grep and nothing leaves without approval. | DESIGNED FOR — not yet tested |
+| 8 | 📊 Finance & accounting reporting | Big ledger exports stay out of the prompt; paid data lookups are capped and every call is recorded. | DESIGNED FOR — not yet tested |
+| 9 | 🛠️ Data engineering / ETL quality | Row-level checks run in Code Mode over refs, so mislabeled or unflagged records are found without reading the table. | DESIGNED FOR — not yet tested |
+| 10 | 📱 Agencies & social-media teams | Each agent gets its own narrowed token, so a posting agent can’t touch billing, and posts need approval. | DESIGNED FOR — not yet tested |
+
+Also (DESIGNED FOR, not yet tested): education content, and health/biomedical literature review (arXiv/PubMed-style search; a reading aid, no medical-advice claims).
+
+**Full scenarios for all 10 sectors → [docs/use-cases.md](docs/use-cases.md)**
+
+Detail and evidence for the four sectors that have been tested:
 
 ### 🔬 1. Researchers and data analysts
 **Badge: MEASURED (with caveat).**

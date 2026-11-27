@@ -51,6 +51,19 @@ This is one run per cell, not a statistical result. To be fair about the other s
 - A run with a 1.7B local model completed no task in either arm; small models also confused ref handles with file paths, and the error now explains the ref format. We make no speed or success claim from it.
 - Protocol for running your own comparison: [docs/benchmark-protocol.md](docs/benchmark-protocol.md).
 
+### Second real session: UI design with Google Stitch (single run per arm, n=1)
+
+Task: with the real Google Stitch MCP, create a project, generate 6 mobile screens for a food-delivery app (login, home, menu, cart, checkout, order tracking), then save the checkout screen's HTML to `payment.html` through the filesystem server. Claude Code, model `claude-haiku-5-5`, 2026-11-27, identical prompts in both arms. Both arms completed, and the saved file matched Stitch's checkout HTML.
+
+| | Direct MCP | Through Mycel |
+|---|---:|---:|
+| CLI cost estimate | $0.0950 | **$0.0221 (−77%)** |
+| Tool results in the model context | ~140,819 chars (~35.2k tokens) | **~24,632 chars (~6.2k tokens)** |
+| Saving the HTML | model re-typed 30,509 chars | `ref://` handle, 317 chars |
+| Turns · wall time | **13 · 13.6 min** | 27 · 16.1 min |
+
+Cheaper and safer when tools return big artifacts; slower in turns today. Mycel used more turns (search, describe and job waits) and its total input including cache reads was higher (mostly cached). Designs differed between arms, so this is not a quality comparison. Stitch needs `MCP_TOOL_TIMEOUT=1200000`, and the run used a policy that allows the stitch and filesystem servers and denies `delete_project`, `apply_design_system` and `update_design_system`. Setup, prompt, both tables and how to reproduce: [docs/case-studies/stitch-ui-design.md](docs/case-studies/stitch-ui-design.md).
+
 <p align="center"><img src="media/anim-counter.svg" alt="Measured results: -94% tool definitions with 8 servers, 204k to 1.2k tokens with 420 tools, 131k to 187 tokens for a 20,000-row CSV, 17 tool calls in 1 round trip" width="860"></p>
 
 <p align="center"><b>▶ Try the interactive savings calculator and 3D view → <a href="https://mycel.speakquery.ai/#calculator">https://mycel.speakquery.ai/#calculator</a></b></p>
@@ -95,7 +108,7 @@ This is one run per cell, not a statistical result. To be fair about the other s
 
 ## 👥 Who is it for?
 
-Ten sectors, each with an honest status. The evidence is a mock or scripted setup with a small n, not a field result. Local, single-user, read-heavy use is the recommended pilot; paid jobs with automatic fallback are not.
+Eleven sectors, each with an honest status. The evidence is a mock or scripted setup with a small n, not a field result. Local, single-user, read-heavy use is the recommended pilot; paid jobs with automatic fallback are not.
 
 > **Statuses:** MEASURED = run end-to-end with recorded results; PARTIAL = parts tested with mocks/scripts; DESIGNED FOR = not yet tested. Want your sector tested? [Open an issue](https://github.com/SpeakQuery/mycel/issues/new) — pilot plan in [docs/benchmark-protocol.md](docs/benchmark-protocol.md).
 
@@ -111,10 +124,11 @@ Ten sectors, each with an honest status. The evidence is a mock or scripted setu
 | 8 | 📊 Finance & accounting reporting | Big ledger exports stay out of the prompt; paid data lookups are capped and every call is recorded. Evidence (mock services): scripted runs 3/3 found all three issues in 32,000 ledger rows; in every run the two mock provider receipts matched Mycel's ledger; a third call that would exceed the $0.10 budget cap was refused; the flight recorder had 18 of 18 tool calls. Small local model 0/3 (did not call the ledger/FX tools). | PARTIAL |
 | 9 | 🛠️ Data engineering / ETL quality | Row-level checks run in Code Mode over refs, so mislabeled or unflagged records are found without reading the table. Evidence (independent review, mock services, 3 runs each): scripted runs 3/3 found all 3 issues in 50,001 rows, 0 false positives, both direct and through Mycel. Context size for the same 2-turn task: 583,980 tokens direct vs 602 through Mycel (requests + responses, chars/4). Local median latency 37.7 ms direct vs 319.3 ms Mycel. Small local model 0/3 in both arms. | PARTIAL |
 | 10 | 📱 Agencies & social-media teams | Each agent gets its own narrowed token, so a posting agent can’t touch billing, and posts need approval. Evidence (mock pilot): scripted 3/3 and a real local model (Qwen3-4B) 3/3: with a posting-only capability token, billing calls were refused for every client, the analytics report travelled as a ref, and posting waited for approval (3 approval ids matched the queue; 0 unapproved posts). Measured with mock services; real platform APIs not tested. | MEASURED (mock pilot) |
+| 11 | 🎨 UI/UX & product designers | Big design artifacts (generated screens, HTML) stay out of the model context and are saved by ref, not re-typed. Evidence (real Google Stitch MCP, Claude Code with `claude-haiku-5-5`, n=1 per arm): 6 mobile screens, CLI cost estimate $0.0950 → $0.0221 (−77%), tool results in context ~35.2k → ~6.2k tokens; but 13 → 27 turns and 13.6 → 16.1 min. See [the case study](docs/case-studies/stitch-ui-design.md). | **MEASURED (n=1, real service)** |
 
 Also (DESIGNED FOR, not yet tested): education content, and health/biomedical literature review (arXiv/PubMed-style search; a reading aid, no medical-advice claims).
 
-**Full scenarios for all 10 sectors → [docs/use-cases.md](docs/use-cases.md)**
+**Full scenarios for all 11 sectors → [docs/use-cases.md](docs/use-cases.md)**
 
 Detail and evidence for the four sectors that have been tested:
 
@@ -557,6 +571,7 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What i
 - A2A streaming (`message/stream`) and push notifications
 - Signed tool manifests from server publishers
 - Team mode: shared policy, approvals routed to Slack/Teams
+- Long-running tools add turns (job waits); fewer turns planned.
 
 ## Contributing
 

@@ -16,6 +16,7 @@ Mycel is a local, single-user MCP gateway. Everything below uses real features o
 | 8 | [Finance & accounting reporting](#8-finance-accounting-reporting) | PARTIAL |
 | 9 | [Data engineering / ETL quality](#9-data-engineering-etl-quality) | PARTIAL |
 | 10 | [Agencies & social-media teams](#10-agencies-socialmedia-teams) | MEASURED (mock pilot) |
+| 11 | [UI/UX & product designers](#11-uiux-product-designers) | MEASURED (n=1, real service) |
 
 ## 1–4. The four tested personas
 
@@ -152,6 +153,27 @@ Full evidence, numbers and caveats for these four are in the README section [Who
 
 - **What to measure in a pilot:** Calls a token correctly refused (billing from the posting agent), approvals needed per campaign, and spend per client.
 - **Not a fit:** Hosting many clients’ credentials for many users on one shared gateway: Mycel is single-user and local today. One or two tools: no need.
+
+## 11. 🎨 UI/UX & product designers
+
+**Status: MEASURED (n=1, real service).**
+
+**Evidence (real Google Stitch MCP, Claude Code with `claude-haiku-5-5`, n=1 per arm, 2026-11-27):** both arms created a project and generated 6 mobile screens for a food-delivery app, then saved the checkout screen's HTML to `payment.html` through the filesystem server. The saved file matched Stitch's checkout HTML (byte-identical in the Mycel arm). CLI cost estimate $0.0950 direct vs $0.0221 through Mycel (−77%); tool results entering the model context ~140,819 chars (~35.2k tokens) vs ~24,632 chars (~6.2k tokens), of which the 6 generate results were 109,879 vs 2,028 chars; output tokens 17,018 vs 6,950. A scripted client on the same project (`list_screens` + 6 `get_screen` + 6 `download_file(html)`) read 193,338 chars (~48.3k tokens) raw vs 12,125 chars (~3.0k) through Mycel; tool definitions were 32 raw tools (~15,118 tokens) vs 6 meta tools (~915). Honest costs: Mycel took 27 turns vs 13 and 16.1 vs 13.6 min wall time (search, describe and job-wait turns), and total input including cache reads was higher (1,212,217 vs 869,791), though mostly cached. The designs differed between arms: this is not a quality comparison. Full write-up: [case-studies/stitch-ui-design.md](case-studies/stitch-ui-design.md).
+
+- **Who:** Product designers, UI/UX designers and design-minded developers using AI design tools from an agent.
+- **Typical MCP servers:** Google Stitch or another design-generation service, a filesystem server, design-system and asset storage.
+- **Pain:** Each generated screen returns its full HTML and metadata into the prompt, and saving a file means the model re-types it into a write tool, which costs output tokens and risks corruption.
+
+**Scenario**
+
+1. The agent generates screens; each generate result stays local and the model sees a short ref and digest instead of the HTML.
+2. When it needs a screen's HTML, it passes the ref to the filesystem tool: the file is written from the ref (a 317-character handle instead of 30,509 re-typed characters).
+3. Policy allows the design and filesystem servers and denies destructive or design-system-changing tools (`delete_project`, `apply_design_system`, `update_design_system`).
+4. The flight recorder and budget show what each step cost.
+
+- **Setup notes:** Stitch generation takes 1–3 minutes per screen, so raise Claude Code's MCP tool timeout (`MCP_TOOL_TIMEOUT=1200000`). With the default policy, `stitch.create_project` needed approval and Claude Code print mode auto-declined it, so pre-approve the servers you trust in policy.
+- **What to measure in a pilot:** Tool-result size entering the context, CLI cost, turns and wall time, and whether the saved file matches the service's output.
+- **Not a fit:** Tasks with small results (Mycel adds turns without saving context), or workflows where turn count and latency matter more than cost today. Fewer search/describe/job-wait turns are on the roadmap.
 
 ## Also
 

@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=14">
+  <link rel="stylesheet" href="styles.css?v=15">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -188,6 +188,20 @@
             </table>
           </div>
           <p class="fine">One run per cell, not a statistical result. Honestly: on small-file tasks Mycel took about one extra turn (e.g. "find a decision in a small file", cache on: direct 3 turns / 5.2 s vs Mycel 4 / 6.0 s), and write tasks stopped for approval in a non-interactive client, by design (pre-approve writes for headless use: see Configuration → policy in the docs; some clients, e.g. Claude Code in print mode, turn an approval request into their own denial, so the model sees "denied by the user"). A run with a 1.7B local model completed no task in either arm, so we make no claim from it. Protocol: <code>docs/benchmark-protocol.md</code>.</p>
+          <h3>Second real session: UI design with Google Stitch (single run per arm, n=1)</h3>
+          <p class="section-lede">Real Google Stitch MCP, <code>claude-haiku-5-5</code>, 2026-11-27, identical prompts: generate 6 mobile screens for a food-delivery app, then save the checkout HTML to <code>payment.html</code>. Both arms completed and the saved file matched.</p>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="Stitch session results">
+            <table class="vs fit-table">
+              <thead><tr><th scope="col">Measure</th><th scope="col">Direct MCP</th><th scope="col" class="vs-m">Through Mycel</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">CLI cost estimate</th><td>$0.0950</td><td class="vs-m">$0.0221 (−77%)</td></tr>
+                <tr><th scope="row">Tool results in context</th><td>~140,819 chars (~35.2k tokens)</td><td class="vs-m">~24,632 chars (~6.2k tokens)</td></tr>
+                <tr><th scope="row">Saving the HTML</th><td>re-typed 30,509 chars</td><td class="vs-m"><code>ref://</code> handle, 317 chars</td></tr>
+                <tr><th scope="row">Turns · wall time</th><td>13 · 13.6 min</td><td class="vs-m">27 · 16.1 min</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="fine">Cheaper and safer when tools return big artifacts; slower in turns today (search, describe and job waits), and total input including cache reads was higher, though mostly cached. Designs differed between arms: not a quality comparison. Fewer turns are on the roadmap. <a href="https://github.com/SpeakQuery/mycel/blob/main/docs/case-studies/stitch-ui-design.md" rel="noopener">Case study</a>.</p>
         </div>
         <p class="fine">Reproduce it yourself: <code>mycel bench</code>. Numbers vary with your catalog and task. The direct round-trip count in this bench is computed, not a recorded session.</p>
       </div>
@@ -279,7 +293,7 @@
     <section class="section" id="who" aria-labelledby="who-title">
       <div class="wrap">
         <p class="kicker">Who it's for</p>
-        <h2 id="who-title">Ten sectors, <span class="glow">each with an honest status.</span></h2>
+        <h2 id="who-title">Eleven sectors, <span class="glow">each with an honest status.</span></h2>
         <p class="section-lede">The evidence is a mock or scripted setup with a small n, not a field result. Local, single-user, read-heavy use is the recommended pilot; paid jobs with automatic fallback are not.</p>
         <ul class="reasons who-grid" aria-label="Sectors">
           <li class="reason who-card">
@@ -466,6 +480,26 @@
               </ol>
               <p><strong>Measure in a pilot:</strong> Calls a token correctly refused (billing from the posting agent), approvals needed per campaign, and spend per client.</p>
               <p><strong>Not a fit:</strong> Hosting many clients’ credentials for many users on one shared gateway: Mycel is single-user and local today. One or two tools: no need.</p>
+            </details>
+          </li>
+          <li class="reason who-card">
+            <h3><span aria-hidden="true">🎨</span> UI/UX &amp; product designers</h3>
+            <p class="who-badge wb-ok">MEASURED (n=1, real service)</p>
+            <p class="who-value">Generated screens and HTML stay out of the model context and are saved by ref, not re-typed.</p>
+            <details class="who-more">
+              <summary>Scenario, pilot metric, not a fit</summary>
+              <p><strong>Who:</strong> Product designers, UI/UX designers and design-minded developers using AI design tools from an agent.</p>
+              <p><strong>Typical MCP servers:</strong> Google Stitch or another design-generation service, a filesystem server, design-system and asset storage.</p>
+              <p><strong>Pain:</strong> Each generated screen returns its full HTML and metadata into the prompt, and saving a file means the model re-types it into a write tool.</p>
+              <p><strong>Evidence (real Google Stitch MCP, <code>claude-haiku-5-5</code>, n=1 per arm, 2026-11-27):</strong> 6 mobile screens, then the checkout HTML saved to <code>payment.html</code>. CLI cost estimate $0.0950 vs $0.0221 (−77%); tool results in context ~35.2k vs ~6.2k tokens; output tokens 17,018 vs 6,950; the file was passed as a 317-character <code>ref://</code> handle instead of re-typing 30,509 characters. Honest costs: 27 turns vs 13 and 16.1 vs 13.6 min, and total input including cache reads was higher (mostly cached). Designs differed between arms, so this is not a quality comparison. <a href="https://github.com/SpeakQuery/mycel/blob/main/docs/case-studies/stitch-ui-design.md" rel="noopener">Case study</a>.</p>
+              <ol class="who-steps">
+                <li>Each generate result stays local; the model sees a short ref and digest instead of the HTML.</li>
+                <li>The filesystem tool writes the file from the ref: no re-typing, no corruption risk.</li>
+                <li>Policy allows the design and filesystem servers and denies <code>delete_project</code>, <code>apply_design_system</code> and <code>update_design_system</code>.</li>
+                <li>Stitch generation takes 1–3 min per screen: set <code>MCP_TOOL_TIMEOUT=1200000</code>. In print mode, pre-approve trusted servers in policy.</li>
+              </ol>
+              <p><strong>Measure in a pilot:</strong> Tool-result size entering the context, CLI cost, turns and wall time, and whether the saved file matches the service output.</p>
+              <p><strong>Not a fit:</strong> Tasks with small results, or workflows where turn count matters more than cost today. Fewer search/describe/job-wait turns are on the roadmap.</p>
             </details>
           </li>
         </ul>
@@ -867,7 +901,7 @@
     </div>
   </footer>
 
-  <script src="main.js?v=14" defer></script>
+  <script src="main.js?v=15" defer></script>
   <script type="module" src="assets/scene.js?v=4"></script>
 </body>
 </html>

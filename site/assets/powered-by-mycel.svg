@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="28" viewBox="0 0 168 28" role="img" aria-label="Powered by Mycel">
+  <title>Powered by Mycel</title>
+  <rect width="168" height="28" rx="6" fill="#07110D"/>
+  <rect x="0.5" y="0.5" width="167" height="27" rx="5.5" fill="none" stroke="#3DFFB0" stroke-opacity="0.55"/>
+  <g fill="none" stroke="#3DFFB0" stroke-width="1.6" stroke-linecap="round">
+    <circle cx="16" cy="14" r="3" fill="#3DFFB0"/>
+    <path d="M16 11 L11 6 M16 17 L11 22 M19 14 L24 14 M13 14 L8 14"/>
+    <circle cx="11" cy="6" r="1.4" fill="#3DFFB0"/><circle cx="11" cy="22" r="1.4" fill="#3DFFB0"/>
+    <circle cx="24" cy="14" r="1.4" fill="#3DFFB0"/><circle cx="8" cy="14" r="1.4" fill="#3DFFB0"/>
+  </g>
+  <text x="34" y="18.5" font-family="system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12" fill="#E6F2EC">Powered by <tspan font-weight="700" fill="#3DFFB0">Mycel</tspan></text>
+</svg>

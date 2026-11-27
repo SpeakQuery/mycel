@@ -15,7 +15,8 @@
     "dist",
     "dashboard",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=20"

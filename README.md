@@ -535,6 +535,25 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What i
 
 PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (91 tests) in a few seconds.
 
+## 💚 Using Mycel? Show it
+
+Mycel is **free** — for individuals, startups and large companies alike. No fees, no sign-up. We only ask for visibility:
+
+1. **Keep the [NOTICE](NOTICE) file.** If you ship Mycel (or something built from it) inside your product, the Apache-2.0 license (section 4(d)) asks you to include the NOTICE text, e.g. in your third-party notices.
+2. **Add the badge** (optional, but it helps the project a lot):
+
+   [![Powered by Mycel](media/powered-by-mycel.svg)](https://github.com/SpeakQuery/mycel)
+
+   ```markdown
+   [![Powered by Mycel](https://raw.githubusercontent.com/SpeakQuery/mycel/main/media/powered-by-mycel.svg)](https://github.com/SpeakQuery/mycel)
+   ```
+   ```html
+   <a href="https://github.com/SpeakQuery/mycel"><img src="https://raw.githubusercontent.com/SpeakQuery/mycel/main/media/powered-by-mycel.svg" alt="Powered by Mycel" height="28"></a>
+   ```
+3. **Tell us.** Using Mycel at your company or in a product? [Open an issue titled "Using Mycel at …"](https://github.com/SpeakQuery/mycel/issues/new?title=Using%20Mycel%20at%20) — we'd love to list you, and to hear what you need next. Interested in working with us on a pilot, support or a partnership? Same link.
+
+Please don't name a derived product or service "Mycel"; "Powered by Mycel" is welcome.
+
 ## License
 
-[Apache-2.0](LICENSE) © The Mycel Authors
+[Apache-2.0](LICENSE) · see [NOTICE](NOTICE) · © 2026 SpeakQuery and the Mycel contributors

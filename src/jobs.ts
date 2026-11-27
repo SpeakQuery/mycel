@@ -17,10 +17,14 @@ export interface Dispatch {
   /** That tool's own idempotent flag and key arg name (not the job's primary tool's). */
   idempotent: boolean;
   idempotencyKeyArg?: string;
+  /** The key value actually sent for idempotencyKeyArg (the job's stable key, or one the caller put in the args). */
+  idempotencyKey?: string;
   /** Unset while the request is in flight. */
   outcome?: DispatchOutcome;
   /** True once an estimate for this attempt was charged to the budget. */
   charged: boolean;
+  /** True once this attempt's charged estimate was taken back because a later attempt with the same tool and key succeeded. */
+  replaced?: boolean;
   /** Internal: money accounting for this attempt is finished (charged, covered by a later same-key attempt, or nothing owed). */
   settled?: boolean;
 }
@@ -149,6 +153,23 @@ export class JobQueue extends EventEmitter {
     this.pump();
   }
 
+  /** A later attempt with the same tool and key succeeded: its actual charge replaces the earlier estimate(s) for that key. */
+  private replaceEstimates(j: Job, d: Dispatch) {
+    const k = keyOf(j, d);
+    if (k === undefined) return;
+    for (const x of j.dispatches) {
+      if (x === d || !x.charged || x.replaced || x.tool !== d.tool || keyOf(j, x) !== k) continue;
+      const usd = x.estCostUsd ?? 0;
+      x.replaced = true;
+      x.charged = false;
+      if (usd > 0) {
+        j.costUsd = round(Math.max(0, j.costUsd - usd));
+        this.emit("estimateRefund", j, usd);
+      }
+    }
+    if (!j.dispatches.some((x) => x.charged && !x.replaced)) j.costEstimated = undefined;
+  }
+
   private chargeEstimate(j: Job, usd: number) {
     j.costUsd = round(j.costUsd + usd);
     j.costEstimated = true;
@@ -169,6 +190,12 @@ export class JobQueue extends EventEmitter {
         return;
       }
       if (d.idempotencyKeyArg && j.dispatches.slice(i + 1).some((x) => x.tool === d.tool && x.idempotencyKeyArg && x.outcome !== "rejected")) {
+        d.settled = true;
+        return;
+      }
+      // One estimate per (tool, idempotency key): the provider can only have one receipt for a key, however many times it was sent.
+      const k = keyOf(j, d);
+      if (k !== undefined && j.dispatches.some((x) => x !== d && x.charged && !x.replaced && x.tool === d.tool && keyOf(j, x) === k)) {
         d.settled = true;
         return;
       }
@@ -250,8 +277,9 @@ export class JobQueue extends EventEmitter {
     const j = this.jobs.get(id);
     if (!j) throw new Error(`No job ${id}`);
     if (!["failed", "interrupted", "cancelled", "unknown"].includes(j.status)) throw new Error(`Job ${id} is ${j.status}`);
-    // An explicit re-submit of a request that may have been accepted is a new request: do not reuse its idempotency key.
-    if (j.dispatches.some((d) => d.outcome === "unknown" || d.outcome === "interrupted")) j.idempotencyKey = undefined;
+    // Deliberate: a manual retry keeps the job's idempotency key, even when the last paid dispatch is unresolved. A deduplicating
+    // provider then collapses it into the original request (one receipt), and Mycel settles one estimate per (tool, key): a later
+    // success replaces the earlier estimate with the actual charge. A provider that ignores the key may bill again; reconcile with it.
     Object.assign(j, { status: "queued", attempts: 0, error: undefined, finishedAt: undefined, startedAt: undefined });
     this.persist();
     this.emit("update", j);
@@ -317,6 +345,10 @@ export class JobQueue extends EventEmitter {
           job.attempts++;
           const d: Dispatch = { tool, at: new Date().toISOString(), estCostUsd: info?.estCostUsd, idempotent, idempotencyKeyArg: info?.idempotencyKeyArg, charged: false };
           if (info?.idempotencyKeyArg) job.idempotencyKey ??= `mycel-${job.id}`;
+          if (info?.idempotencyKeyArg) {
+            const given = job.args[info.idempotencyKeyArg];
+            d.idempotencyKey = given !== undefined ? String(given) : job.idempotencyKey;
+          }
           job.dispatches.push(d);
           this.persist();
           try {
@@ -324,6 +356,7 @@ export class JobQueue extends EventEmitter {
             if (ac.signal.aborted) break outer;
             d.outcome = "succeeded";
             d.settled = true;
+            this.replaceEstimates(job, d);
             job.usedTool = tool;
             job.result = result;
             job.costUsd = round(job.costUsd + (costUsd ?? 0));
@@ -381,6 +414,12 @@ export class JobQueue extends EventEmitter {
       this.pump();
     }
   }
+}
+
+/** The idempotency key value an attempt carried (older records only have the job's key). */
+function keyOf(j: Job, d: Dispatch): string | undefined {
+  if (!d.idempotencyKeyArg) return undefined;
+  return d.idempotencyKey ?? j.idempotencyKey;
 }
 
 /** The most recent attempt whose outcome was never recorded and not yet accounted for: the request that may be in flight. */
@@ -467,6 +506,19 @@ export class Budget {
     if (token?.budgetUsd !== undefined) {
       const k = (this.ledger.tokens[token.id] ?? 0) + usd;
       if (k > token.budgetUsd) throw new BudgetExceeded(`Capability token budget $${token.budgetUsd} would be exceeded.`);
+    }
+  }
+
+  /** Take back an estimate that a successful, deduplicated later attempt replaced (the actual charge is booked separately). */
+  refund(usd: number, task?: string, tokenId?: string) {
+    if (usd <= 0) return;
+    const d = this.today();
+    this.ledger.days[d] = round(Math.max(0, (this.ledger.days[d] ?? 0) - usd));
+    if (task && this.ledger.tasks[task] !== undefined) this.ledger.tasks[task] = round(Math.max(0, this.ledger.tasks[task] - usd));
+    if (tokenId && this.ledger.tokens[tokenId] !== undefined) this.ledger.tokens[tokenId] = round(Math.max(0, this.ledger.tokens[tokenId] - usd));
+    if (this.file) {
+      mkdirSync(dirname(this.file), { recursive: true });
+      writeFileSync(this.file, JSON.stringify(this.ledger));
     }
   }
 

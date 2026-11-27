@@ -15,7 +15,7 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 [![Node ≥ 20](https://img.shields.io/badge/node-%E2%89%A520-3DFFB0?style=flat-square)](package.json)
 [![MCP compatible](https://img.shields.io/badge/MCP-compatible-3DFFB0?style=flat-square)](https://modelcontextprotocol.io)
 [![A2A v0.3](https://img.shields.io/badge/A2A-v0.3-3DFFB0?style=flat-square)](https://a2a-protocol.org)
-[![Tests](https://img.shields.io/badge/tests-88%20passing-3DFFB0?style=flat-square)](tests)
+[![Tests](https://img.shields.io/badge/tests-91%20passing-3DFFB0?style=flat-square)](tests)
 
 [**▶ Watch the 90-second film**](https://mycel.speakquery.ai/#film) · [Quickstart](#-quickstart) · [Benchmark](#-the-numbers) · [How it works](#-how-it-works) · [All 20 features](#-features) · [Docs](docs/)
 
@@ -77,7 +77,7 @@ This is one run per cell, not a statistical result. To be fair about the other s
 - ⚡ **17 calls, 1 round trip.** The model writes one small script; Mycel runs it in a WebAssembly sandbox and returns only the result (about +0.4 ms on a Mac, +1 ms in CI (Ubuntu, Windows); median of 15 local calls). 17 tool calls in 1 model round trip. A client that makes one tool call per turn needs 17 turns; an efficient direct path using batch tools (read_multiple_files) needs about 3. Code Mode assumes the model writes a working script first time; not yet measured with a live model.
 - 📦 **Refs instead of payloads.** A 20,000-row CSV becomes a reference plus a digest: 131k tokens → 187. The model can still ask for rows or hand the ref to another tool.
 - 🛡️ **Safe by default.** Untrusted content can't trigger a write without approval, secrets referenced as `{{secret:NAME}}` are injected by Mycel and scrubbed from outputs, errors and traces, and changed tool definitions are blocked.
-- 👁️ **Every call is recorded.** Every tool call that passes through Mycel gets a span (client-side actions and provider-side effects are not covered); budgets, approvals and a live dashboard; sub-agents get narrowed capability tokens, never your keys.
+- 👁️ **Calls are recorded.** Tool calls that run through Mycel's call path get a span (not covered: client-side actions, provider-side effects, `mycel_job` status/wait reads, calls to unknown tools or invalid refs; money is read from the budget ledger, not the traces); budgets, approvals and a live dashboard; sub-agents get narrowed capability tokens, never your keys.
 
 <p align="center"><img src="media/anim-guard.svg" alt="Animated: an untrusted web page payload telling the agent to write to ~/.ssh is stopped by a Mycel shield with approval required" width="860"></p>
 
@@ -114,7 +114,7 @@ Four kinds of users, each with an honest status. The evidence is a mock or scrip
 ### 📣 3. AI editors and content/marketing teams
 **Badge: PARTIAL.**
 - **Pain:** designs, docs and brand assets across many tools, and agents that can publish or send without a human looking.
-- **Scenario:** Canva, a docs server and storage. The agent finds designs with `mycel_search` and reads assets by ref. With the example policy, a publish or send (an `external` effect) needs approval (inline or `mycel approve`), and a per-day budget cap is checked per call (not reserved before dispatch, so concurrent paid jobs can exceed it).
+- **Scenario:** Canva, a docs server and storage. The agent finds designs with `mycel_search` and reads assets by ref. With the example policy, a publish or send (an `external` effect) needs approval (inline or `mycel approve`), and a per-day budget cap is checked per call (for a job, once when it is queued, against the primary tool's price; nothing is reserved before dispatch, so concurrent paid jobs can exceed it).
 - **Caveat:** in the mock publish test approval was needed only because of the example policy; the default policy allows a clean external call. The model also added unsourced claims to the text.
 
 ### 🎬 4. Video / voice producers running 5–6 agents
@@ -122,7 +122,7 @@ Four kinds of users, each with an honest status. The evidence is a mock or scrip
 - **Pain:** media passed around as base64, renders that time out mid-call, every agent holding every key, a loop that quietly spends money.
 - **Measured (mock pipeline):** a 5-agent mock pipeline worked: per-role tokens, refs passed between agents, the budget cap rejected the second, sequential request, and the final file had video and audio (5.000 s).
 - **Not measured:** real Higgsfield/Canva timing and quality.
-- **Not yet recommended:** automatic fallback across paid providers. Mycel does not automatically re-send a paid request whose outcome is unknown: it marks the job `unknown`, records the estimated charge once, and sends nothing more (no retry, no fallback), unless you declare that the provider's errors mean nothing was charged (`errorsAreRejections: true`). After a restart, a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; otherwise it is marked `interrupted` and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Every paid dispatch is recorded once in the job's `dispatches` (actual cost on success, estimate otherwise). Reconcile `unknown` and `interrupted` jobs with the provider (there is no reconcile tool yet).
+- **Not yet recommended:** automatic fallback across paid providers. After a paid request with an unknown outcome Mycel never falls back to another provider. It re-sends to the same tool only if that tool is `idempotent`, has `idempotencyKeyArg` (the same key is re-sent) and has retries left; otherwise it marks the job `unknown` and sends nothing more. The estimated charge is recorded once per (tool, key). A request is treated as rejected, and so may fall back, only when it is known not to have been accepted (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). After a restart, a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; otherwise it is marked `interrupted` and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Attempts that the job queue sends are recorded in the job's `dispatches`; retries inside a single call's transport loop are not. On success the budget records the tool's declared `costUsd` for the call (the contract amount, not a provider invoice); otherwise it records the estimate, and `charged` in `dispatches` only means an estimate was written (a definite rejection writes none). A manual `mycel_job retry` of a job whose last paid dispatch is unresolved deliberately reuses the same idempotency key, so a deduplicating provider can collapse it into one receipt; per (tool, key) only one estimate is kept, and a later success replaces it with the actual charge (never both). Dispatches without a key are each charged. Reconcile paid jobs with the provider statement whatever their final status (not only `unknown` and `interrupted`; jobs recorded by 0.1.3 or earlier are not re-settled on upgrade) (there is no reconcile tool yet).
 
 > **Pilot:** we're looking for 5 users (data analyst, data-quality engineer, developer with 5+ MCP servers, content editor, video/voice producer) — 45 minutes, your machine, paid actions mocked. [Open an issue](https://github.com/SpeakQuery/mycel/issues/new) to join.
 
@@ -327,17 +327,18 @@ All 20 ship in v1. Every one is opt-in beyond the defaults, and a 10-line config
 | **2 · Code Mode** | The model writes one async JS script; it runs in a **QuickJS WebAssembly sandbox** (no fs, no network, no Node APIs, CPU/memory/call caps). Only the return value comes back. `Promise.all` works. |
 | **3 · Ref Store** | Content-addressed (`ref://<sha256>`) storage for anything big or binary, with model-sized **digests**: JSON shape + sample, table columns + stats, text outline, image/video/audio metadata, video keyframes (ffmpeg). Pass refs straight into tool args as text, JSON, base64, data URL or file path. |
 | **4 · Job Queue** | Slow tools become jobs: progress, cancel, retry with backoff, **provider fallback chains**, resume after restart (a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; see the paid-jobs note below). |
-| **5 · Cost & Budget** | Per-tool cost/latency contracts, `dryRun` estimates, per-task / per-day / per-token budget caps. Budget caps are checked per call; they are not reserved before dispatch, so concurrent paid jobs can exceed a cap at the provider. Estimated charges count against the cap. Tools without a declared cost count as $0; set `costUsd` (alias `cost`) per tool for budgets to be meaningful. |
+| **5 · Cost & Budget** | Per-tool cost/latency contracts, `dryRun` estimates, per-task / per-day / per-token budget caps. Budget caps are checked per call; for a job the check runs once, when it is queued, against the primary tool's price, so fallbacks and manual retries get no separate pre-dispatch check and nothing is reserved: concurrent paid jobs can exceed a cap at the provider. Estimated charges count against the cap. Tools without a declared cost count as $0; set `costUsd` (alias `cost`) per tool for budgets to be meaningful. |
 | **15 · Model Router** | `mycel_ask` hands self-contained sub-tasks (summarise, extract, classify) to a `fast`/`balanced`/`deep` tier — any OpenAI-compatible endpoint (Ollama, vLLM, LM Studio, OpenRouter…) or Anthropic. Refs in the prompt are expanded for the sub-model, not your main context. |
 
-> **Paid jobs, honestly — not yet recommended for automatic fallback across paid providers.** Mycel does not automatically re-send a paid request whose outcome is unknown: it marks the job `unknown`, records the estimated charge once, and sends nothing more (no retry, no fallback), unless you declare that the provider's errors mean nothing was charged (`errorsAreRejections: true`). After a restart, a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; otherwise it is marked `interrupted` and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Every paid dispatch is recorded once in the job's `dispatches` (actual cost on success, estimate otherwise). Fallback providers are tried automatically only when the failure is known to be a rejection (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). If you cancel after dispatch, Mycel charges an estimate. Reconcile `unknown` and `interrupted` jobs with the provider.
+> **Paid jobs, honestly — not yet recommended for automatic fallback across paid providers.** After a paid request with an unknown outcome Mycel never falls back to another provider. It re-sends to the same tool only if that tool is `idempotent`, has `idempotencyKeyArg` (the same key is re-sent) and has retries left; otherwise it marks the job `unknown` and sends nothing more. The estimated charge is recorded once per (tool, key). A request is treated as rejected, and so may fall back, only when it is known not to have been accepted (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). After a restart, a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; otherwise it is marked `interrupted` and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Attempts that the job queue sends are recorded in the job's `dispatches`; retries inside a single call's transport loop are not. On success the budget records the tool's declared `costUsd` for the call (the contract amount, not a provider invoice); otherwise it records the estimate, and `charged` in `dispatches` only means an estimate was written (a definite rejection writes none). A manual `mycel_job retry` of a job whose last paid dispatch is unresolved deliberately reuses the same idempotency key, so a deduplicating provider can collapse it into one receipt; per (tool, key) only one estimate is kept, and a later success replaces it with the actual charge (never both). Dispatches without a key are each charged. Fallback providers are tried automatically only when the failure is known to be a rejection (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). If you cancel after dispatch, Mycel charges an estimate. Reconcile paid jobs with the provider statement whatever their final status (not only `unknown` and `interrupted`; jobs recorded by 0.1.3 or earlier are not re-settled on upgrade).
 >
 > **Known limits for paid jobs:**
 >
 > - Estimates can exceed what the provider charged (for example when the provider never received the request): Mycel cannot tell "never accepted" from "reply lost" unless `errorsAreRejections` is set.
 > - There is no reconcile tool yet (planned).
 > - The dashboard "Spend today" mixes estimated and confirmed charges.
-> - No pre-dispatch reservation: Budget caps are checked per call; they are not reserved before dispatch, so concurrent paid jobs can exceed a cap at the provider. Estimated charges count against the cap.
+> - Jobs recorded by 0.1.3 or earlier are not re-settled on upgrade: compare earlier paid jobs, whatever their status, with the provider statement.
+> - No pre-dispatch reservation: Budget caps are checked per call; for a job the check runs once, when it is queued, against the primary tool's price, so fallbacks and manual retries get no separate pre-dispatch check and nothing is reserved: concurrent paid jobs can exceed a cap at the provider. Estimated charges count against the cap.
 
 ### Trust
 | Feature | What it does |
@@ -345,7 +346,7 @@ All 20 ship in v1. Every one is opt-in beyond the defaults, and a 10-line config
 | **6 · Tool Contracts** | Every tool gets an effect class — `read` · `write` · `external` · `destructive` — plus idempotency, cost, latency, async. Inferred from MCP annotations and names (cautiously), overridable in config. |
 | **7 · Policy Firewall** | Ordered YAML rules: `allow` / `deny` / `approve` by tool glob, server, effect or taint. Safe defaults: destructive → approve; tainted + side-effect → approve. |
 | **8 · Provenance & Taint** | Output from `trust: untrusted` servers is labelled and **taint follows the data** — through refs and through code-mode scripts. A script that read a hostile web page can't quietly send email. |
-| **9 · Secret Vault** | The model only ever sees `{{secret:GITHUB_TOKEN}}`. Real values are injected at call time and scrubbed from every output, error and trace. |
+| **9 · Secret Vault** | The model sees only the placeholder `{{secret:GITHUB_TOKEN}}`. Real values are injected at call time and scrubbed from outputs, errors and traces (a server that echoes a secret in an unusual encoding could still leak it). |
 | **10 · Manifest Pinning** | Tool definitions are hashed into `mycel.lock`. If a server silently changes a tool's description or schema (a "rug pull"), the tool is blocked until a human runs `mycel pin --accept`. |
 | **14 · Capability Tokens** | Macaroon-style, attenuable, expiring delegation tokens (`myc1.…`). A sub-agent can narrow its token — fewer tools, lower effect ceiling, smaller budget, shorter expiry — and hand it on, but can **never** widen it. No secret needed to attenuate. |
 | **Approvals** | Inline via MCP **elicitation** when the client supports it; otherwise an approval id the human grants with `mycel approve <id>` or one click in the dashboard. Approvals are one-shot and bound to the exact arguments. |
@@ -353,7 +354,7 @@ All 20 ship in v1. Every one is opt-in beyond the defaults, and a 10-line config
 ### Visibility
 | Feature | What it does |
 |---|---|
-| **11 · Flight Recorder** | Every tool call that passes through Mycel (search, call, script, job, approval, policy decision) is a span: timing, tokens saved, bytes offloaded, cost, taint. JSONL on disk + **OpenTelemetry (OTLP/HTTP)** export. `mycel replay <trace>`. |
+| **11 · Flight Recorder** | Tool calls that run through Mycel's call path (search, call, script, job, approval, policy decision) get a span (not `mycel_job` status/wait reads, calls to unknown tools or invalid refs; read money from the budget ledger): timing, tokens saved, bytes offloaded, cost, taint. JSONL on disk + **OpenTelemetry (OTLP/HTTP)** export. `mycel replay <trace>`. |
 | **12 · Live Dashboard** | Local web UI: savings, live activity, trace waterfalls, approvals, jobs, servers, drift, refs. Token-protected and DNS-rebinding-safe. |
 
 ### Mesh & integration
@@ -434,7 +435,7 @@ Sandbox API: `tools.call(id, args)`, `tools.search(q)`, `refs.read(ref, {path, r
 export MYCEL_TOKEN_SECRET=$(mycel token secret)
 mycel serve --http --port 4747                       # MCP at /mcp, A2A at /a2a
 
-# Give a research agent read-only GitHub access for 2 hours, max $1
+# Give a research agent read-only GitHub access for 2 hours, max $1 (a per-token cap checked per call, not reserved)
 TOKEN=$(mycel token mint --tools 'github.*' --max-effect read --budget 1 --ttl 2h --sub researcher)
 # …which it can narrow further for its own sub-agent — but never widen
 mycel token attenuate "$TOKEN" --tools 'github.list_*' --ttl 10m --sub summarizer
@@ -511,7 +512,7 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What i
 
 ## Contributing
 
-PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (88 tests) in a few seconds.
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (91 tests) in a few seconds.
 
 ## License
 

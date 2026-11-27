@@ -543,3 +543,67 @@ describe("fallback chain: free primary -> paid fallback uses the fallback's own 
     expect(m.budget.spent().day).toBe(0.4);
   });
 });
+
+describe("manual retry settles per (tool, idempotency key)", () => {
+  /** Dedups on a key arg: a repeated key is the same receipt. `script` decides each call: "lost" (accepted, reply lost) or "ok". */
+  function dedupProvider(script: Array<"lost" | "ok">) {
+    const seen = new Set<string>();
+    const state = { calls: 0, receipts: 0, keys: [] as string[] };
+    const provider: ToolProvider = {
+      listTools: async () => [{ name: "render", description: "Render a video", inputSchema: { type: "object", properties: {} } }],
+      callTool: async (_n, args) => {
+        const mode = script[state.calls++] ?? "ok";
+        const key = args.requestId as string;
+        state.keys.push(key);
+        if (!seen.has(key)) {
+          seen.add(key);
+          state.receipts++;
+        }
+        if (mode === "lost") throw new McpError(ErrorCode.ConnectionClosed, "Connection closed");
+        return { content: [{ type: "text", text: JSON.stringify({ video: "v1" }) }] };
+      },
+    };
+    return { provider, state };
+  }
+  const keyed = () => contract({ idempotent: false, idempotencyKeyArg: "requestId" });
+
+  it("unknown, then manual retry succeeds with the same key: one receipt, the estimate is replaced by the actual charge", async () => {
+    const a = dedupProvider(["lost", "ok"]);
+    const m = await boot(tmp(), { pa: { provider: a.provider, tools: keyed() } });
+    const r = (await m.call("pa.render", {}, { mode: "async" })) as { job: { id: string } };
+    const first = await m.jobs.wait(r.job.id, 3000);
+    expect(first).toMatchObject({ status: "unknown", costUsd: 0.4, costEstimated: true });
+    expect(m.budget.spent().day).toBe(0.4);
+    m.jobs.retry(r.job.id);
+    const second = await m.jobs.wait(r.job.id, 3000);
+    expect(second.status).toBe("succeeded");
+    expect(a.state.keys[1]).toBe(a.state.keys[0]); // same key on purpose, so a deduplicating provider collapses it
+    expect(a.state.receipts).toBe(1);
+    expect(second.costUsd).toBe(0.4);
+    expect(second.costEstimated).toBeUndefined();
+    expect(m.budget.spent().day).toBe(0.4); // not 0.80
+  });
+
+  it("unknown, then unknown again with the same key: still one estimate", async () => {
+    const a = dedupProvider(["lost", "lost"]);
+    const m = await boot(tmp(), { pa: { provider: a.provider, tools: keyed() } });
+    const r = (await m.call("pa.render", {}, { mode: "async" })) as { job: { id: string } };
+    await m.jobs.wait(r.job.id, 3000);
+    m.jobs.retry(r.job.id);
+    const second = await m.jobs.wait(r.job.id, 3000);
+    expect(second).toMatchObject({ status: "unknown", costUsd: 0.4, costEstimated: true });
+    expect(a.state.receipts).toBe(1);
+    expect(m.budget.spent().day).toBe(0.4);
+  });
+
+  it("dispatches without a key keep charging each attempt", async () => {
+    const a = dedupProvider(["lost", "lost"]);
+    const m = await boot(tmp(), { pa: { provider: a.provider, tools: contract({ idempotent: false }) } });
+    const r = (await m.call("pa.render", {}, { mode: "async" })) as { job: { id: string } };
+    await m.jobs.wait(r.job.id, 3000);
+    m.jobs.retry(r.job.id);
+    const second = await m.jobs.wait(r.job.id, 3000);
+    expect(second.costUsd).toBe(0.8);
+    expect(m.budget.spent().day).toBe(0.8);
+  });
+});

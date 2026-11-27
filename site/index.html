@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=9">
+  <link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -322,7 +322,7 @@
             <ol class="who-steps">
               <li>A 5-agent mock pipeline worked: per-role tokens, refs passed between agents, the budget cap rejected the second, sequential request, and the final file had video and audio (5.000 s).</li>
               <li>Real Higgsfield/Canva timing and quality were not measured.</li>
-              <li><strong>Not yet recommended:</strong> automatic fallback across paid providers. Mycel does not automatically re-send a paid request whose outcome is unknown: it marks the job <code>unknown</code>, records the estimated charge once, and sends nothing more (no retry, no fallback), unless you declare that the provider's errors mean nothing was charged (<code>errorsAreRejections: true</code>). After a restart, a job whose last request went to a paid tool resumes only if that tool is <code>idempotent</code> and has <code>idempotencyKeyArg</code>; otherwise it is marked <code>interrupted</code> and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via <code>idempotencyKeyArg</code>). Every paid dispatch is recorded once in the job's <code>dispatches</code> (actual cost on success, estimate otherwise). Reconcile <code>unknown</code> and <code>interrupted</code> jobs with the provider (no reconcile tool yet). Estimates can exceed what the provider charged, and the dashboard spend mixes estimated and confirmed charges.</li>
+              <li><strong>Not yet recommended:</strong> automatic fallback across paid providers. After a paid request with an unknown outcome Mycel never falls back to another provider. It re-sends to the same tool only if that tool is <code>idempotent</code>, has <code>idempotencyKeyArg</code> (the same key is re-sent) and has retries left; otherwise it marks the job <code>unknown</code> and sends nothing more. The estimated charge is recorded once per (tool, key). A request is treated as rejected, and so may fall back, only when it is known not to have been accepted (connection refused before dispatch, or an error from a tool whose contract sets <code>errorsAreRejections: true</code>). After a restart, a job whose last request went to a paid tool resumes only if that tool is <code>idempotent</code> and has <code>idempotencyKeyArg</code>; otherwise it is marked <code>interrupted</code> and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via <code>idempotencyKeyArg</code>). Attempts that the job queue sends are recorded in the job's <code>dispatches</code>; retries inside a single call's transport loop are not. On success the budget records the tool's declared <code>costUsd</code> for the call (the contract amount, not a provider invoice); otherwise it records the estimate, and <code>charged</code> in <code>dispatches</code> only means an estimate was written (a definite rejection writes none). A manual <code>mycel_job retry</code> of a job whose last paid dispatch is unresolved deliberately reuses the same idempotency key, so a deduplicating provider can collapse it into one receipt; per (tool, key) only one estimate is kept, and a later success replaces it with the actual charge (never both). Dispatches without a key are each charged. Reconcile paid jobs with the provider statement whatever their final status, not only <code>unknown</code> and <code>interrupted</code> (no reconcile tool yet; jobs recorded by 0.1.3 or earlier are not re-settled on upgrade). Estimates can exceed what the provider charged, and the dashboard spend mixes estimated and confirmed charges.</li>
             </ol>
           </li>
         </ul>
@@ -494,22 +494,22 @@
           <li><span class="f-n">02</span><h4>Code Mode</h4><p>The model writes a short JS script that chains many calls in a QuickJS WebAssembly sandbox. Only the result returns.</p><code>mycel_run</code></li>
           <li><span class="f-n">03</span><h4>Ref Store</h4><p>Large or binary results are stored content-addressed and replaced by a model-sized digest. Refs pass straight between tools.</p><code>ref://sha256…</code></li>
           <li><span class="f-n">04</span><h4>Job Queue</h4><p>Long calls become jobs with progress, cancel, resume, retries and provider fallback.</p><code>mycel_job</code></li>
-          <li><span class="f-n">05</span><h4>Cost &amp; Budget</h4><p>Per-tool cost and latency contracts, estimates before running, per-task and per-day caps, checked per call (not reserved before dispatch).</p><code>dryRun</code></li>
+          <li><span class="f-n">05</span><h4>Cost &amp; Budget</h4><p>Per-tool cost and latency contracts, estimates before running, per-task and per-day caps, checked per call (for a job, once when it is queued, against the primary tool's price; nothing is reserved before dispatch).</p><code>dryRun</code></li>
           <li><span class="f-n">06</span><h4>Tool Contracts</h4><p>Every tool gets an effect class (read, write, destructive, external), idempotency, cost and latency.</p><code>mycel_describe</code></li>
         </ul>
 
         <h3 class="group-title">Trust</h3>
         <ul class="features">
           <li><span class="f-n">07</span><h4>Policy Firewall</h4><p>YAML rules allow, deny or require approval by tool glob or effect. Approve via MCP elicitation or the CLI.</p><code>mycel approve &lt;id&gt;</code></li>
-          <li><span class="f-n">08</span><h4>Provenance / Taint</h4><p>Content from web, email or unknown servers is labelled. Destructive actions with tainted inputs need approval.</p><code>automatic</code></li>
-          <li><span class="f-n">09</span><h4>Secret Vault</h4><p>The model only sees a placeholder. Real values are injected at call time and scrubbed from outputs.</p><code>{{secret:GITHUB_TOKEN}}</code></li>
+          <li><span class="f-n">08</span><h4>Provenance / Taint</h4><p>Content from web, email or servers marked untrusted is labelled. Destructive actions with tainted inputs need approval.</p><code>automatic</code></li>
+          <li><span class="f-n">09</span><h4>Secret Vault</h4><p>The model sees only the placeholder. Real values are injected at call time and scrubbed from outputs, errors and traces (a server that echoes a secret in an unusual encoding could still leak it).</p><code>{{secret:GITHUB_TOKEN}}</code></li>
           <li><span class="f-n">10</span><h4>Manifest Pinning</h4><p>Tool definitions are hashed. Silent changes are detected and blocked until re-approved.</p><code>mycel.lock</code></li>
           <li><span class="f-n">14</span><h4>Capability Tokens</h4><p>Macaroon-style delegation tokens. A sub-agent can only narrow tools, effects, budget and expiry, never widen them.</p><code>mycel token attenuate</code></li>
         </ul>
 
         <h3 class="group-title">Visibility</h3>
         <ul class="features">
-          <li><span class="f-n">11</span><h4>Flight Recorder</h4><p>Every tool call through Mycel traced: timing, tokens saved, cost, policy decisions. JSONL and OTLP export. Replay any task.</p><code>mycel replay</code></li>
+          <li><span class="f-n">11</span><h4>Flight Recorder</h4><p>Tool calls through Mycel's call path traced (not <code>mycel_job</code> status/wait reads, unknown tools or invalid refs): timing, tokens saved, cost, policy decisions; read money from the budget ledger. JSONL and OTLP export. Replay any task.</p><code>mycel replay</code></li>
           <li><span class="f-n">12</span><h4>Live Dashboard</h4><p>A local web UI for the timeline, token savings, cost, jobs and approvals.</p><code>localhost:4747</code></li>
           <li><span class="f-n">19</span><h4>Benchmark</h4><p>Reproducible: the same catalog, direct MCP vs Mycel, counting context tokens and round trips.</p><code>mycel bench</code></li>
         </ul>
@@ -534,7 +534,7 @@
         <div class="how">
           <article class="how-step">
             <h3><span class="step-n">1</span> Declare servers, policy and budgets</h3>
-            <p>One file. Secrets stay placeholders; unknown servers are marked untrusted; large results become refs.</p>
+            <p>One file. Secrets stay placeholders; servers imported over HTTP are marked untrusted (hand-configured servers default to trusted unless you set <code>trust: untrusted</code>); large results become refs.</p>
             <div class="code">
               <div class="code-head"><span>mycel.yaml</span><button class="copy copy-sm" type="button" data-copy-target="code-config" aria-label="Copy mycel.yaml">Copy</button></div>
 <pre id="code-config"><code><span class="k">servers</span>:
@@ -675,7 +675,7 @@
           </details>
           <details>
             <summary>Does it solve prompt injection?</summary>
-            <p>No, and we'd be wary of anyone who says they do. Mycel <em>reduces and exposes</em> the risk: untrusted content is tainted, destructive actions with tainted inputs require approval, secrets referenced as <code>{{secret:NAME}}</code> are injected by Mycel and scrubbed from outputs, errors and traces (a server that echoes a secret in an unusual encoding could still leak it), tool manifests are pinned, and every tool call that passes through Mycel is recorded. That makes attacks harder and visible, not impossible.</p>
+            <p>No, and we'd be wary of anyone who says they do. Mycel <em>reduces and exposes</em> the risk: untrusted content is tainted, destructive actions with tainted inputs require approval, secrets referenced as <code>{{secret:NAME}}</code> are injected by Mycel and scrubbed from outputs, errors and traces (a server that echoes a secret in an unusual encoding could still leak it), tool manifests are pinned, and tool calls that run through Mycel's call path are recorded (not <code>mycel_job</code> status/wait reads, unknown tools or invalid refs). That makes attacks harder and visible, not impossible.</p>
           </details>
           <details>
             <summary>Which clients does it work with?</summary>
@@ -683,7 +683,7 @@
           </details>
           <details>
             <summary>What does it cost?</summary>
-            <p>Nothing. Mycel is open source under the Apache-2.0 license. Budget caps in the config are checked per call; they are not reserved before dispatch, so concurrent paid jobs can exceed a cap at the provider.</p>
+            <p>Nothing. Mycel is open source under the Apache-2.0 license. Budget caps in the config are checked per call; for a job the check runs once, when it is queued, against the primary tool's price, so fallbacks and manual retries get no separate pre-dispatch check and nothing is reserved: concurrent paid jobs can exceed a cap at the provider.</p>
           </details>
         </div>
       </div>
@@ -712,7 +712,7 @@
     </div>
   </footer>
 
-  <script src="main.js?v=9" defer></script>
+  <script src="main.js?v=10" defer></script>
   <script type="module" src="assets/scene.js?v=4"></script>
 </body>
 </html>

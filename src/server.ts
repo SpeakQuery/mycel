@@ -5,7 +5,7 @@ import { META_TOOLS } from "./meta.js";
 import { estimateTokens, type ToolEntry } from "./catalog.js";
 import { newId } from "./recorder.js";
 
-const VERSION = "0.1.4";
+const VERSION = "0.1.5";
 
 /** MCP tool names must be [a-zA-Z0-9_-]; direct tools are exposed as `server__tool`. */
 export const directName = (t: ToolEntry) => `${t.server}__${t.name}`.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);

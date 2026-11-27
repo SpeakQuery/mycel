@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.5 — 2026-11-27
+
+From the fifth independent review (manual retry of a paid job recorded 0.80 USD for one 0.40 USD provider receipt):
+
+- Fixed (money): money is now settled per (tool, idempotency key). When a later dispatch with the same tool and key succeeds, the earlier estimate for that key is replaced by the actual charge (never both); if the later one is also unknown, there is still one estimate per key. Dispatches without a key are each charged as before. Dispatches now record the key they sent.
+- Clarified (behaviour, not a change): a manual `mycel_job retry` of a job whose last paid dispatch is unresolved reuses the SAME idempotency key on purpose, so a deduplicating provider can collapse it into one receipt. The docs (and an earlier changelog claim) said a manual retry drops the key and uses a new one; that was wrong in 0.1.4 (the key was regenerated to the same value, `mycel-<jobId>`) and is now deliberate and documented.
+- Known limit: jobs recorded by 0.1.3 or earlier are not re-settled on upgrade (earlier under-recorded jobs stay as recorded). Compare earlier paid jobs, whatever their status, with the provider statement.
+- Docs: removed remaining over-claims in README, SECURITY and the site. "No retry, no fallback" now describes the keyed same-tool retry; "actual cost on success" is the tool's declared `costUsd`, not a provider invoice, and `charged` only means an estimate was written; "checked per call" for jobs means once at queue time against the primary tool's price (no check for fallbacks or manual retries, no reservation; token budgets included); "every call gets a span" excludes `mycel_job` status/wait reads, unknown tools and invalid refs; the secret placeholder claim and "unknown servers are untrusted" now state their scope (HTTP import marks untrusted; hand-configured servers default to trusted); reconciliation applies to paid jobs of any status.
+
 ## 0.1.4 — 2026-11-27
 
 From the fourth independent review (free primary tool with a paid fallback; the user saw `succeeded` while the provider billed twice or once more than Mycel recorded):

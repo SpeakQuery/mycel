@@ -147,6 +147,7 @@ export class Mycel {
       },
     );
     this.jobs.on("estimatedCharge", (j: Job, usd: number) => this.budget.charge(usd, j.traceId, j.tokenId));
+    this.jobs.on("estimateRefund", (j: Job, usd: number) => this.budget.refund(usd, j.traceId, j.tokenId));
     this.models = new ModelRouter(c.models, this.vault);
     this.peers = new A2AClient(c.a2a.peers, this.vault);
   }

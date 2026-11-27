@@ -20,7 +20,10 @@ export interface TraceEvent {
   costUsd?: number;
   /** Tokens actually sent to the model for this step (estimate). */
   tokensToModel?: number;
-  /** Tokens the model did NOT have to see thanks to refs / code mode / the router (estimate). */
+  /**
+   * Kept for compatibility. MEASURED tokens saved by this event only: set by the recorder from `savings.measured`
+   * (counted events, shrunk results). Never an estimate, and never set on calls inside mycel_run (the run carries it).
+   */
   tokensSaved?: number;
   bytesOffloaded?: number;
   /** Measured result savings per call/run, and the estimated tool-definition savings per tools/list. See savings.ts. */
@@ -38,6 +41,7 @@ export interface Stats {
   errors: number;
   runs: number;
   searches: number;
+  /** Kept for compatibility: MEASURED net tokens saved (saved − added). Estimated tool-definition savings are in `estimated`. */
   tokensSaved: number;
   tokensToModel: number;
   bytesOffloaded: number;
@@ -77,6 +81,8 @@ export class Recorder extends EventEmitter {
 
   record(e: Omit<TraceEvent, "ts" | "spanId"> & { spanId?: string }): TraceEvent {
     const ev: TraceEvent = { ts: new Date().toISOString(), spanId: e.spanId ?? newId(), ...e };
+    const mv = ev.savings?.measured;
+    ev.tokensSaved = mv && ev.savings!.counted !== false && mv.savedTokens > 0 ? mv.savedTokens : undefined;
     if (this.opts.redact) {
       ev.args = clip(ev.args);
       ev.result = clip(ev.result);
@@ -179,12 +185,12 @@ export class Recorder extends EventEmitter {
       s.measured.calls++;
       s.measured.savedTokens += sv.measured.savedTokens;
       s.measured.addedTokens += sv.measured.addedTokens;
+      s.tokensSaved += sv.measured.savedTokens - sv.measured.addedTokens;
     }
     if (sv?.estimated) {
       s.estimated.toolsListServed++;
       s.estimated.definitionTokens += sv.estimated.perTurnTokens;
     }
-    s.tokensSaved += e.tokensSaved ?? 0;
     s.tokensToModel += e.tokensToModel ?? 0;
     s.bytesOffloaded += e.bytesOffloaded ?? 0;
     s.costUsd = round(s.costUsd + (e.costUsd ?? 0));

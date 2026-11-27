@@ -15,7 +15,7 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 [![Node ≥ 20](https://img.shields.io/badge/node-%E2%89%A520-3DFFB0?style=flat-square)](package.json)
 [![MCP compatible](https://img.shields.io/badge/MCP-compatible-3DFFB0?style=flat-square)](https://modelcontextprotocol.io)
 [![A2A v0.3](https://img.shields.io/badge/A2A-v0.3-3DFFB0?style=flat-square)](https://a2a-protocol.org)
-[![Tests](https://img.shields.io/badge/tests-102%20passing-3DFFB0?style=flat-square)](tests)
+[![Tests](https://img.shields.io/badge/tests-103%20passing-3DFFB0?style=flat-square)](tests)
 
 [**▶ Watch the 90-second film**](https://mycel.speakquery.ai/#film) · [Quickstart](#-quickstart) · [Benchmark](#-the-numbers) · [How it works](#-how-it-works) · [All 20 features](#-features) · [Docs](docs/)
 
@@ -375,7 +375,7 @@ All 20 ship in v1. Every one is opt-in beyond the defaults, and a 10-line config
 ### Visibility
 | Feature | What it does |
 |---|---|
-| **11 · Flight Recorder** | Tool calls that run through Mycel's call path (search, call, script, job, approval, policy decision) get a span (not `mycel_job` status/wait reads, calls to unknown tools or invalid refs; read money from the budget ledger): timing, tokens saved, bytes offloaded, cost, taint. JSONL on disk + **OpenTelemetry (OTLP/HTTP)** export. `mycel replay <trace>`. |
+| **11 · Flight Recorder** | Tool calls that run through Mycel's call path (search, call, script, job, approval, policy decision) get a span (not `mycel_job` status/wait reads, calls to unknown tools or invalid refs; read money from the budget ledger): timing, measured tokens saved, bytes offloaded, cost, taint. JSONL on disk + **OpenTelemetry (OTLP/HTTP)** export. `mycel replay <trace>`. |
 | **12 · Live Dashboard** | Local web UI: savings, live activity, trace waterfalls, approvals, jobs, servers, drift, refs. Token-protected and DNS-rebinding-safe. |
 
 ### Mesh & integration
@@ -459,6 +459,8 @@ Where it shows (all on by default except the model-visible line):
 | `mycel stats` | measured and estimated totals for the latest session and for today, printed separately (`--json` for scripts) |
 | MCP result | `_meta: { "mycel/savings": { line, measured, session, estimated } }`, which most clients do not show to the model |
 | Tool result text | **off by default.** Set `ui: { savingsLine: true }` to append the line as a last text block the model and you can see. It costs about 30-40 tokens per call, so it is a small tax on the very thing it measures. |
+
+The older `tokensSaved` counter (flight log, dashboard "Tokens saved", `mycel traces`, OTLP `mycel.tokens_saved`) now means measured savings only: it is never an estimate and does not double count `mycel_run` inner calls. The tool-definition estimate is reported separately.
 
 Known limits: results of async tools that outlive a restart have no raw size and show no measured figure; the raw size of image and audio results counts their base64 text, which overstates what a model would be charged for them; `session` means one gateway process.
 
@@ -558,7 +560,7 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What i
 
 ## Contributing
 
-PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (102 tests) in a few seconds.
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (103 tests) in a few seconds.
 
 ## 💚 Using Mycel? Show it
 

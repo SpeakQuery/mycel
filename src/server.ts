@@ -54,7 +54,7 @@ export function createMcpServer(m: Mycel, session: { capability?: CallContext["c
     const shown = estimateTokens(tools) + estimateTokens(m.instructions());
     const perTurn = Math.max(0, fp.directTokens - shown);
     m.savings.noteToolsList(perTurn); // ESTIMATED: counted once per tools/list served, not per model turn
-    m.recorder.record({ traceId, kind: "session", ok: true, tokensToModel: shown, tokensSaved: perTurn, savings: { session: m.sessionId, estimated: { perTurnTokens: perTurn, basis: "tools/list" } }, meta: { event: "tools/list", exposed: tools.length, catalog: fp.tools } });
+    m.recorder.record({ traceId, kind: "session", ok: true, tokensToModel: shown, savings: { session: m.sessionId, estimated: { perTurnTokens: perTurn, basis: "tools/list" } }, meta: { event: "tools/list", exposed: tools.length, catalog: fp.tools } });
     return { tools };
   });
 

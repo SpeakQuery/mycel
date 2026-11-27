@@ -384,7 +384,7 @@ footer .mono { font-size: 11.5px; }
 <main id="main" tabindex="-1">
   <section class="kpis" aria-label="Key metrics">
     <div class="panel kpi hero">
-      <div class="label">Tokens saved <span class="faint">· 30 days</span></div>
+      <div class="label">Tokens saved <span class="faint">· measured, 30 days</span></div>
       <div class="value" id="k-saved">—</div>
       <div class="sub" id="k-saved-sub">&nbsp;</div>
     </div>
@@ -818,7 +818,7 @@ footer .mono { font-size: 11.5px; }
     const hist = o.history || {}, live = o.live || {};
     $("k-saved").textContent = compact(hist.tokensSaved);
     $("k-saved").title = num(hist.tokensSaved) + " tokens";
-    setKids($("k-saved-sub"), "this session ", h("b", { text: "+" + compact(live.tokensSaved) }), " · offloaded ", h("b", { text: bytes(hist.bytesOffloaded) }));
+    setKids($("k-saved-sub"), "this session ", h("b", { text: signedTok(live.tokensSaved) }), " · offloaded ", h("b", { text: bytes(hist.bytesOffloaded) }));
 
     renderSavings();
     const fp = o.footprint || {};
@@ -1584,7 +1584,7 @@ footer .mono { font-size: 11.5px; }
   function liveBump(e) {
     const o = S.overview; if (!o || !o.live || !o.history) return;
     for (const s of [o.live, o.history]) {
-      s.tokensSaved = (s.tokensSaved || 0) + (e.tokensSaved || 0);
+      if (e.savings && e.savings.measured && e.savings.counted !== false) s.tokensSaved = (s.tokensSaved || 0) + e.savings.measured.savedTokens - e.savings.measured.addedTokens;
       s.bytesOffloaded = (s.bytesOffloaded || 0) + (e.bytesOffloaded || 0);
       if (e.kind === "call") s.calls = (s.calls || 0) + 1;
       if (e.kind === "run") s.runs = (s.runs || 0) + 1;

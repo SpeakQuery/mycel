@@ -137,7 +137,7 @@ export class Mycel {
           // Jobs are charged when they actually finish, even if nobody is waiting.
           this.budget.charge(out.costUsd, traceId, jctx.job.tokenId);
           this.jobRaw.set(jctx.job.id, out.rawTokens);
-          this.recorder.record({ traceId, kind: "call", tool: t.id, server: t.server, ok: true, durationMs: Date.now() - t0, costUsd: out.costUsd, tokensSaved: out.rawTokens, bytesOffloaded: out.bytesOffloaded, meta: { job: jctx.job.id } });
+          this.recorder.record({ traceId, kind: "call", tool: t.id, server: t.server, ok: true, durationMs: Date.now() - t0, costUsd: out.costUsd, bytesOffloaded: out.bytesOffloaded, meta: { job: jctx.job.id } });
           return { result: out.result, costUsd: out.costUsd };
         } catch (e) {
           this.recorder.record({ traceId, kind: "call", tool: t.id, server: t.server, ok: false, durationMs: Date.now() - t0, error: this.vault.scrub((e as Error).message), meta: { job: jctx.job.id } });
@@ -399,7 +399,6 @@ export class Mycel {
       const out = await this.execute(tool, resolved, { ...ctx, traceId });
       this.chargeFor(out.costUsd, traceId, ctx);
       const presented = ctx.raw ? out.result : this.present(out.result, tool);
-      const saved = Math.max(0, out.rawTokens - estimateTokens(presented));
       const okOutcome = { status: "ok" as const, tool: tool.id, result: presented, tainted: tool.trust === "untrusted", costUsd: out.costUsd, durationMs: Date.now() - t0 };
       let savings: EventSavings | undefined;
       if (!out.isError) {
@@ -412,7 +411,7 @@ export class Mycel {
       this.recorder.record({
         traceId, spanId, parentSpanId: ctx.parentSpanId, kind: "call", tool: tool.id, server: tool.server, ok: !out.isError,
         durationMs: Date.now() - t0, costUsd: out.costUsd, tokensToModel: ctx.raw ? 0 : estimateTokens(presented),
-        tokensSaved: ctx.raw ? out.rawTokens : saved, bytesOffloaded: out.bytesOffloaded, savings, tainted, agent: ctx.agent, args, result: presented,
+        bytesOffloaded: out.bytesOffloaded, savings, tainted, agent: ctx.agent, args, result: presented,
         decision: decision.action, error: out.isError ? "tool reported an error" : undefined,
       });
       if (out.isError) return { status: "error", tool: tool.id, error: typeof presented === "string" ? presented : JSON.stringify(presented), tainted: tool.trust === "untrusted" };
@@ -604,7 +603,7 @@ export class Mycel {
     }
     this.recorder.record({
       traceId, spanId, kind: "run", ok: res.ok, durationMs: res.durationMs, error: res.error, costUsd: round(state.cost),
-      tokensToModel: toModel, tokensSaved: Math.max(0, state.rawTokens - toModel), savings, tainted: state.tainted, agent: ctx.agent,
+      tokensToModel: toModel, savings, tainted: state.tainted, agent: ctx.agent,
       meta: { toolCalls: res.toolCalls, code: code.length > 4000 ? code.slice(0, 4000) + "…" : code },
     });
     return { ...res, value: undefined, result: finalResult };

@@ -34,7 +34,7 @@ Language: TypeScript (Node ≥ 20). License: Apache-2.0. Repo: github.com/SpeakQ
 | 8 | **Provenance / Taint** | Content from untrusted sources (web, email, unknown servers) is labelled; destructive actions with tainted inputs require approval. | automatic |
 | 9 | **Secret Vault** | Model only sees `{{secret:GITHUB_TOKEN}}`; Mycel injects real values at call time and scrubs them from outputs. | `secrets:` |
 | 10 | **Manifest Pinning** | Tool definitions are hashed; silent changes (rug pulls) are detected and blocked until re-approved. | `mycel.lock` |
-| 11 | **Flight Recorder** | Every call traced: timing, tokens saved, cost, policy decisions. JSONL + OpenTelemetry (OTLP) export. Replay any task. | `mycel dashboard`, `mycel replay` |
+| 11 | **Flight Recorder** | Every call traced: timing, measured tokens saved, cost, policy decisions. JSONL + OpenTelemetry (OTLP) export. Replay any task. | `mycel dashboard`, `mycel replay` |
 | 12 | **Live Dashboard** | Local web UI: timeline, token savings, cost, jobs, approvals. | `http://localhost:4747` |
 | 13 | **A2A Bridge** | Mycel is an A2A agent (Agent Card at `/.well-known/agent-card.json`, JSON-RPC `message/send`, `tasks/get`, `tasks/cancel`) and can call remote A2A agents as tools. MCP + A2A in one layer. | `mycel_delegate` |
 | 14 | **Capability Tokens** | Attenuable, expiring, macaroon-style delegation tokens: a sub-agent can only narrow its permissions (tools, effects, budget, expiry), never widen. | `mycel token mint/attenuate` |

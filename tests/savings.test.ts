@@ -125,6 +125,21 @@ describe("savings through the gateway", () => {
     expect(m.savings.snapshot().calls).toBe(1);
   });
 
+  it("the legacy tokensSaved counter is measured-net only: no estimate, no double count", async () => {
+    const { client, m } = await connect();
+    await client.listTools();
+    await client.callTool({ name: "mycel_run", arguments: { code: `await tools.call("warehouse.export_csv", {}); await tools.call("warehouse.export_csv", {}); return 1;` } });
+    await client.callTool({ name: "mycel_call", arguments: { tool: "warehouse.ping", args: {} } });
+    const s = m.recorder.liveStats();
+    expect(s.measured.calls).toBe(2);
+    expect(s.tokensSaved).toBe(s.measured.savedTokens - s.measured.addedTokens);
+    expect(s.tokensSaved).toBe(m.savings.snapshot().netTokens);
+    const evs = m.recorder.load({ days: 1 });
+    expect(evs.filter((e) => e.savings?.counted === false).every((e) => e.tokensSaved === undefined)).toBe(true);
+    expect(evs.filter((e) => e.savings?.estimated).every((e) => e.tokensSaved === undefined)).toBe(true);
+    expect(evs.reduce((a, e) => a + (e.tokensSaved ?? 0), 0)).toBe(s.measured.savedTokens);
+  });
+
   it("errors and searches carry no savings", async () => {
     const { client } = await connect();
     const e = await client.callTool({ name: "mycel_call", arguments: { tool: "nope.nothing", args: {} } });

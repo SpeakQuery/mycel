@@ -571,6 +571,7 @@ export default defineAdapter({
 
 | Command | |
 |---|---|
+| `mycel setup` · `mycel undo` | one-step install: import servers, point clients at Mycel, with backups · restore them |
 | `mycel init` | import client configs → `mycel.yaml` |
 | `mycel serve [--http]` | run the gateway (stdio, or HTTP with `/mcp` + `/a2a`) |
 | `mycel dashboard` | open the local dashboard |

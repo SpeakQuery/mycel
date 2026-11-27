@@ -9,6 +9,7 @@ import { Mycel } from "./core.js";
 import { createMcpServer } from "./server.js";
 import { startHttp } from "./http.js";
 import { discover, toMycelYaml, clientSnippet } from "./importer.js";
+import { runSetup, runUndo } from "./setup.js";
 import { runBench, formatBench } from "./bench.js";
 import { mint, attenuate, inspect, newRootKey, parseDuration, type Caveat } from "./tokens.js";
 import { ApprovalQueue } from "./policy.js";
@@ -71,6 +72,37 @@ program
     out(`\n  Point your client at Mycel (replace its mcpServers with):\n`);
     out(JSON.stringify(clientSnippet(target), null, 2).split("\n").map((l) => "    " + l).join("\n"));
     out(`\n  Then: ${c.g("mycel doctor")} · ${c.g("mycel bench")} · ${c.g("mycel dashboard")}\n`);
+  });
+
+async function ask(q: string): Promise<boolean> {
+  const { createInterface } = await import("node:readline/promises");
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return /^y(es)?$/i.test((await rl.question(q)).trim());
+  } finally {
+    rl.close();
+  }
+}
+const sio = () => ({ out, ask, interactive: !!process.stdin.isTTY && !!process.stdout.isTTY });
+
+program
+  .command("setup")
+  .description("One-step install: import your MCP servers, point every client at Mycel, keep backups (undo with `mycel undo`)")
+  .option("-y, --yes", "apply without asking")
+  .option("-o, --out <path>", "write the Mycel config here instead of ~/.mycel/mycel.yaml")
+  .option("--projects", "also rewrite project-level files (.mcp.json, .cursor/mcp.json, .vscode/mcp.json)")
+  .action(async (o: { yes?: boolean; out?: string; projects?: boolean }) => {
+    process.exitCode = await runSetup({ yes: o.yes, config: o.out ?? program.opts().config, projects: o.projects }, sio());
+  });
+
+program
+  .command("undo")
+  .description("Restore the client configs saved by the last `mycel setup`")
+  .option("--list", "list setup backups")
+  .option("--id <id>", "restore a specific backup")
+  .option("-y, --yes", "overwrite files that changed since setup without asking")
+  .action(async (o: { list?: boolean; id?: string; yes?: boolean }) => {
+    process.exitCode = await runUndo(o, sio());
   });
 
 program

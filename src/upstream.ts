@@ -12,9 +12,12 @@ import { FileOAuthProvider } from "./oauth.js";
 /**
  * Did the provider possibly accept the call?
  *  - "rejected": definitely not accepted (could not connect, not connected, failed before the request
- *    was sent, JSON-RPC/MCP error response, tool result isError). Safe to fall back / retry.
+ *    was sent, JSON-RPC/MCP error response, or a tool result with isError from a free tool or from a paid tool
+ *    whose contract sets errorsAreRejections: true). Safe to fall back / retry.
  *  - "unknown": timeout, connection closed or reset after sending, abort, or anything we cannot
- *    positively classify as rejected. The provider may have accepted (and charged for) the call.
+ *    positively classify as rejected, and an isError result from a paid tool (costUsd > 0) unless its contract
+ *    sets errorsAreRejections: true (a stdio MCP server wrapping a paid HTTP API reports a lost provider reply
+ *    that way). The provider may have accepted (and charged for) the call.
  */
 export type CallDisposition = "rejected" | "unknown";
 
@@ -170,7 +173,7 @@ export async function connectMcp(name: string, cfg: ServerConfig, vault: SecretV
       authProvider: oauthFor(name, cfg, vault, opts),
     });
   }
-  const client = new Client({ name: `mycel:${name}`, version: "0.1.2" }, { capabilities: {} });
+  const client = new Client({ name: `mycel:${name}`, version: "0.1.3" }, { capabilities: {} });
   await client.connect(transport);
   return new McpProvider(client);
 }

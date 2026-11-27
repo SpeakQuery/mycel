@@ -159,7 +159,9 @@ export class Catalog {
   }
 
   search(query: string, opts: { limit?: number; server?: string; effect?: string } = {}): Array<{ tool: ToolEntry; score: number }> {
-    const limit = opts.limit ?? 8;
+    // "*" lists everything (optionally one server / effect); the default cap only applies to ranked searches.
+    const all = query.trim() === "*";
+    const limit = opts.limit ?? (all ? Infinity : 8);
     const base = tokenize(query);
     const q = new Map<string, number>();
     // Synonyms are keyed by surface word ("changes"), the index by stem ("change"): try both.
@@ -196,6 +198,7 @@ export class Catalog {
       }
       if (score > 0) results.push({ tool, score });
     }
+    if (all) return this.all().filter((t) => (!opts.server || t.server === opts.server) && (!opts.effect || t.contract.effect === opts.effect)).slice(0, limit).map((tool) => ({ tool, score: 0 }));
     const listServer = () => this.all().filter((t) => t.server === opts.server && (!opts.effect || t.contract.effect === opts.effect)).slice(0, limit).map((tool) => ({ tool, score: 0 }));
     if (!base.length) return opts.server ? listServer() : this.all().slice(0, limit).map((tool) => ({ tool, score: 0 }));
     if (!results.length && opts.server) return listServer();

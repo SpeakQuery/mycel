@@ -14,6 +14,9 @@ policy:
   - match: { tool: "github.close_issue" }
     action: approve
     reason: Closing an issue notifies the customer; a human on builder's side signs off
+  - match: { effect: external }   # the default policy allows a clean external call; require approval
+    action: approve
+    reason: External effect (publish, send, post).
 
 a2a:
   name: builder

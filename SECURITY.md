@@ -33,7 +33,8 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection.
 What Mycel aims to guarantee:
 
 - Secrets never enter the model's context (`{{secret:NAME}}` placeholders, scrubbed from outputs, errors and traces).
-- Destructive actions, and side-effects driven by tainted input, need a human approval by default.
+- Destructive actions, and side-effects driven by tainted input, need a human approval by default. A clean (untainted) `external` call such as publish or send is allowed by default; add a rule like `{ match: { effect: external }, action: approve }` if you want approval for those.
+- Paid tools: after an error or lost reply Mycel marks the job `unknown`, records an estimated charge and does not fall back, unless the contract sets `errorsAreRejections: true`. It avoids automatic double submission but is not exactly-once; the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Automatic fallback across paid providers is not yet recommended.
 - Changed tool definitions ("rug pulls") are blocked until a human accepts them with `mycel pin --accept`.
 - Delegated agents cannot exceed their capability token; tokens can only be narrowed.
 - Everything is recorded in the flight recorder.

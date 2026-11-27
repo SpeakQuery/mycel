@@ -19,7 +19,7 @@ export function META_TOOLS(m: Mycel): MetaTool[] {
     {
       name: "mycel_search",
       description: "Find tools across all connected servers. Returns tool ids, one-line descriptions, params and effect (read/write/external/destructive). Write the query in English, even if the user writes in another language.",
-      inputSchema: obj({ query: { type: "string", description: "What you want to do, e.g. 'list open github issues'" }, limit: { type: "integer", minimum: 1, maximum: 25 }, server: { type: "string" }, effect: { type: "string", enum: ["read", "write", "external", "destructive"] } }, ["query"]),
+      inputSchema: obj({ query: { type: "string", description: "What you want to do, e.g. 'list open github issues'. \"*\" lists all tools (pair with server)" }, limit: { type: "integer", minimum: 1, maximum: 25 }, server: { type: "string" }, effect: { type: "string", enum: ["read", "write", "external", "destructive"] } }, ["query"]),
       annotations: { readOnlyHint: true },
       handler: async (a, ctx) => m.search(String(a.query), { limit: a.limit as number, server: a.server as string, effect: a.effect as string }, ctx),
     },

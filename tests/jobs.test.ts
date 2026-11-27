@@ -134,6 +134,239 @@ describe("job queue: money safety", () => {
   });
 });
 
+/**
+ * A provider that, like a real stdio MCP server wrapping a paid HTTP API, accepts the job (and the money)
+ * and then reports "fetch failed" as a normal tool result with isError:true.
+ */
+function errorResultProvider(opts: { dedupKeyArg?: string } = {}) {
+  const state = { accepted: 0, receipts: [] as string[], args: [] as Array<Record<string, unknown>> };
+  const provider: ToolProvider = {
+    listTools: async () => [{ name: "render", description: "Render a video", inputSchema: { type: "object", properties: {} } }],
+    callTool: async (_n, args) => {
+      state.accepted++;
+      state.args.push(args);
+      return { isError: true, content: [{ type: "text", text: "fetch failed" }] };
+    },
+  };
+  return { provider, state };
+}
+
+/** A provider that accepts, then hangs until its request is aborted. Dedups by an idempotency key arg when asked. */
+function holdingProvider(keyArg?: string, seen: Set<string> = new Set()) {
+  const state = { accepted: 0, receipts: 0, args: [] as Array<Record<string, unknown>> };
+  let hold = true;
+  const provider: ToolProvider = {
+    listTools: async () => [{ name: "render", description: "Render a video", inputSchema: { type: "object", properties: {} } }],
+    callTool: async (_n, args, o) => {
+      state.accepted++;
+      state.args.push(args);
+      const key = keyArg ? (args[keyArg] as string | undefined) : undefined;
+      if (!key || !seen.has(key)) state.receipts++; // a new receipt = a new charge
+      if (key) seen.add(key);
+      if (hold) await new Promise<never>((_, rej) => o.signal?.addEventListener("abort", () => rej(Object.assign(new Error("aborted"), { name: "AbortError" }))));
+      return { content: [{ type: "text", text: JSON.stringify({ video: "v1" }) }] };
+    },
+  };
+  return { provider, state, release: () => (hold = false) };
+}
+
+const until = async (f: () => boolean, ms = 3000) => {
+  for (let i = 0; i < ms / 10 && !f(); i++) await new Promise((r) => setTimeout(r, 10));
+  if (!f()) throw new Error("condition not reached");
+};
+
+describe("paid tool isError results", () => {
+  it("is disposition unknown: estimate charged, no fallback, status unknown (with and without a fallback)", async () => {
+    for (const fallback of [["pb.render"], []]) {
+      const a = errorResultProvider();
+      const b = paidProvider("ok");
+      const m = await boot(tmp(), { pa: { provider: a.provider, tools: contract({ fallback }) }, pb: { provider: b.provider, tools: contract() } });
+      const out = await m.call("pa.render", {});
+      expect(out.status).toBe("error");
+      expect(a.state.accepted).toBe(1);
+      expect(b.state.accepted).toBe(0);
+      const [job] = m.jobs.list();
+      expect(job).toMatchObject({ status: "unknown", costUsd: 0.4, costEstimated: true });
+      expect(job.error).toContain("Mycel did not fall back");
+      expect(m.budget.spent().day).toBe(0.4);
+    }
+  });
+
+  it("errorsAreRejections: true keeps today's behaviour: rejected, falls back, no estimate for the failed attempt", async () => {
+    const a = errorResultProvider();
+    const b = paidProvider("ok");
+    const m = await boot(tmp(), { pa: { provider: a.provider, tools: contract({ fallback: ["pb.render"], errorsAreRejections: true }) }, pb: { provider: b.provider, tools: contract() } });
+    const out = await m.call("pa.render", {});
+    expect(out).toMatchObject({ status: "ok", tool: "pb.render" });
+    expect(b.state.accepted).toBe(1);
+    expect(m.budget.spent().day).toBe(0.4); // only the fallback's real charge
+    expect(m.jobs.list()[0].costEstimated).toBeUndefined();
+  });
+
+  it("a free tool (costUsd 0) keeps isError = rejected", async () => {
+    const a = errorResultProvider();
+    const m = await boot(tmp(), { pa: { provider: a.provider, tools: contract({ costUsd: 0 }) } });
+    await m.call("pa.render", {});
+    const [job] = m.jobs.list();
+    expect(job.status).toBe("failed");
+    expect(job.costEstimated).toBeUndefined();
+    expect(m.budget.spent().day).toBe(0);
+  });
+
+  it("errorsAreRejections is an allowed, boolean-only contract key", () => {
+    const ok = MycelConfig.safeParse({ servers: { s: { command: "x", tools: { t: { errorsAreRejections: true } } } } });
+    expect(ok.success).toBe(true);
+    expect(MycelConfig.safeParse({ servers: { s: { command: "x", tools: { t: { errorsAreRejections: "yes" } } } } }).success).toBe(false);
+    const bad = MycelConfig.safeParse({ servers: { s: { command: "x", tools: { t: { errorsAreRejection: true } } } } });
+    expect(bad.success).toBe(false);
+    expect(JSON.stringify(bad.error?.issues)).toContain("errorsAreRejections");
+  });
+});
+
+describe("price persisted at dispatch", () => {
+  it("estCostUsd is stored on the job when dispatched", async () => {
+    const home = tmp();
+    const h = holdingProvider();
+    const m = await boot(home, { pa: { provider: h.provider, tools: contract() } });
+    m.call("pa.render", {}, { mode: "async" });
+    await until(() => h.state.accepted === 1);
+    expect(JSON.parse(readFileSync(join(home, "jobs.json"), "utf8"))[0]).toMatchObject({ status: "running", estCostUsd: 0.4 });
+  });
+
+  it("restart while the paid tool's upstream is missing: interrupted, estimate charged once, no 'declares no cost'", async () => {
+    const home = tmp();
+    const id = persistJob(home, { status: "running", attempts: 1, dispatchedAt: new Date().toISOString(), dispatchedTool: "pa.render", estCostUsd: 0.4 });
+    const m = await boot(home, {});
+    const job = m.jobs.get(id)!;
+    expect(job).toMatchObject({ status: "interrupted", costUsd: 0.4, costEstimated: true });
+    expect(job.error).not.toMatch(/declares no cost/);
+    expect(job.error).toMatch(/\$0\.4/);
+    expect(m.budget.spent().day).toBe(0.4);
+    await m.close();
+    expect((await boot(home, {})).budget.spent().day).toBe(0.4);
+  });
+
+  it("charges the dispatch-time price, not the current catalog price", async () => {
+    const home = tmp();
+    const id = persistJob(home, { status: "running", attempts: 1, dispatchedAt: new Date().toISOString(), dispatchedTool: "pa.render", estCostUsd: 0.4 });
+    const m = await boot(home, { pa: { provider: paidProvider().provider, tools: contract({ costUsd: 0.9 }) } });
+    expect(m.jobs.get(id)).toMatchObject({ costUsd: 0.4, costEstimated: true });
+    expect(m.budget.spent().day).toBe(0.4);
+  });
+
+  it("an idempotent job that was dispatched before the restart and then fails because its upstream is missing is charged the estimate once", async () => {
+    const home = tmp();
+    const id = persistJob(home, { status: "running", idempotent: true, attempts: 1, dispatchedAt: new Date().toISOString(), dispatchedTool: "pa.render", estCostUsd: 0.4 });
+    const m = await boot(home, {});
+    const job = await m.jobs.wait(id, 3000);
+    expect(job.status).toBe("failed");
+    expect(job).toMatchObject({ costUsd: 0.4, costEstimated: true });
+    expect(job.error).toMatch(/may have been accepted/);
+    expect(m.budget.spent().day).toBe(0.4);
+  });
+});
+
+describe("cancel after dispatch", () => {
+  it("charges the estimate once and says the provider may have charged", async () => {
+    const home = tmp();
+    const h = holdingProvider();
+    const m = await boot(home, { pa: { provider: h.provider, tools: contract() } });
+    const r = await m.call("pa.render", {}, { mode: "async" });
+    const id = (r as { job: { id: string } }).job.id;
+    await until(() => h.state.accepted === 1);
+    const j = m.jobs.cancel(id);
+    await new Promise((r2) => setTimeout(r2, 100));
+    expect(j).toMatchObject({ status: "cancelled", costUsd: 0.4, costEstimated: true });
+    expect(m.jobView(j).message).toMatch(/may have been accepted and charged/);
+    expect(m.budget.spent().day).toBe(0.4);
+    m.jobs.cancel(id); // idempotent
+    expect(m.budget.spent().day).toBe(0.4);
+    expect(h.state.receipts).toBe(1);
+  });
+
+  it("cancelling a queued job that never dispatched costs nothing", async () => {
+    const m = await boot(tmp(), { pa: { provider: holdingProvider().provider, tools: contract() } }, { jobs: { concurrency: 1, asyncThresholdMs: 3000 } });
+    await m.call("pa.render", {}, { mode: "async" }); // occupies the only slot
+    const second = (await m.call("pa.render", {}, { mode: "async" })) as { job: { id: string } };
+    expect(m.jobs.cancel(second.job.id)).toMatchObject({ status: "cancelled", costUsd: 0 });
+    expect(m.budget.spent().day).toBe(0);
+  });
+});
+
+describe("idempotency key", () => {
+  const kc = (extra: Record<string, unknown> = {}) => contract({ idempotent: true, idempotencyKeyArg: "requestId", ...extra });
+
+  it("kill-and-resume an idempotent job with idempotencyKeyArg: the same key is sent, provider sees one receipt", async () => {
+    const home1 = tmp();
+    const seen = new Set<string>(); // the provider's own dedup memory
+    const h1 = holdingProvider("requestId", seen);
+    const m1 = await boot(home1, { pa: { provider: h1.provider, tools: kc() } });
+    await m1.call("pa.render", { prompt: "x" }, { mode: "async" });
+    await until(() => h1.state.accepted === 1);
+    const persisted = JSON.parse(readFileSync(join(home1, "jobs.json"), "utf8"))[0];
+    expect(persisted.idempotencyKey).toMatch(/^mycel-job_/);
+    expect(h1.state.args[0]).toMatchObject({ prompt: "x", requestId: persisted.idempotencyKey });
+    // "kill": a second gateway starts from the same jobs.json while the first request is still unanswered
+    const home2 = tmp();
+    writeFileSync(join(home2, "jobs.json"), JSON.stringify([persisted]));
+    const h2 = holdingProvider("requestId", seen);
+    h2.release();
+    const m2 = await boot(home2, { pa: { provider: h2.provider, tools: kc() } });
+    const job = await m2.jobs.wait(persisted.id, 3000);
+    expect(job.status).toBe("succeeded");
+    expect(h2.state.args[0].requestId).toBe(persisted.idempotencyKey);
+    expect(h1.state.receipts + h2.state.receipts).toBe(1);
+  });
+
+  it("without idempotencyKeyArg the same resume produces a second receipt", async () => {
+    const seen = new Set<string>();
+    const h1 = holdingProvider("requestId", seen);
+    const home1 = tmp();
+    const m1 = await boot(home1, { pa: { provider: h1.provider, tools: contract({ idempotent: true }) } });
+    await m1.call("pa.render", {}, { mode: "async" });
+    await until(() => h1.state.accepted === 1);
+    const persisted = JSON.parse(readFileSync(join(home1, "jobs.json"), "utf8"))[0];
+    expect(persisted.idempotencyKey).toBeUndefined();
+    const home2 = tmp();
+    writeFileSync(join(home2, "jobs.json"), JSON.stringify([persisted]));
+    const h2 = holdingProvider("requestId", seen);
+    h2.release();
+    await (await boot(home2, { pa: { provider: h2.provider, tools: contract({ idempotent: true }) } })).jobs.wait(persisted.id, 3000);
+    expect(h1.state.receipts + h2.state.receipts).toBe(2);
+  });
+
+  it("never overwrites a caller-provided value", async () => {
+    const h = holdingProvider("requestId");
+    h.release();
+    const m = await boot(tmp(), { pa: { provider: h.provider, tools: kc() } });
+    await m.call("pa.render", { requestId: "mine" });
+    expect(h.state.args[0].requestId).toBe("mine");
+  });
+
+  it("the key is stable across retries within a job", async () => {
+    let n = 0;
+    const keys: unknown[] = [];
+    const provider: ToolProvider = {
+      listTools: async () => [{ name: "render", description: "Render", inputSchema: { type: "object", properties: {} } }],
+      callTool: async (_n, args) => {
+        keys.push(args.requestId);
+        if (++n < 3) throw Object.assign(new Error("reset"), { code: "ECONNRESET" });
+        return { content: [{ type: "text", text: "{}" }] };
+      },
+    };
+    const m = await boot(tmp(), { pa: { provider, tools: kc({ retries: 3 }) } });
+    const out = await m.call("pa.render", {});
+    expect(out.status).toBe("ok");
+    expect(keys).toHaveLength(3);
+    expect(new Set(keys).size).toBe(1);
+  });
+
+  it("idempotencyKeyArg is an allowed string key", () => {
+    expect(MycelConfig.safeParse({ servers: { s: { command: "x", tools: { t: { idempotencyKeyArg: "requestId" } } } } }).success).toBe(true);
+    expect(MycelConfig.safeParse({ servers: { s: { command: "x", tools: { t: { idempotencyKeyArg: 3 } } } } }).success).toBe(false);
+  });
+});
+
 describe("call error classification", () => {
   it("only positively identified rejections are rejected", () => {
     expect(dispositionOf(new CallError("x", "rejected"))).toBe("rejected");

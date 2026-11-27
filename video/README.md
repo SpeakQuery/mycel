@@ -2,6 +2,8 @@
 
 > The film is a dramatization. Its 500 MB video example with transcript uses illustrative data (video/data.json); today the built-in video digest returns metadata and keyframe refs, no transcript. The film's final frame shows an outdated command; the correct one is `npx @speakquery/mycel init` (the package is published as @speakquery/mycel).
 
+> Persona status (video / voice producer): PARTIAL (pilot). A 5-agent mock pipeline worked (per-role tokens, refs passed between agents, the budget cap rejected the second request, the final file had video and audio, 5.000 s). Real Higgsfield/Canva timing and quality were not measured. Not yet recommended: automatic fallback across paid providers. Mycel avoids automatic double submission: after an error or lost reply from a paid tool it marks the job `unknown`, records an estimated charge and does not fall back, unless you declare that the provider's errors mean nothing was charged (`errorsAreRejections: true`). For true exactly-once, the provider must deduplicate; Mycel can pass a stable per-job key (`idempotencyKeyArg`). Reconcile `unknown` jobs with the provider.
+
 The source for the 90-second Mycel launch video, built with [HyperFrames](https://hyperframes.heygen.com): HTML and GSAP, rendered locally to MP4. Nothing in it uses a paid or cloud service.
 
 ## Re-render everything (one command)

@@ -32,6 +32,10 @@ export interface Job {
   /** Set (and persisted) just before the call is sent to a provider; cleared if the provider definitely rejected it. */
   dispatchedAt?: string;
   dispatchedTool?: string;
+  /** The contract costUsd in force when the attempt was dispatched (persisted): what an unknown/interrupted/cancelled job is charged. */
+  estCostUsd?: number;
+  /** Stable key for the tool's idempotencyKeyArg: generated once per job, reused on every attempt and after restarts. */
+  idempotencyKey?: string;
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;
@@ -57,7 +61,14 @@ export class JobQueue extends EventEmitter {
 
   constructor(
     private runner: JobRunner,
-    private opts: { file?: string; concurrency: number; backoffMs?: number; deferStart?: boolean },
+    private opts: {
+      file?: string;
+      concurrency: number;
+      backoffMs?: number;
+      deferStart?: boolean;
+      /** Called when an attempt is dispatched: the tool's current price and idempotency-key arg name. */
+      dispatchInfo?: (tool: string) => { estCostUsd?: number; idempotencyKeyArg?: string };
+    },
   ) {
     super();
     this.started = !opts.deferStart;
@@ -91,12 +102,15 @@ export class JobQueue extends EventEmitter {
     let dirty = false;
     for (const j of this.jobs.values()) {
       if (j.status !== "interrupted" || !j.dispatchedAt || j.costEstimated) continue;
-      const usd = costOf?.(j.dispatchedTool ?? j.tool) ?? 0;
+      // Prefer the price recorded at dispatch; the catalog may no longer have the tool (or have a new price).
+      const known = j.estCostUsd ?? costOf?.(j.dispatchedTool ?? j.tool);
+      const usd = known ?? 0;
       j.error = `${j.error} The request had already been sent to the provider, so it may have been accepted and charged.`;
       if (usd > 0) {
         this.chargeEstimate(j, usd);
         j.error += ` Mycel charged the estimated cost ($${usd}) to the budget; check the provider before re-submitting.`;
-      } else j.error += " The tool declares no cost, so nothing was charged to the budget; check the provider before re-submitting.";
+      } else if (known === 0) j.error += " The tool declares no cost, so nothing was charged to the budget; check the provider before re-submitting.";
+      else j.error += " No price was recorded for this job and its tool is not in the catalog, so nothing was charged to the budget; check the provider before re-submitting.";
       dirty = true;
     }
     if (dirty) this.persist();
@@ -107,6 +121,14 @@ export class JobQueue extends EventEmitter {
     j.costUsd = round(j.costUsd + usd);
     j.costEstimated = true;
     this.emit("estimatedCharge", j, usd);
+  }
+
+  /** A job abandoned after dispatch may still have been accepted: charge the dispatch-time estimate once. */
+  private chargeAbandoned(j: Job, what: string): string {
+    const usd = j.estCostUsd ?? 0;
+    if (!j.dispatchedAt || j.costEstimated || usd <= 0) return "";
+    this.chargeEstimate(j, usd);
+    return `${what} after the request was sent to the provider, so it may have been accepted and charged. Mycel charged the estimated cost ($${usd}) to the budget; check the provider.`;
   }
 
   private persist() {
@@ -154,6 +176,8 @@ export class JobQueue extends EventEmitter {
       this.controllers.get(id)?.abort();
       j.status = "cancelled";
       j.finishedAt = new Date().toISOString();
+      const note = this.chargeAbandoned(j, "Cancelled");
+      if (note) j.message = note;
       this.persist();
       this.emit("update", j);
     }
@@ -165,7 +189,7 @@ export class JobQueue extends EventEmitter {
     const j = this.jobs.get(id);
     if (!j) throw new Error(`No job ${id}`);
     if (!["failed", "interrupted", "cancelled", "unknown"].includes(j.status)) throw new Error(`Job ${id} is ${j.status}`);
-    Object.assign(j, { status: "queued", attempts: 0, error: undefined, finishedAt: undefined, startedAt: undefined, dispatchedAt: undefined, dispatchedTool: undefined });
+    Object.assign(j, { status: "queued", attempts: 0, error: undefined, finishedAt: undefined, startedAt: undefined, dispatchedAt: undefined, dispatchedTool: undefined, estCostUsd: undefined });
     this.persist();
     this.emit("update", j);
     this.pump();
@@ -216,6 +240,8 @@ export class JobQueue extends EventEmitter {
     };
     try {
       let lastErr: unknown;
+      // A dispatch recorded before a restart may have been accepted; a later rejection must not erase that memory.
+      const carried = job.dispatchedAt ? { at: job.dispatchedAt, tool: job.dispatchedTool, est: job.estCostUsd } : undefined;
       let unknownErr: CallError | undefined;
       outer: for (const tool of job.chain) {
         for (let attempt = 0; attempt < job.maxAttempts; attempt++) {
@@ -223,6 +249,9 @@ export class JobQueue extends EventEmitter {
           job.attempts++;
           job.dispatchedAt = new Date().toISOString();
           job.dispatchedTool = tool;
+          const info = this.opts.dispatchInfo?.(tool);
+          if (info?.estCostUsd !== undefined) job.estCostUsd = info.estCostUsd;
+          if (info?.idempotencyKeyArg) job.idempotencyKey ??= `mycel-${job.id}`;
           this.persist();
           try {
             const { result, costUsd } = await this.runner(tool, job.args, { signal: ac.signal, progress, job });
@@ -242,8 +271,9 @@ export class JobQueue extends EventEmitter {
               if (!job.idempotent) break outer;
             } else {
               unknownErr = undefined;
-              job.dispatchedAt = undefined;
-              job.dispatchedTool = undefined;
+              job.dispatchedAt = carried?.at;
+              job.dispatchedTool = carried?.tool;
+              job.estCostUsd = carried?.est;
             }
             if (attempt + 1 < job.maxAttempts) await sleep((this.opts.backoffMs ?? 500) * 2 ** attempt, ac.signal);
           }
@@ -251,15 +281,22 @@ export class JobQueue extends EventEmitter {
         if (unknownErr) break; // retries exhausted on an unknown outcome: do not fall back
       }
       if (job.status === "running") {
-        if (ac.signal.aborted) job.status = "cancelled";
-        else if (unknownErr) {
+        if (ac.signal.aborted) {
+          job.status = "cancelled";
+          const note = this.chargeAbandoned(job, "Cancelled");
+          if (note) job.message = note;
+        } else if (unknownErr) {
           job.status = "unknown";
-          const est = unknownErr.estimatedCostUsd ?? 0;
+          const est = job.estCostUsd ?? unknownErr.estimatedCostUsd ?? 0;
           if (est > 0) this.chargeEstimate(job, est);
           job.error = `The provider may have accepted this job; check the provider before retrying. Mycel did not fall back to avoid paying twice.${est > 0 ? ` Estimated cost $${est} was charged to the budget.` : ""} (${unknownErr.message})`;
         } else {
           job.status = "failed";
           job.error = lastErr instanceof Error ? lastErr.message : String(lastErr);
+          if (carried) {
+            const note = this.chargeAbandoned(job, "This job had been dispatched before the gateway restarted");
+            if (note) job.error = `${job.error} ${note}`;
+          }
         }
       }
     } finally {

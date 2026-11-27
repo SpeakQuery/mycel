@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -187,7 +187,7 @@
               </tbody>
             </table>
           </div>
-          <p class="fine">One run per cell, not a statistical result. Honestly: on small-file tasks Mycel took about one extra turn (e.g. "find a decision in a small file", cache on: direct 3 turns / 5.2 s vs Mycel 4 / 6.0 s), and write tasks stopped for approval in a non-interactive client, by design (pre-approve writes for headless use: see Configuration → policy in the docs). Protocol: <code>docs/benchmark-protocol.md</code>.</p>
+          <p class="fine">One run per cell, not a statistical result. Honestly: on small-file tasks Mycel took about one extra turn (e.g. "find a decision in a small file", cache on: direct 3 turns / 5.2 s vs Mycel 4 / 6.0 s), and write tasks stopped for approval in a non-interactive client, by design (pre-approve writes for headless use: see Configuration → policy in the docs; some clients, e.g. Claude Code in print mode, turn an approval request into their own denial, so the model sees "denied by the user"). A run with a 1.7B local model completed no task in either arm, so we make no claim from it. Protocol: <code>docs/benchmark-protocol.md</code>.</p>
         </div>
         <p class="fine">Reproduce it yourself: <code>mycel bench</code>. Numbers vary with your catalog and task. The direct round-trip count in this bench is computed, not a recorded session.</p>
       </div>
@@ -280,53 +280,54 @@
       <div class="wrap">
         <p class="kicker">Who it's for</p>
         <h2 id="who-title">Four kinds of users, <span class="glow">each with an honest status.</span></h2>
-        <p class="section-lede">Only the last two have measurements behind them.</p>
+        <p class="section-lede">The evidence is a mock or scripted setup with a small n, not a field result. Local, single-user, read-heavy use is the recommended pilot; paid jobs with automatic fallback are not.</p>
         <ul class="reasons who-grid" aria-label="Personas">
           <li class="reason">
-            <h3><span aria-hidden="true">🎬</span> AI video, voice-over and content creators</h3>
-            <p class="who-badge wb-warn">Designed for; end-to-end not yet tested. Pilot wanted.</p>
-            <p><strong>Pain:</strong> base64 media in the prompt, renders that time out mid-call, every agent holding every key, runaway spend.</p>
-            <ol class="who-steps">
-              <li>Servers: Higgsfield, Canva, a TTS server, storage. 5–6 agents: script, image, video, voice, edit.</li>
-              <li>Image results come back as <code>ref://</code> with a keyframe digest, not base64.</li>
-              <li>Renders run as jobs; a per-job budget cap and approval gate paid calls.</li>
-              <li>Each agent gets a capability token with only its tools. A lost-reply job is marked <code>unknown</code>: no double pay.</li>
-            </ol>
-          </li>
-          <li class="reason">
-            <h3><span aria-hidden="true">📣</span> AI editors and content/marketing teams</h3>
-            <p class="who-badge wb-warn">Partly tested (Canva read calls through OAuth); publishing flows not yet tested.</p>
-            <p><strong>Pain:</strong> designs, docs and brand assets across many tools, and agents that can publish or send unseen.</p>
-            <ol class="who-steps">
-              <li>Servers: Canva, docs, storage.</li>
-              <li>The agent finds designs with <code>mycel_search</code> and reads assets by ref.</li>
-              <li>Publish or send is an external effect: approval first (inline or <code>mycel approve</code>), per-day budget cap.</li>
-              <li>The flight recorder shows what went out.</li>
-            </ol>
-          </li>
-          <li class="reason">
-            <h3><span aria-hidden="true">🔬</span> Researchers and data/science work</h3>
-            <p class="who-badge wb-ok">Measured (CSV, n=1).</p>
+            <h3><span aria-hidden="true">🔬</span> Researchers and data analysts</h3>
+            <p class="who-badge wb-ok">MEASURED (with caveat)</p>
             <p><strong>Pain:</strong> big CSV/SQL results and PDFs flowing through the prompt.</p>
             <ol class="who-steps">
-              <li>Measured: find the rare row in a 20,000-row CSV, real Claude Code session, cache off: direct 12 turns / 34.5 s vs Mycel 4 turns / 6.6 s.</li>
-              <li>The agent greps the ref and reads only the line it needs.</li>
-              <li>Designed, not measured: arXiv search, papers read by ref.</li>
+              <li>In a 20,000-row dataset with two exceptions, a text search on the ref found one and missed the other. A Code Mode numeric scan over the ref found both.</li>
+              <li>The model's first report omitted both until it was asked to verify against the file.</li>
+              <li><strong>Lesson:</strong> verify against the full data; digests don't guarantee every exception is seen.</li>
+              <li>Earlier single run: rare row in a 20,000-row CSV, cache off: direct 12 turns / 34.5 s vs Mycel 4 turns / 6.6 s.</li>
             </ol>
           </li>
           <li class="reason">
             <h3><span aria-hidden="true">🧑‍💻</span> Developers with many MCP servers</h3>
-            <p class="who-badge wb-ok">Measured (field test, 8 servers, CI).</p>
+            <p class="who-badge wb-warn">PARTIAL</p>
             <p><strong>Pain:</strong> git, filesystem, Playwright, a database and docs (e.g. context7) in a client or framework that sends every definition up front.</p>
             <ol class="who-steps">
               <li>8 servers, 80 tools: 17.8k → 1.0k definition tokens (chars/4).</li>
-              <li>"Read 15 files, decide, write" as one Code Mode script.</li>
-              <li>An untrusted page's <code>write_file</code> is blocked pending approval.</li>
+              <li>A scripted fix flow (git + browser + db) works; a model-written patch failed.</li>
+              <li>Turkish search put the right tool in the top 3 in 0/5 queries; English is much better.</li>
               <li><strong>Not for you</strong> if you run 1–2 small servers, or use Claude Code/Cursor only for definition savings.</li>
             </ol>
           </li>
+          <li class="reason">
+            <h3><span aria-hidden="true">📣</span> AI editors and content/marketing teams</h3>
+            <p class="who-badge wb-warn">PARTIAL</p>
+            <p><strong>Pain:</strong> designs, docs and brand assets across many tools, and agents that can publish or send unseen.</p>
+            <ol class="who-steps">
+              <li>Servers: Canva, docs, storage. The agent finds designs with <code>mycel_search</code> and reads assets by ref.</li>
+              <li>With the example policy, publish or send (an external effect) needs approval, inline or <code>mycel approve</code>.</li>
+              <li>In the mock publish test, approval was needed only because of that policy; the default policy allows a clean external call.</li>
+              <li>The model added unsourced claims to the text.</li>
+            </ol>
+          </li>
+          <li class="reason">
+            <h3><span aria-hidden="true">🎬</span> Video / voice producers</h3>
+            <p class="who-badge wb-warn">PARTIAL (pilot)</p>
+            <p><strong>Pain:</strong> base64 media in the prompt, renders that time out mid-call, every agent holding every key, runaway spend.</p>
+            <ol class="who-steps">
+              <li>A 5-agent mock pipeline worked: per-role tokens, refs passed between agents, the budget cap rejected the second request, and the final file had video and audio (5.000 s).</li>
+              <li>Real Higgsfield/Canva timing and quality were not measured.</li>
+              <li><strong>Not yet recommended:</strong> automatic fallback across paid providers. Mycel avoids automatic double submission: after an error or lost reply from a paid tool it marks the job <code>unknown</code>, records an estimated charge and does not fall back, unless you declare that the provider's errors mean nothing was charged (<code>errorsAreRejections: true</code>). For true exactly-once, the provider must deduplicate; Mycel can pass a stable per-job key (<code>idempotencyKeyArg</code>). Reconcile <code>unknown</code> jobs with the provider.</li>
+            </ol>
+          </li>
         </ul>
-        <p class="fine">Run one of these and tell us: open an issue with your numbers (see <code>docs/benchmark-protocol.md</code>).</p>
+        <p class="fine"><strong>Pilot:</strong> we're looking for 5 users (data analyst, data-quality engineer, developer with 5+ MCP servers, content editor, video/voice producer) — 45 minutes, your machine, paid actions mocked. <a href="https://github.com/SpeakQuery/mycel/issues/new" rel="noopener">Open an issue</a> to join.</p>
+        <p class="fine">Run one of these and tell us: <a href="https://github.com/SpeakQuery/mycel/issues/new" rel="noopener">open an issue</a> with your numbers (see <code>docs/benchmark-protocol.md</code>).</p>
       </div>
     </section>
 
@@ -540,10 +541,12 @@
   <span class="k">github</span>: { <span class="k">command</span>: npx, <span class="k">args</span>: [<span class="s">"-y"</span>, <span class="s">"@modelcontextprotocol/server-github"</span>], <span class="k">env</span>: { <span class="k">GITHUB_TOKEN</span>: <span class="s">"{{secret:GITHUB_TOKEN}}"</span> } }
   <span class="k">studio</span>: { <span class="k">url</span>: <span class="s">"https://studio.example.com/mcp"</span>, <span class="k">trust</span>: <span class="w">untrusted</span> }
 <span class="k">policy</span>:
-  - <span class="k">match</span>: { <span class="k">effect</span>: destructive }
-    <span class="k">action</span>: <span class="w">approve</span>
   - <span class="k">match</span>: { <span class="k">tool</span>: <span class="s">"github.*delete*"</span> }
     <span class="k">action</span>: <span class="w">deny</span>
+  - <span class="k">match</span>: { <span class="k">effect</span>: destructive }
+    <span class="k">action</span>: <span class="w">approve</span>
+  - <span class="k">match</span>: { <span class="k">effect</span>: external }
+    <span class="k">action</span>: <span class="w">approve</span>
 <span class="k">budget</span>: { <span class="k">perTaskUsd</span>: <span class="n">5</span>, <span class="k">perDayUsd</span>: <span class="n">50</span> }
 <span class="k">refs</span>: { <span class="k">inlineLimitBytes</span>: <span class="n">8000</span> }</code></pre>
             </div>
@@ -563,7 +566,7 @@
 
           <article class="how-step">
             <h3><span class="step-n">3</span> Policy decides before anything irreversible</h3>
-            <p>Rules match by effect or tool glob. A destructive call pauses for approval; a forbidden one never reaches the server.</p>
+            <p>Rules match by effect or tool glob. With this example policy a destructive or external call pauses for approval; a forbidden one never reaches the server.</p>
             <div class="code">
               <div class="code-head"><span>mycel.yaml · policy</span><button class="copy copy-sm" type="button" data-copy-target="code-policy" aria-label="Copy policy rules">Copy</button></div>
 <pre id="code-policy"><code><span class="k">policy</span>:
@@ -575,7 +578,10 @@
     <span class="k">action</span>: <span class="w">approve</span>
   <span class="c"># and some things are simply off-limits</span>
   - <span class="k">match</span>: { <span class="k">tool</span>: <span class="s">"github.*delete*"</span> }
-    <span class="k">action</span>: <span class="w">deny</span></code></pre>
+    <span class="k">action</span>: <span class="w">deny</span>
+  <span class="c"># publish / send needs a human (the default policy allows a clean external call)</span>
+  - <span class="k">match</span>: { <span class="k">effect</span>: external }
+    <span class="k">action</span>: <span class="w">approve</span></code></pre>
             </div>
           </article>
         </div>
@@ -706,7 +712,7 @@
     </div>
   </footer>
 
-  <script src="main.js?v=7" defer></script>
+  <script src="main.js?v=8" defer></script>
   <script type="module" src="assets/scene.js?v=4"></script>
 </body>
 </html>

@@ -48,6 +48,11 @@ policy:
   - match: { effect: external, tainted: true }
     action: approve
     reason: Outbound message built from untrusted content.
+# The default policy allows a clean external call (publish, send, post).
+# This rule makes every external effect wait for a human, tainted or not.
+  - match: { effect: external }
+    action: approve
+    reason: External effect (publish, send, post).
 
 budget:
   perTaskUsd: 1.00

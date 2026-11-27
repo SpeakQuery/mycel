@@ -112,8 +112,15 @@ export class Mycel {
         const t0 = Date.now();
         const traceId = jctx.job.traceId ?? newId();
         try {
-          const out = await this.execute(t, args, { signal: jctx.signal, onProgress: (p) => jctx.progress(p.progress, p.total, p.message), traceId });
-          if (out.isError) throw new CallError(typeof out.result === "string" ? out.result : JSON.stringify(out.result), "rejected");
+          const keyArg = t.contract.idempotencyKeyArg;
+          const callArgs = keyArg && jctx.job.idempotencyKey && args[keyArg] === undefined ? { ...args, [keyArg]: jctx.job.idempotencyKey } : args;
+          const out = await this.execute(t, callArgs, { signal: jctx.signal, onProgress: (p) => jctx.progress(p.progress, p.total, p.message), traceId });
+          if (out.isError) {
+            // A paid provider's error result may hide an accepted (and charged) call, e.g. a lost HTTP reply: only
+            // a contract that says errors guarantee "not charged" lets us treat it as rejected.
+            const paid = t.contract.costUsd > 0 && !t.contract.errorsAreRejections;
+            throw new CallError(typeof out.result === "string" ? out.result : JSON.stringify(out.result), paid ? "unknown" : "rejected");
+          }
           // Jobs are charged when they actually finish, even if nobody is waiting.
           this.budget.charge(out.costUsd, traceId, jctx.job.tokenId);
           this.recorder.record({ traceId, kind: "call", tool: t.id, server: t.server, ok: true, durationMs: Date.now() - t0, costUsd: out.costUsd, tokensSaved: out.rawTokens, bytesOffloaded: out.bytesOffloaded, meta: { job: jctx.job.id } });
@@ -126,7 +133,16 @@ export class Mycel {
           throw ce;
         }
       },
-      { file: join(this.home, "jobs.json"), concurrency: c.jobs.concurrency, deferStart: true },
+      {
+        file: join(this.home, "jobs.json"),
+        concurrency: c.jobs.concurrency,
+        deferStart: true,
+        // Read at the moment of dispatch and persisted with the job: the price actually in force, and whether to send a key.
+        dispatchInfo: (tool) => {
+          const t = this.catalog.get(tool);
+          return { estCostUsd: t?.contract.costUsd, idempotencyKeyArg: t?.contract.idempotencyKeyArg };
+        },
+      },
     );
     this.jobs.on("estimatedCharge", (j: Job, usd: number) => this.budget.charge(usd, j.traceId, j.tokenId));
     this.models = new ModelRouter(c.models, this.vault);

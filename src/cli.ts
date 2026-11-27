@@ -44,7 +44,7 @@ const program = new Command();
 program
   .name("mycel")
   .description("The connective layer for AI agents — MCP gateway + A2A mesh.")
-  .version("0.1.2")
+  .version("0.1.3")
   .option("-c, --config <path>", "path to mycel.yaml");
 
 program
@@ -151,6 +151,7 @@ program
         return loadConfig(program.opts().config ? resolve(program.opts().config) : undefined);
       } catch (e) {
         ok(false, "config is valid", (e as Error).message);
+        process.exitCode = 1;
         return null;
       }
     })();
@@ -191,7 +192,7 @@ program
     const cb = waitForCallback(port, () => provider.expectedState());
     await cb.ready;
     const connect = async () => {
-      const client = new Client({ name: `mycel:${name}`, version: "0.1.2" }, { capabilities: {} });
+      const client = new Client({ name: `mycel:${name}`, version: "0.1.3" }, { capabilities: {} });
       const transport = new StreamableHTTPClientTransport(new URL(cfg.url), { requestInit: { headers: m.vault.inject(cfg.headers) }, authProvider: provider });
       await client.connect(transport);
       return { client, transport };

@@ -30,6 +30,7 @@ const t0 = Date.now();
 const client = new Client({ name: "full-scale-count", version: "1" });
 let mycelTools, instructions;
 const loadedIds = new Set();
+const gatewayIds = new Set(); // every tool id the gateway actually exposes (for the reverse check)
 const wanted = dumps.flatMap((d) => d.tools.map((t) => `${d.server}.${t.name}`));
 try {
   await client.connect(new StdioClientTransport({
@@ -48,6 +49,9 @@ try {
     const res = parse(await client.callTool({ name: "mycel_describe", arguments: { tools: chunk } }));
     for (const r of Array.isArray(res) ? res : []) if (r && !r.error && wanted.includes(r.tool)) loadedIds.add(r.tool);
   }
+  // And the other direction: list everything the gateway holds (mycel_search with query "*" lists all tools).
+  const all = parse(await client.callTool({ name: "mycel_search", arguments: { query: "*", limit: 1_000_000 } }));
+  for (const r of Array.isArray(all) ? all : []) if (r?.tool) gatewayIds.add(r.tool);
 } finally {
   await client.close().catch(() => {});
   rmSync(home, { recursive: true, force: true });
@@ -73,10 +77,15 @@ if (missing.length) {
   console.error(`  servers with missing tools: ${missingServers.map((s) => `${s} (${missing.filter((id) => id.startsWith(s + ".")).length}/${dumps.find((d) => d.server === s).tools.length})`).join(", ")}`);
   console.error(`  e.g. ${missing.slice(0, 5).join(", ")}${missing.length > 5 ? ", …" : ""}`);
 }
-const ok = pct < 5 && !missing.length;
+const wantedSet = new Set(wanted);
+const extra = [...gatewayIds].filter((id) => !wantedSet.has(id));
+if (!gatewayIds.size) console.error("\nFAIL: could not list the gateway's tools (mycel_search \"*\" returned nothing).");
+if (extra.length) console.error(`\nFAIL: the gateway exposes ${extra.length} tool id${extra.length > 1 ? "s" : ""} that are not in the dumps: ${extra.join(", ")}`);
+const ok = pct < 5 && !missing.length && !extra.length && gatewayIds.size > 0;
 writeFileSync(join(here, "results.json"), JSON.stringify({
   servers: rows, totalTools, directTokens, fullPayloadTokens,
   mycel: { exposedTools: mycelTools.length, toolTokens: tok(mycelTools), instructionTokens: tok(instructions), tokens: mycelTokens },
+  gatewayTools: gatewayIds.size,
   mycelPercentOfDirect: +pct.toFixed(2), tokenEstimate: "chars/4", pass: ok,
 }, null, 2) + "\n");
 if (pct >= 5) console.error("FAIL: Mycel footprint is not < 5% of direct.");

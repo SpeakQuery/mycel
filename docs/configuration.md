@@ -90,8 +90,12 @@ All fields are optional. Declared values win over values inferred from MCP annot
 | `async` | boolean | inferred | Always run as a background job. |
 | `fallback` | string[] | none | Ordered tool ids to try when this tool fails (for example `["backup.generate_video"]`). |
 | `retries` | integer 0 to 10 | none | Retry count with backoff. |
+| `errorsAreRejections` | boolean | `false` | Only matters when `costUsd` > 0. By default a paid tool's `isError` result is treated as "outcome unknown" (the provider may have accepted and charged the call, e.g. a lost HTTP reply): Mycel charges the `costUsd` estimate, marks the job `unknown` and neither falls back nor retries. Set `true` only if this provider's error results guarantee nothing was charged; they are then treated as rejected and `fallback` / `retries` apply. Free tools (`costUsd` 0 or unset) always treat `isError` as rejected. |
+| `idempotencyKeyArg` | string | none | Name of a tool argument that carries an idempotency key. For jobs, Mycel generates one stable key per job (`mycel-<jobId>`, persisted) and sends it under this name on every attempt, including retries and after a restart, so a provider that dedups by key charges once. A value you pass in `args` is never overwritten. Pair with `idempotent: true` to resume the job after a restart. |
 
 Unknown keys in a tool contract override are an error; `cost` is an alias of `costUsd`.
+
+Money safety for jobs: the contract `costUsd` in force when an attempt is dispatched is stored on the job. If the outcome is unknown, the job is interrupted by a restart, or you cancel it after dispatch, Mycel charges that stored estimate once (marked `costEstimated`) because the provider may have charged.
 
 ## `policy`
 

@@ -17,6 +17,14 @@ export interface Contract {
   async: boolean;
   fallback: string[];
   retries: number;
+  /**
+   * Only meaningful when costUsd > 0. By default a paid tool's isError result is treated as "outcome unknown"
+   * (many MCP servers report a lost provider reply as isError). Set true when this provider's error results
+   * guarantee nothing was charged: they are then "rejected" (safe to fall back / retry).
+   */
+  errorsAreRejections?: boolean;
+  /** Name of a tool argument that carries an idempotency key; Mycel injects a stable per-job key under it. */
+  idempotencyKeyArg?: string;
   /** Where each field came from, so users can see what is declared vs inferred. */
   source: "declared" | "annotations" | "inferred";
 }

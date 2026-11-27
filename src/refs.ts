@@ -29,6 +29,16 @@ export type Digest =
 
 const REF_RE = /^ref:\/\/([a-f0-9]{24})$/;
 
+/** Error for a handle that is not (or no longer) a ref; non-ref input (paths, globs) gets a hint on what a ref is. */
+export function unknownRef(id: unknown): Error {
+  if (isRefId(id)) return new Error(`Unknown ref ${id}. It may have been evicted or come from another session; list recent refs with mycel_ref {"action":"list"}.`);
+  return new Error(
+    `Unknown ref ${JSON.stringify(id)}: that is not a ref handle. A ref looks like ref://<hex> (24 hex chars, e.g. ref://3fa9c2d17b4e8a60c5d1e2f7). ` +
+      `You get one from a tool result that was too large or binary (the "ref" field), from mycel_ref {"action":"list"}, or from refs.put(...) in mycel_run. ` +
+      `Refs are not file paths or globs: to read or find a file on disk, use the filesystem tool instead.`,
+  );
+}
+
 export function isRefId(v: unknown): v is string {
   return typeof v === "string" && REF_RE.test(v);
 }
@@ -94,17 +104,17 @@ export class RefStore {
   }
 
   meta(id: string): RefMeta {
-    if (!this.has(id)) throw new Error(`Unknown ref ${id}`);
+    if (!this.has(id)) throw unknownRef(id);
     return JSON.parse(readFileSync(this.paths(id).meta, "utf8"));
   }
 
   get(id: string): Buffer {
-    if (!this.has(id)) throw new Error(`Unknown ref ${id}`);
+    if (!this.has(id)) throw unknownRef(id);
     return readFileSync(this.paths(id).data);
   }
 
   path(id: string): string {
-    if (!this.has(id)) throw new Error(`Unknown ref ${id}`);
+    if (!this.has(id)) throw unknownRef(id);
     return this.paths(id).data;
   }
 

@@ -4,7 +4,10 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createMcpServer } from "../src/server.js";
 import { startHttp } from "../src/http.js";
 import { mint, newRootKey, attenuate } from "../src/tokens.js";
-import { makeMycel } from "./helpers.js";
+import { existsSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { makeMycel, tmp } from "./helpers.js";
 
 const bigRows = Array.from({ length: 2000 }, (_, i) => ({ id: i, region: ["EU", "US"][i % 2], revenue: i * 3 }));
 
@@ -168,6 +171,38 @@ describe("MCP surface", () => {
     expect(server.getClientVersion()?.name).toBe("test");
   });
 
+  it('mycel_search with query "*" lists every tool of a server (no default cap) and filters by server', async () => {
+    const { m } = await makeMycel({ big: { tools: Array.from({ length: 40 }, (_, i) => ({ name: `tool_${i}`, description: `Tool number ${i}` })) }, other: { tools: [{ name: "x", description: "x" }] } }, { router: { mode: "meta" } });
+    const server = createMcpServer(m);
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    await server.connect(a);
+    const client = new Client({ name: "test", version: "1" });
+    await client.connect(b);
+    const all = JSON.parse(((await client.callTool({ name: "mycel_search", arguments: { query: "*", server: "big" } })).content as Array<{ text: string }>)[0].text);
+    expect(all.map((r: { tool: string }) => r.tool).sort()).toEqual(Array.from({ length: 40 }, (_, i) => `big.tool_${i}`).sort());
+    const capped = JSON.parse(((await client.callTool({ name: "mycel_search", arguments: { query: "*", server: "big", limit: 5 } })).content as Array<{ text: string }>)[0].text);
+    expect(capped).toHaveLength(5);
+  });
+
+  it("mycel_ref explains what a ref is when given a path or glob", async () => {
+    const { m } = await world();
+    const server = createMcpServer(m);
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    await server.connect(a);
+    const client = new Client({ name: "test", version: "1" });
+    await client.connect(b);
+    for (const ref of ["/Users/me/Downloads/*.png", "./report.csv", "report.csv"]) {
+      const r = await client.callTool({ name: "mycel_ref", arguments: { ref } });
+      const text = (r.content as Array<{ text: string }>)[0].text;
+      expect(r.isError).toBe(true);
+      expect(text).toContain("ref://<hex>");
+      expect(text).toContain('mycel_ref {"action":"list"}');
+      expect(text).toMatch(/filesystem tool/);
+    }
+    const missing = await client.callTool({ name: "mycel_ref", arguments: { ref: "ref://" + "0".repeat(24) } });
+    expect((missing.content as Array<{ text: string }>)[0].text).toMatch(/^Error: Unknown ref ref:\/\/0+/);
+  });
+
   it("auto mode stays compact for small catalogs and switches to meta for big ones", async () => {
     const small = (await world({ router: { mode: "auto" } })).m;
     expect(small.routerMode()).toBe("compact");
@@ -274,5 +309,16 @@ describe("HTTP: A2A + MCP + dashboard API", () => {
     const { tools } = await client.listTools();
     expect(tools.length).toBe(6);
     await client.close();
+  });
+});
+
+describe("mycel doctor", () => {
+  const cli = join(__dirname, "..", "dist", "cli.js");
+  it.skipIf(!existsSync(cli))("exits 1 when the config is invalid", () => {
+    const dir = tmp();
+    writeFileSync(join(dir, "mycel.yaml"), "servers:\n  s:\n    command: x\n    tools:\n      t:\n        notAKey: 1\n");
+    const r = spawnSync(process.execPath, [cli, "doctor", "-c", join(dir, "mycel.yaml")], { encoding: "utf8", cwd: dir });
+    expect(r.stdout + r.stderr).toMatch(/config is valid/);
+    expect(r.status).toBe(1);
   });
 });

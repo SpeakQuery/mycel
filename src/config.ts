@@ -11,7 +11,7 @@ export type Effect = (typeof EFFECTS)[number];
 export const Trust = z.enum(["trusted", "untrusted"]);
 export type Trust = z.infer<typeof Trust>;
 
-const CONTRACT_KEYS = ["effect", "idempotent", "costUsd", "cost", "latencyMs", "async", "fallback", "retries"];
+const CONTRACT_KEYS = ["effect", "idempotent", "costUsd", "cost", "latencyMs", "async", "fallback", "retries", "errorsAreRejections", "idempotencyKeyArg"];
 const ContractOverrideShape = z.object({
   effect: z.enum(EFFECTS).optional(),
   idempotent: z.boolean().optional(),
@@ -20,6 +20,8 @@ const ContractOverrideShape = z.object({
   async: z.boolean().optional(),
   fallback: z.array(z.string()).optional(),
   retries: z.number().int().min(0).max(10).optional(),
+  errorsAreRejections: z.boolean().optional(),
+  idempotencyKeyArg: z.string().min(1).optional(),
 });
 const ContractOverride = z.preprocess((v, ctx) => {
   if (!v || typeof v !== "object" || Array.isArray(v)) return v;

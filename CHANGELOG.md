@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.3 — 2026-11-27
+
+From the third independent review (mock paid provider, $0.40 per accepted job; provider receipts now match or are below Mycel's ledger in every scenario):
+
+- Fixed (money): a paid tool (`costUsd > 0`) that returns `isError` is treated as "outcome unknown": charged the estimate once, marked `unknown`, never retried or sent to a fallback. Stdio MCP servers wrapping paid HTTP APIs report a lost provider reply this way. Set `errorsAreRejections: true` only if the provider's error results guarantee nothing was charged. Free tools are unchanged.
+- Fixed: the price at dispatch is stored on the job (`estCostUsd`), so jobs interrupted by a restart are charged even when their tool is no longer in the catalog. Cancelling after dispatch charges the estimate once.
+- Added: contract key `idempotencyKeyArg` — one stable key per job, sent on every attempt including after a restart, so a deduplicating provider charges once.
+- Fixed: `mycel doctor` exits 1 when the config is invalid.
+- Added: `mycel_search` with `query: "*"` lists all tools (filter by `server`/`effect`). The full-scale gate is now two-way (fails on missing and on extra tool ids).
+- Improved: `mycel_ref` given a path or glob explains what a ref looks like.
+- Docs: removed "never pay twice" claims; automatic fallback across paid providers is not yet recommended; persona badges updated from the review (researcher: measured with caveat; others partial); example policies require approval for external effects; headless-client approval note.
+
 ## 0.1.2 — 2026-11-27
 
 - `examples/full-scale`: the 15-server figure (420 tools, 203.5k → 1.2k tokens) is now reproducible offline from recorded tool lists; runs in CI.

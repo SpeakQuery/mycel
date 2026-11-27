@@ -15,7 +15,7 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 [![Node ≥ 20](https://img.shields.io/badge/node-%E2%89%A520-3DFFB0?style=flat-square)](package.json)
 [![MCP compatible](https://img.shields.io/badge/MCP-compatible-3DFFB0?style=flat-square)](https://modelcontextprotocol.io)
 [![A2A v0.3](https://img.shields.io/badge/A2A-v0.3-3DFFB0?style=flat-square)](https://a2a-protocol.org)
-[![Tests](https://img.shields.io/badge/tests-47%20passing-3DFFB0?style=flat-square)](tests)
+[![Tests](https://img.shields.io/badge/tests-82%20passing-3DFFB0?style=flat-square)](tests)
 
 [**▶ Watch the 90-second film**](https://mycel.speakquery.ai/#film) · [Quickstart](#-quickstart) · [Benchmark](#-the-numbers) · [How it works](#-how-it-works) · [All 20 features](#-features) · [Docs](docs/)
 
@@ -47,6 +47,8 @@ This is one run per cell, not a statistical result. To be fair about the other s
 - **Small files cost about one extra turn.** On "find a decision in a small file" (cache on) direct took 3 turns / 5.2 s and Mycel 4 turns / 6.0 s.
 - **Write tasks stopped for approval** in a non-interactive client. That is by design; pre-approve writes for headless use (see [Configuration → policy](docs/configuration.md#policy)).
 - In non-interactive clients (no MCP elicitation) nobody can approve inline. Pre-approve with a rule above the approving rule, e.g. `policy: [{ match: { tool: "github.add_label" }, action: allow }]` or `{ match: { server: "github", effect: write }, action: allow }`. Rules are first-match-wins.
+- Some clients (for example Claude Code in print mode) turn an approval request into their own denial, so the model sees "denied by the user" instead of Mycel's how-to-approve text. For headless use, pre-approve via policy.
+- A run with a 1.7B local model completed no task in either arm; small models also confused ref handles with file paths, and the error now explains the ref format. We make no speed or success claim from it.
 - Protocol for running your own comparison: [docs/benchmark-protocol.md](docs/benchmark-protocol.md).
 
 <p align="center"><img src="media/anim-counter.svg" alt="Measured results: -94% tool definitions with 8 servers, 204k to 1.2k tokens with 420 tools, 131k to 187 tokens for a 20,000-row CSV, 17 tool calls in 1 round trip" width="860"></p>
@@ -93,31 +95,38 @@ This is one run per cell, not a statistical result. To be fair about the other s
 
 ## 👥 Who is it for?
 
-Four kinds of users, each with an honest status. Only the last two have measurements behind them.
+Four kinds of users, each with an honest status. The evidence is a mock or scripted setup with a small n, not a field result. Local, single-user, read-heavy use is the recommended pilot; paid jobs with automatic fallback are not.
 
-### 🎬 1. AI video, voice-over and content creators running 5–6 agents
-**Status: designed for; end-to-end not yet tested — pilot wanted.**
-- **Pain:** media passed around as base64, renders that time out mid-call, every agent holding every key, a loop that quietly spends money.
-- **Scenario:** servers are Higgsfield (image/video), Canva, a TTS server and storage. A script agent writes; an image agent generates, and the result is a `ref://` with a keyframe digest, not base64. The video render runs as a **job** (progress, cancel, retry) and takes the image ref as input. A per-job **budget cap** and an **approval** gate the paid calls. Each agent gets a **capability token** with only its own tools. If a provider accepts a job and the reply is lost, the job is marked `unknown` and nothing is paid twice.
-
-### 📣 2. AI editors and content/marketing teams
-**Status: partly tested (Canva read calls through OAuth); publishing flows not yet tested.**
-- **Pain:** designs, docs and brand assets across many tools, and agents that can publish or send without a human looking.
-- **Scenario:** Canva, a docs server and storage. The agent finds designs with `mycel_search` and reads assets by ref. Any publish or send is an `external` effect: it needs approval (inline or `mycel approve`), and a per-day budget caps spend. The flight recorder shows what went out.
-
-### 🔬 3. Researchers and data/science work
-**Status: measured (CSV, n=1).**
+### 🔬 1. Researchers and data analysts
+**Badge: MEASURED (with caveat).**
 - **Pain:** big CSV/SQL results and PDFs flowing through the prompt.
-- **Scenario A (measured):** find the one rare row in a 20,000-row CSV. In a real Claude Code session (single run, cache off) direct took 12 turns / 34.5 s, Mycel 4 turns / 6.6 s. The agent greps the ref and reads only the line it needs.
-- **Scenario B (designed, not measured):** search arXiv, read papers by ref, hand the ref to a summarising tool.
+- **Lead story (measured, with a caveat):** in a 20,000-row dataset with two planted exceptions, a text search on the ref found one and missed the other; a Code Mode numeric scan over the ref found both. The model's first report omitted both until it was asked to verify against the file. **Lesson: verify against the full data; digests don't guarantee that every exception is seen.**
+- **Earlier run (one run, cache off):** find the one rare row in a 20,000-row CSV: direct 12 turns / 34.5 s, Mycel 4 turns / 6.6 s.
+- **Designed, not measured:** search arXiv, read papers by ref, hand the ref to a summarising tool.
 
-### 🧑‍💻 4. Developers with many MCP servers
-**Status: measured (field test, 8 servers, CI).**
+### 🧑‍💻 2. Developers with many MCP servers
+**Badge: PARTIAL.**
 - **Pain:** git, filesystem, browser/Playwright, a database and docs (e.g. context7) in a client or agent framework that sends every tool definition up front.
-- **Scenario:** 8 servers, 80 tools: 17.8k → 1.0k definition tokens (chars/4). "Read 15 files, decide, write" runs as one Code Mode script. An untrusted page that tries `write_file` is blocked pending approval.
+- **Measured:** 8 servers, 80 tools: 17.8k → 1.0k definition tokens (chars/4). A scripted fix flow (git + browser + db) works.
+- **Not working yet:** a model-written patch failed; Turkish search put the right tool in the top 3 in 0/5 queries (English is much better).
 - **When NOT for you:** 1–2 small servers (Mycel costs more context there), or Claude Code/Cursor if all you want is definition savings.
 
-**Run one of these and tell us:** open an issue with your numbers (see [docs/benchmark-protocol.md](docs/benchmark-protocol.md)).
+### 📣 3. AI editors and content/marketing teams
+**Badge: PARTIAL.**
+- **Pain:** designs, docs and brand assets across many tools, and agents that can publish or send without a human looking.
+- **Scenario:** Canva, a docs server and storage. The agent finds designs with `mycel_search` and reads assets by ref. With the example policy, a publish or send (an `external` effect) needs approval (inline or `mycel approve`), and a per-day budget caps spend.
+- **Caveat:** in the mock publish test approval was needed only because of the example policy; the default policy allows a clean external call. The model also added unsourced claims to the text.
+
+### 🎬 4. Video / voice producers running 5–6 agents
+**Badge: PARTIAL (pilot).**
+- **Pain:** media passed around as base64, renders that time out mid-call, every agent holding every key, a loop that quietly spends money.
+- **Measured (mock pipeline):** a 5-agent mock pipeline worked: per-role tokens, refs passed between agents, the budget cap rejected the second request, and the final file had video and audio (5.000 s).
+- **Not measured:** real Higgsfield/Canva timing and quality.
+- **Not yet recommended:** automatic fallback across paid providers. Mycel avoids automatic double submission: after an error or lost reply from a paid tool it marks the job `unknown`, records an estimated charge and does not fall back, unless you declare that the provider's errors mean nothing was charged (`errorsAreRejections: true`). For true exactly-once, the provider must deduplicate; Mycel can pass a stable per-job key (`idempotencyKeyArg`). Reconcile `unknown` jobs with the provider.
+
+> **Pilot:** we're looking for 5 users (data analyst, data-quality engineer, developer with 5+ MCP servers, content editor, video/voice producer) — 45 minutes, your machine, paid actions mocked. [Open an issue](https://github.com/SpeakQuery/mycel/issues/new) to join.
+
+**Run one of these and tell us:** [open an issue](https://github.com/SpeakQuery/mycel/issues/new) with your numbers (see [docs/benchmark-protocol.md](docs/benchmark-protocol.md)).
 
 ---
 
@@ -317,11 +326,11 @@ All 20 ship in v1. Every one is opt-in beyond the defaults, and a 10-line config
 | **1 · Smart Tool Router** | BM25 search (names ×3, server ×2, descriptions, params, synonyms) over every connected tool. Schemas load only on demand. Modes: `auto` (default — small catalogs get every tool directly plus `run`/`ref`/`job`; past ~4k tokens of definitions it switches to `meta`), `meta`, `hybrid` (meta-tools + your top-N most-used tools directly), `passthrough`. |
 | **2 · Code Mode** | The model writes one async JS script; it runs in a **QuickJS WebAssembly sandbox** (no fs, no network, no Node APIs, CPU/memory/call caps). Only the return value comes back. `Promise.all` works. |
 | **3 · Ref Store** | Content-addressed (`ref://<sha256>`) storage for anything big or binary, with model-sized **digests**: JSON shape + sample, table columns + stats, text outline, image/video/audio metadata, video keyframes (ffmpeg). Pass refs straight into tool args as text, JSON, base64, data URL or file path. |
-| **4 · Job Queue** | Slow tools become jobs: progress, cancel, retry with backoff, **provider fallback chains**, resume after restart (idempotent jobs only — nothing runs twice by surprise). |
+| **4 · Job Queue** | Slow tools become jobs: progress, cancel, retry with backoff, **provider fallback chains**, resume after restart (idempotent jobs only; non-idempotent jobs are never re-run automatically). |
 | **5 · Cost & Budget** | Per-tool cost/latency contracts, `dryRun` estimates, per-task / per-day / per-token spend caps. Tools without a declared cost count as $0; set `costUsd` (alias `cost`) per tool for budgets to be meaningful. |
 | **15 · Model Router** | `mycel_ask` hands self-contained sub-tasks (summarise, extract, classify) to a `fast`/`balanced`/`deep` tier — any OpenAI-compatible endpoint (Ollama, vLLM, LM Studio, OpenRouter…) or Anthropic. Refs in the prompt are expanded for the sub-model, not your main context. |
 
-> **Paid jobs, honestly:** Fallback providers are tried only when the previous provider definitely rejected the call (connection refused, MCP error response, tool error). If the outcome is unknown (timeout, connection lost after the request was sent), Mycel stops, marks the job `unknown`, charges the contract `costUsd` as an estimate (`costEstimated: true`) and does not fall back, so you don't pay twice. Check the provider, then `mycel_job retry` if appropriate. Non-idempotent jobs interrupted by a restart after dispatch are marked `interrupted` and charged the same estimate. There is no exactly-once guarantee for paid providers.
+> **Paid jobs, honestly — not yet recommended for automatic fallback across paid providers.** Mycel avoids automatic double submission: after an error or lost reply from a paid tool it marks the job `unknown`, records an estimated charge and does not fall back, unless you declare that the provider's errors mean nothing was charged (`errorsAreRejections: true`). For true exactly-once, the provider must deduplicate; Mycel can pass a stable per-job key (`idempotencyKeyArg`). Reconcile `unknown` jobs with the provider. Fallback providers are tried automatically only when the failure is known to be a rejection (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). If you cancel after dispatch, Mycel charges an estimate. Non-idempotent jobs interrupted by a restart after dispatch are marked `interrupted` and charged the same estimate.
 
 ### Trust
 | Feature | What it does |
@@ -381,6 +390,9 @@ policy:
   - match: { tainted: true, effect: external }
     action: approve
     reason: Untrusted content is trying to send something out.
+  - match: { effect: external }             # publish / send tools: a human approves each one
+    action: approve
+    reason: External effect (publish, send, post).
 budget:  { perTaskUsd: 5, perDayUsd: 50 }
 refs:    { inlineLimitBytes: 8000 }
 sandbox: { timeoutMs: 30000, memoryMb: 64, maxToolCalls: 200 }
@@ -492,7 +504,7 @@ Mycel **reduces and exposes** risk; it does not "solve" prompt injection. What i
 
 ## Contributing
 
-PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (47 tests) in a few seconds.
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm install && npm test` runs the full suite (82 tests) in a few seconds.
 
 ## License
 

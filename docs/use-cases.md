@@ -11,11 +11,11 @@ Mycel is a local, single-user MCP gateway. Everything below uses real features o
 | 3 | [AI editors and content/marketing teams](#3-ai-editors-and-contentmarketing-teams) | PARTIAL |
 | 4 | [Video / voice producers](#4-video-voice-producers) | PARTIAL (pilot) |
 | 5 | [Customer-support agents](#5-customersupport-agents) | PARTIAL |
-| 6 | [E-commerce operations](#6-ecommerce-operations) | DESIGNED FOR — not yet tested |
+| 6 | [E-commerce operations](#6-ecommerce-operations) | PARTIAL |
 | 7 | [Legal / document review](#7-legal-document-review) | PARTIAL |
-| 8 | [Finance & accounting reporting](#8-finance-accounting-reporting) | DESIGNED FOR — not yet tested |
+| 8 | [Finance & accounting reporting](#8-finance-accounting-reporting) | PARTIAL |
 | 9 | [Data engineering / ETL quality](#9-data-engineering-etl-quality) | PARTIAL |
-| 10 | [Agencies & social-media teams](#10-agencies-socialmedia-teams) | DESIGNED FOR — not yet tested |
+| 10 | [Agencies & social-media teams](#10-agencies-socialmedia-teams) | MEASURED (mock pilot) |
 
 ## 1–4. The four tested personas
 
@@ -49,7 +49,9 @@ Full evidence, numbers and caveats for these four are in the README section [Who
 
 ## 6. 🛒 E-commerce operations
 
-**Status: DESIGNED FOR — not yet tested.**
+**Status: PARTIAL.**
+
+**Evidence (independent review, mock services, 3 runs each):** scripted runs 3/3 corrected the three under-cost prices among 24,000 products, 0 false positives, and every price list waited for publish approval (explicit external→approve rule); the catalog never entered the model context. A small local model (Qwen3-4B) 0/3 (could not compare prices over the CSV, no draft). Note: approval for trusted external actions (publish, upload, send) requires an explicit `{ match: { effect: external }, action: approve }` rule; the default policy allows them.
 
 - **Who:** Shop operators and catalog/merchandising teams.
 - **Typical MCP servers:** product catalog (CSV or database), storefront/admin API, image generation or editing, file storage.
@@ -89,7 +91,9 @@ Full evidence, numbers and caveats for these four are in the README section [Who
 
 ## 8. 📊 Finance & accounting reporting
 
-**Status: DESIGNED FOR — not yet tested.**
+**Status: PARTIAL.**
+
+**Evidence (mock services):** scripted runs 3/3 found all three issues in 32,000 ledger rows; in every run the two mock provider receipts matched Mycel's ledger; a third call that would exceed the $0.10 budget cap was refused; the flight recorder had 18 of 18 tool calls. Small local model 0/3 (did not call the ledger/FX tools).
 
 - **Who:** Finance analysts and accountants preparing reports and reconciliations.
 - **Typical MCP servers:** ledger/ERP export, spreadsheet or database, paid market or reference-data APIs, file storage.
@@ -130,7 +134,9 @@ Full evidence, numbers and caveats for these four are in the README section [Who
 
 ## 10. 📱 Agencies & social-media teams
 
-**Status: DESIGNED FOR — not yet tested.**
+**Status: MEASURED (mock pilot).**
+
+**Evidence (mock pilot):** scripted 3/3 and a real local model (Qwen3-4B) 3/3: with a posting-only capability token, billing calls were refused for every client, the analytics report travelled as a ref, and posting waited for approval (3 approval ids matched the queue; 0 unapproved posts). Measured with mock services; real platform APIs not tested.
 
 - **Who:** Agencies and in-house social teams running several agents over many client accounts.
 - **Typical MCP servers:** Canva or other design tools, scheduling/publishing, analytics, ad or billing tools, storage.

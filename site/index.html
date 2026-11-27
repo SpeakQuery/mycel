@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -364,13 +364,14 @@
           </li>
           <li class="reason who-card">
             <h3><span aria-hidden="true">🛒</span> E-commerce operations</h3>
-            <p class="who-badge wb-designed">DESIGNED FOR — not yet tested</p>
+            <p class="who-badge wb-warn">PARTIAL</p>
             <p class="who-value">Bulk catalog and price changes in one script, with approval before anything goes live.</p>
             <details class="who-more">
               <summary>Scenario, pilot metric, not a fit</summary>
               <p><strong>Who:</strong> Shop operators and catalog/merchandising teams.</p>
               <p><strong>Typical MCP servers:</strong> product catalog (CSV or database), storefront/admin API, image generation or editing, file storage.</p>
               <p><strong>Pain:</strong> Catalogs run to thousands of rows, price updates are repetitive, and a wrong publish is visible to customers.</p>
+              <p><strong>Evidence (independent review, mock services, 3 runs each):</strong> scripted runs 3/3 corrected the three under-cost prices among 24,000 products, 0 false positives, and every price list waited for publish approval (explicit external→approve rule); the catalog never entered the model context. A small local model (Qwen3-4B) 0/3 (could not compare prices over the CSV, no draft). Note: approval for trusted external actions (publish, upload, send) requires an explicit `<code>{ match: { effect: external }, action: approve }</code>` rule; the default policy allows them.</p>
               <ol class="who-steps">
                 <li>Export the catalog; it becomes a ref with a table digest (columns, row count, sample) rather than rows in the prompt.</li>
                 <li>The model writes one Code Mode script that loops over the ref, computes new prices and prepares the update payloads in a single round trip.</li>
@@ -405,13 +406,14 @@
           </li>
           <li class="reason who-card">
             <h3><span aria-hidden="true">📊</span> Finance &amp; accounting reporting</h3>
-            <p class="who-badge wb-designed">DESIGNED FOR — not yet tested</p>
+            <p class="who-badge wb-warn">PARTIAL</p>
             <p class="who-value">Big ledger exports stay out of the prompt; paid data lookups are capped and every call is recorded.</p>
             <details class="who-more">
               <summary>Scenario, pilot metric, not a fit</summary>
               <p><strong>Who:</strong> Finance analysts and accountants preparing reports and reconciliations.</p>
               <p><strong>Typical MCP servers:</strong> ledger/ERP export, spreadsheet or database, paid market or reference-data APIs, file storage.</p>
               <p><strong>Pain:</strong> Ledger exports and spreadsheets are huge, reconciliation is many small steps, and paid data APIs can be called in a loop.</p>
+              <p><strong>Evidence (mock services):</strong> scripted runs 3/3 found all three issues in 32,000 ledger rows; in every run the two mock provider receipts matched Mycel's ledger; a third call that would exceed the $0.10 budget cap was refused; the flight recorder had 18 of 18 tool calls. Small local model 0/3 (did not call the ledger/FX tools).</p>
               <ol class="who-steps">
                 <li>The ledger export and the bank statement become refs with table digests.</li>
                 <li>A Code Mode script matches the two over the refs and returns only unmatched lines, one round trip instead of many.</li>
@@ -447,13 +449,14 @@
           </li>
           <li class="reason who-card">
             <h3><span aria-hidden="true">📱</span> Agencies &amp; social-media teams</h3>
-            <p class="who-badge wb-designed">DESIGNED FOR — not yet tested</p>
+            <p class="who-badge wb-ok">MEASURED (mock pilot)</p>
             <p class="who-value">Each agent gets its own narrowed token, so a posting agent can’t touch billing, and posts need approval.</p>
             <details class="who-more">
               <summary>Scenario, pilot metric, not a fit</summary>
               <p><strong>Who:</strong> Agencies and in-house social teams running several agents over many client accounts.</p>
               <p><strong>Typical MCP servers:</strong> Canva or other design tools, scheduling/publishing, analytics, ad or billing tools, storage.</p>
               <p><strong>Pain:</strong> Many client tools, many agents, and one over-privileged key means a posting agent could reach billing.</p>
+              <p><strong>Evidence (mock pilot):</strong> scripted 3/3 and a real local model (Qwen3-4B) 3/3: with a posting-only capability token, billing calls were refused for every client, the analytics report travelled as a ref, and posting waited for approval (3 approval ids matched the queue; 0 unapproved posts). Measured with mock services; real platform APIs not tested.</p>
               <ol class="who-steps">
                 <li>A human mints a capability token per role with <code>mycel token mint</code> (and agents can narrow it with <code>mycel token attenuate</code>): the design agent gets design tools, the posting agent gets scheduling only, each with a lower effect ceiling and a small budget.</li>
                 <li>Designs are found with <code>mycel_search</code> and passed between agents as refs.</li>
@@ -864,7 +867,7 @@
     </div>
   </footer>
 
-  <script src="main.js?v=13" defer></script>
+  <script src="main.js?v=14" defer></script>
   <script type="module" src="assets/scene.js?v=4"></script>
 </body>
 </html>

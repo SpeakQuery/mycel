@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.8 — 2026-11-27
 
 - Added: `mycel setup` (`npx -y @speakquery/mycel setup`): finds your MCP client configs (Claude Desktop, Claude Code incl. per-project lists, Cursor, VS Code, Windsurf, Gemini CLI), imports their servers into `~/.mycel/mycel.yaml` (merges into an existing file, never overwrites it), shows exactly what will change and asks y/N (`--yes` skips; without a terminal it is a dry run), backs up every file it touches to `~/.mycel/backups/<timestamp>/` with a manifest, then leaves each client with a single `mycel` entry. Files with comments (JSONC) are skipped, not rewritten. Project-level files are left alone unless `--projects`. Claude Code user scope uses the `claude mcp` CLI when it is installed. Secrets stay `{{secret:NAME}}` placeholders.
 - Added: `mycel undo [--list] [--id <ts>] [--yes]` restores the files from a setup backup, checks checksums first and asks before overwriting anything you changed since.

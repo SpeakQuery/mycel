@@ -1,42 +1,42 @@
-# Case study: UI design with Google Stitch (real service, n=1)
+# Case study: UI design with Google Stitch (real service, n=1 per arm per run)
 
-**Status: MEASURED (n=1, real service).** One run per arm on 2026-11-27, with the real Google Stitch MCP server. This is not a statistical result and not a design-quality comparison.
+**Status: MEASURED (n=1, real service).** Two real-service runs on 2026-11-27 (run 1: direct and Mycel 0.1.6; run 2: direct and Mycel 0.1.7), n=1 per arm per run, with the real Google Stitch MCP server. This is not a statistical result and not a design-quality comparison.
 
-**Takeaway:** cheaper and safer when tools return big artifacts; slower in turns in this run (0.1.6). Mycel changes after this run (inline waits for async tools, schemas in narrow searches and in argument errors) remove the job-wait and describe turns; see the CHANGELOG and the mock-service re-measurement note below, not re-run on the real service.
+**Takeaway:** with Mycel 0.1.7 on the real service, cost was −85% and tool results in context −88% against direct, with the same number of turns (13 vs 13), and the saved HTML was byte-identical while the direct arm's re-typed copy lost a character. The 0.1.6 run (27 turns) is kept as history.
 
-## At a glance (real Stitch, `claude-haiku-5-5`, n=1 per arm, Mycel 0.1.6)
+## At a glance (real Stitch, `claude-haiku-5-5`, n=1 per arm)
 
-| | Direct MCP | Through Mycel | Verdict |
-|---|---:|---:|:---|
-| 💰 CLI cost | $0.0950 | **$0.0221** | −77% ✅ |
-| 📦 Tool results in context | ~35.2k tokens | **~6.2k tokens** | −82% ✅ |
-| 🎨 Data returned by the 6 generations | 109,879 chars | **2,028 chars** | −98% ✅ |
-| 💾 Saving the HTML | model re-typed 30,509 chars | **`ref://` handle, 317 chars** | −99% ✅ |
-| ✍️ Output tokens | 17,018 | **6,950** | −59% ✅ |
-| 🧰 Tool definitions | ~15,118 tokens | **~915 tokens** | −94% ✅ |
-| 🔁 Turns | **13** | 27 | 2× more ❌ |
-| ⏱️ Wall time | **13.6 min** | 16.1 min | +18% ❌ |
-| ✔️ Correct result | yes | yes (byte-identical to Stitch's HTML) | equal |
+| | Direct MCP (run 2) | Mycel 0.1.6 (run 1) | Mycel 0.1.7 (run 2) | Verdict (0.1.7 vs direct) |
+|---|---:|---:|---:|:---|
+| 💰 CLI cost | $0.0867 | $0.0221 | **$0.0132** | −85% ✅ |
+| 📦 Tool results in context | 147,455 chars (~36.9k tokens) | 24,632 chars | **18,289 chars (~4.6k tokens)** | −88% ✅ |
+| 🎨 Data returned by the 6 generations | 120,584 chars | 2,028 chars | **8,863 chars** (ref + digest, inline) | −93% ✅ |
+| 💾 Saving the HTML | model re-typed 26,436 chars | `ref://` handle, 317 chars | **`ref://` handle, 318 chars** | −99% ✅ |
+| ✍️ Output tokens | 14,899 | 6,950 | **4,014** | −73% ✅ |
+| 📥 Total input incl. cache | 901,571 | 1,212,217 | **549,084** | −39% ✅ |
+| 🔁 Turns | 13 | 27 | **13** | equal ✅ |
+| ⏱️ Wall time | 17.1 min | 16.1 min | **15.6 min** | −9% (within noise) ✅ |
+| 🎯 Oracle: `payment.html` identical to Stitch's HTML | ❌ **corrupted**: dropped one character (U+F8FF before "Pay") and added a trailing newline while re-typing | ✅ byte-identical | ✅ **byte-identical** | ✅ |
 
-Scripted check of the same 6-screen project (no model): ~48.3k tokens direct vs ~3.0k through Mycel (−94%).
+**The corruption is a concrete reason refs matter:** in run 2 the direct arm's model re-typed ~25 KB of HTML into `write_file` and silently dropped one private-use glyph (U+F8FF, the Apple-logo glyph before "Pay") and appended a trailing newline, so the saved file no longer matched Stitch's. The Mycel arm passed a 318-char `ref://` handle and the file was byte-identical. (n=1, but it happened; in run 1 the direct arm's file matched after trimming.)
 
-### After the turn fix (0.1.7, mock Stitch-like service, n=2)
 
-| Run 1 · run 2 | Direct | Mycel 0.1.6 | Mycel 0.1.7 |
-|---|---:|---:|---:|
-| 🔁 Turns | 15 · 13 | 30 · 31 | **15 · 13** |
-| 💰 CLI cost | $0.122 · $0.111 | $0.026 · $0.020 | **$0.014 · $0.012** |
-| ✍️ Output tokens | 16.1k · 16.1k | 10.5k · 6.5k | **4.5k · 3.6k** |
-| 📦 Tool-result chars | 127.7k · 126.4k | 24.2k · 20.1k | **16.4k · 12.1k** |
-| 📥 Total input incl. cache | 1,106k · 892k | 1,353k · 1,126k | **616k · 525k** |
-| ✔️ Oracle (file saved, byte-identical) | 2/2 | 2/2 | 2/2 |
+Variance note: direct run 1 (same task and hints) used 13 turns, 13.6 min, $0.0950, 140,819 chars of tool results and re-typed 30,509 chars; Mycel 0.1.6 run 1 is the middle column. Different designs and call sequences between runs: LLM variance is not controlled.
 
-Honest limits: the second table uses a mock service with fixed 22–38 s generations, so wall time is not meaningful, and the real Stitch has not yet been re-run with 0.1.7. Both tables are small samples (n=1 real, n=2 mock) and the designs differed between arms: this is not a quality comparison.
 
-- **Gained:** in the real run, cost −77%, tool results in context −82%, output tokens −59%, and the HTML saved by handle instead of re-typed. On the mock, the 0.1.7 turn fix brings turns back to the direct count (15 · 13) while keeping the cost and output savings.
-- **Lost:** in the real run (0.1.6), 2× the turns and +18% wall time; total input including cache reads was also higher (mostly cached). Not yet shown on the real service with 0.1.7.
+Scripted check of the same 6-screen project (no model): ~48.3k tokens direct vs ~3.0k through Mycel (−94%); tool definitions: 32 raw tools (~15,118 tokens) vs 6 meta tools (~915).
 
-The sections below keep the full detail: setup, prompt, all measures, limitations and the mock-service re-measurement.
+
+### Secondary: turn fix on a mock service (mock service, n=2)
+
+See the mock re-measurement section below.
+
+Honest limits: the mock table uses a mock service with fixed 22–38 s generations, so its wall time is not meaningful. Real-service tables are n=1 per arm, the designs differed between arms (not a quality comparison), and 0.1.7 results are returned as ref + digest (~1.5 KB each) inline, so its gain over 0.1.6 is mainly fewer turns, not smaller payloads.
+
+- **Gained:** real run 2 vs direct: cost −85%, tool results in context −88%, output tokens −73%, total input −39%, turns equal (13 vs 13), and the HTML saved by handle, byte-identical, where the direct arm's re-typed copy was corrupted. Versus Mycel 0.1.6: turns 27 → 13, no job polling.
+- **Lost:** nothing measurable against direct in run 2. The remaining avoidable cost is one verification read after the write (the minimum for this task is about 10 calls; run 2 used 12). Wall time is dominated by Stitch generation latency.
+
+The sections below keep the full detail: setup, prompt, the run 1 measures, limitations and the mock-service re-measurement.
 
 ## Setup
 
@@ -88,9 +88,9 @@ Both arms received the same task:
 
 Both arms also got the same appended system prompt with operational hints: generate one screen at a time; `list_screens` may return `{}` (use `get_screen`); don't retry calls that succeeded.
 
-## Results
+## Results (run 1: direct vs Mycel 0.1.6)
 
-Both arms completed: 6 screens each, and the saved `payment.html` matched Stitch's checkout HTML (byte-identical in the Mycel arm).
+Run 1 (below): both arms completed 6 screens and the saved `payment.html` matched Stitch's checkout HTML (byte-identical in the Mycel arm). Run 2 (table above): the Mycel 0.1.7 file was byte-identical; the direct arm's file was not (one U+F8FF character dropped, trailing newline added).
 
 | Measure | Direct MCP | Through Mycel |
 |---|---:|---:|
@@ -116,9 +116,9 @@ Mycel was slower and used more turns: search, describe and job-wait turns. Its t
 
 ## Limitations
 
-- n=1 per arm: no variance estimate.
+- n=1 per arm per run: no variance estimate (direct run 1 vs run 2 differ by about 10% in cost).
 - The designs differed between arms. This is a cost and context comparison, not a quality comparison.
-- Mycel used more turns (27 vs 13) and more wall time (16.1 vs 13.6 min) because of search, describe and job-wait turns. Fewer turns are planned.
+- Run 1 (Mycel 0.1.6) used more turns (27 vs 13) and more wall time (16.1 vs 13.6 min) because of search, describe and job-wait turns. In run 2 (0.1.7) the turns were equal (13 vs 13); the remaining avoidable cost is one verification read, and 0.1.7 returns ref + digest (~1.5 KB each) inline, so its gain over 0.1.6 is mainly fewer turns, not smaller payloads.
 - Total input including cache reads was higher with Mycel (1,212,217 vs 869,791); the saving shows up in uncached input, cache creation, output tokens and the CLI cost estimate.
 - Cost figures are the Claude Code CLI's estimate; tokens are about chars/4.
 - Needs a raised MCP tool timeout and a policy that pre-approves the needed tools in print mode (see Setup).
@@ -134,7 +134,7 @@ Mycel was slower and used more turns: search, describe and job-wait turns. Its t
 
 ## Re-measurement after the fewer-turns changes (mock service, not the real Stitch)
 
-The real-service run above was not repeated (it spends Stitch quota). To measure turns without it, a mock "slow design" MCP server with Stitch-like tools (`create_project`, `generate_screen_from_text` taking 22-38 s and returning ~16 KB of JSON, `get_screen`, `list_screens` returning `{}`, `download_file` returning ~29 KB of HTML) and the filesystem server ran the same task in Claude Code (`claude-haiku-5-5`, built-in file tools disabled, `MCP_TOOL_TIMEOUT=1200000`, the same operational hints, `router.mode: meta`, a policy that allows the mock and the filesystem server). Three arms, n=2 each, arms run in parallel on one Mac; oracle: `payment.html` written and byte-identical to the checkout screen the mock served (all 8 runs passed).
+Before the real-service re-run with 0.1.7 (run 2, above), the turn fix was measured on a mock service that does not spend Stitch quota. To measure turns without it, a mock "slow design" MCP server with Stitch-like tools (`create_project`, `generate_screen_from_text` taking 22-38 s and returning ~16 KB of JSON, `get_screen`, `list_screens` returning `{}`, `download_file` returning ~29 KB of HTML) and the filesystem server ran the same task in Claude Code (`claude-haiku-5-5`, built-in file tools disabled, `MCP_TOOL_TIMEOUT=1200000`, the same operational hints, `router.mode: meta`, a policy that allows the mock and the filesystem server). Three arms, n=2 each, arms run in parallel on one Mac; oracle: `payment.html` written and byte-identical to the checkout screen the mock served (all 8 runs passed).
 
 | | Direct | Mycel 0.1.6 | Mycel 0.1.7 |
 |---|---|---|---|

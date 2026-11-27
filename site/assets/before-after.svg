@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 500" width="860" height="500" role="img" aria-labelledby="t d">
 <title id="t">Same job. Normally versus with Mycel</title>
-<desc id="d">Four measured examples. Find one bad row in a 20,000-row spreadsheet: about 130k tokens normally, about 26k with Mycel, 81 percent cheaper (single Claude Code run). Design 6 app screens with Google Stitch: $0.095 normally, $0.022 with Mycel, 77 percent cheaper (single run, Mycel 0.1.6). Check 50,000 rows for 3 hidden errors: 583,980 tokens versus 602, about 970 times less (mock data, scripted). Connect 15 MCP servers with 420 tools: about 204k tokens of tool descriptions versus 1,338, 99.3 percent less (clients that send every tool description each turn).</desc>
+<desc id="d">Four measured examples. Find one bad row in a 20,000-row spreadsheet: about 130k tokens normally, about 26k with Mycel, 81 percent cheaper (single Claude Code run). Design 6 app screens with Google Stitch: $0.087 normally, $0.013 with Mycel 0.1.7, 85 percent cheaper (real Stitch, single run). Check 50,000 rows for 3 hidden errors: 583,980 tokens versus 602, about 970 times less (mock data, scripted). Connect 15 MCP servers with 420 tools: about 204k tokens of tool descriptions versus 1,338, 99.3 percent less (clients that send every tool description each turn).</desc>
 <style>
 text{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;fill:#E6F2EC}
 .dim{fill:#86A497}.mid{fill:#A9C4B8}.g{fill:#3DFFB0}.b{font-weight:800}
@@ -25,12 +25,12 @@ text{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;fill:#E6F2
 <text x="36" y="247" font-size="11" class="dim">12 turns · 34.5 s → 4 turns · 6.6 s</text></g>
 <g class="card c2"><rect x="430" y="62" width="410" height="200" rx="14" fill="#10231A" stroke="#1C3A2D"/><rect x="430" y="62" width="410" height="4" rx="2" fill="#3DFFB0"/>
 <text x="446" y="92" font-size="16" class="b">Design 6 app screens</text><text x="446" y="111" font-size="13" class="mid">with Google Stitch, save one</text>
-<text x="446" y="134" font-size="11" class="dim">NORMALLY</text><text x="446" y="162" font-size="24" class="b mid">$0.095</text>
-<text x="646" y="134" font-size="11" class="g">WITH MYCEL</text><text x="646" y="162" font-size="24" class="b g">$0.022</text>
-<rect x="446" y="174" width="170" height="6" rx="3" fill="#2A4A3C"/><rect class="bar" x="646" y="174" width="39" height="6" rx="3" fill="#3DFFB0"/>
-<g class="badge"><rect x="446" y="194" width="104" height="34" rx="17" fill="#3DFFB0"/><text x="498" y="218" font-size="20" text-anchor="middle" class="b" style="fill:#032015">−77%</text></g>
-<text x="560" y="216" font-size="12" class="mid">cheaper · ~35k → ~6k tokens</text>
-<text x="446" y="247" font-size="11" class="dim">re-types 30 KB → passes 317 chars</text></g>
+<text x="446" y="134" font-size="11" class="dim">NORMALLY</text><text x="446" y="162" font-size="24" class="b mid">$0.087</text>
+<text x="646" y="134" font-size="11" class="g">WITH MYCEL</text><text x="646" y="162" font-size="24" class="b g">$0.013</text>
+<rect x="446" y="174" width="170" height="6" rx="3" fill="#2A4A3C"/><rect class="bar" x="646" y="174" width="25" height="6" rx="3" fill="#3DFFB0"/>
+<g class="badge"><rect x="446" y="194" width="104" height="34" rx="17" fill="#3DFFB0"/><text x="498" y="218" font-size="20" text-anchor="middle" class="b" style="fill:#032015">−85%</text></g>
+<text x="560" y="216" font-size="12" class="mid">cheaper · ~147k → ~18k chars of results</text>
+<text x="446" y="247" font-size="11" class="dim">re-typed 26 KB (corrupted) → 318-char ref</text></g>
 <g class="card c3"><rect x="20" y="276" width="410" height="200" rx="14" fill="#10231A" stroke="#1C3A2D"/><rect x="20" y="276" width="410" height="4" rx="2" fill="#3DFFB0"/>
 <text x="36" y="306" font-size="16" class="b">Check 50,000 rows</text><text x="36" y="325" font-size="13" class="mid">for 3 hidden errors</text>
 <text x="36" y="348" font-size="11" class="dim">NORMALLY</text><text x="36" y="376" font-size="24" class="b mid">583,980 tokens</text>

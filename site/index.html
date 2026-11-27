@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="stylesheet" href="styles.css?v=19">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -56,8 +56,8 @@
         <div class="hero-cta">
           <div class="cmd" role="group" aria-label="Install command">
             <span class="cmd-prompt" aria-hidden="true">$</span>
-            <code id="install-cmd">npm install -g @speakquery/mycel</code>
-            <button class="copy" type="button" data-copy="npm install -g @speakquery/mycel" aria-label="Copy install command to clipboard">
+            <code id="install-cmd">npx -y @speakquery/mycel setup</code>
+            <button class="copy" type="button" data-copy="npx -y @speakquery/mycel setup" aria-label="Copy install command to clipboard">
               <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
               <span class="copy-label">Copy</span>
             </button>
@@ -67,7 +67,8 @@
             Star on GitHub
           </a>
         </div>
-        <p class="hint">Imports your existing Claude, Cursor, VS Code and Windsurf MCP configs. No account. No telemetry.</p>
+        <p class="hint">One command finds your Claude, Cursor, Windsurf and Gemini CLI MCP servers and connects them. Backed up, one-step undo. No account. No telemetry.</p>
+        <p class="hint hint-alt">Prefer a global install? <code>npm i -g @speakquery/mycel</code>, then <code>mycel setup</code>.</p>
         <p class="sr-only" role="status" aria-live="polite" id="copy-status"></p>
 
 
@@ -87,12 +88,12 @@
         <article class="ba4-card">
           <h3 class="ba4-title">Design 6 app screens with Google Stitch and save one to your project</h3>
           <div class="ba4-row">
-            <div class="ba4-side ba4-before"><span class="ba4-k">Normally</span><span class="ba4-n"><span data-count="0.095" data-pre="$" data-suf="" data-dec="3">$0.095</span></span><span class="ba4-u">cost</span><span class="ba4-x">model re-types 30 KB of HTML</span></div>
+            <div class="ba4-side ba4-before"><span class="ba4-k">Normally</span><span class="ba4-n"><span data-count="0.087" data-pre="$" data-suf="" data-dec="3">$0.087</span></span><span class="ba4-u">cost</span><span class="ba4-x">model re-typed 26 KB of HTML (and corrupted it)</span></div>
             <span class="ba4-arrow" aria-hidden="true">→</span>
-            <div class="ba4-side ba4-after"><span class="ba4-k">With Mycel</span><span class="ba4-n"><span data-count="0.022" data-pre="$" data-suf="" data-dec="3">$0.022</span></span><span class="ba4-u">cost</span><span class="ba4-x">passes a 317-char reference</span></div>
+            <div class="ba4-side ba4-after"><span class="ba4-k">With Mycel</span><span class="ba4-n"><span data-count="0.013" data-pre="$" data-suf="" data-dec="3">$0.013</span></span><span class="ba4-u">cost</span><span class="ba4-x">passed a 318-char reference</span></div>
           </div>
-          <p class="ba4-badge-wrap"><span class="ba4-badge"><span data-count="77" data-pre="−" data-suf="%">−77%</span></span> <span class="ba4-badge-label">cheaper (<!-- STITCH-0.1.7 -->~35k → ~6k tokens of results)</span></p>
-          <p class="ba4-foot">Real Google Stitch, Claude Code Haiku, n=1, Mycel 0.1.6; re-run with 0.1.7 in progress. <a href="#stitch-session">Details</a></p>
+          <p class="ba4-badge-wrap"><span class="ba4-badge"><span data-count="85" data-pre="−" data-suf="%">−85%</span></span> <span class="ba4-badge-label">cheaper (<!-- STITCH-0.1.7 -->~147k → ~18k chars of results · same 13 turns)</span></p>
+          <p class="ba4-foot">Real Google Stitch, Claude Code Haiku, n=1, Mycel 0.1.7. <a href="#stitch-session">Details</a></p>
         </article>
         <article class="ba4-card">
           <h3 class="ba4-title">Check 50,000 rows of data for 3 hidden errors</h3>
@@ -237,25 +238,27 @@
           </div>
           <p class="fine">One run per cell, not a statistical result. Honestly: on small-file tasks Mycel took about one extra turn (e.g. "find a decision in a small file", cache on: direct 3 turns / 5.2 s vs Mycel 4 / 6.0 s), and write tasks stopped for approval in a non-interactive client, by design (pre-approve writes for headless use: see Configuration → policy in the docs; some clients, e.g. Claude Code in print mode, turn an approval request into their own denial, so the model sees "denied by the user"). A run with a 1.7B local model completed no task in either arm, so we make no claim from it. Protocol: <code>docs/benchmark-protocol.md</code>.</p>
           <h3 id="stitch-session">Second real session: UI design with Google Stitch (single run per arm, n=1)</h3>
-          <p class="section-lede">Real Google Stitch MCP, <code>claude-haiku-5-5</code>, 2026-11-27, identical prompts: generate 6 mobile screens for a food-delivery app, then save the checkout HTML to <code>payment.html</code>. Both arms completed and the saved file matched.</p>
+          <p class="section-lede">Real Google Stitch MCP, <code>claude-haiku-5-5</code>, 2026-11-27, identical prompts: generate 6 mobile screens for a food-delivery app, then save the checkout HTML to <code>payment.html</code>. Both arms completed 6 screens; the Mycel arm's saved file is byte-identical to Stitch's HTML, the direct arm's is not.</p>
           <div class="table-scroll" tabindex="0" role="region" aria-label="Stitch session results">
             <table class="vs fit-table">
-              <thead><tr><th scope="col">Measure</th><th scope="col">Direct MCP</th><th scope="col" class="vs-m">Through Mycel</th><th scope="col">Verdict</th></tr></thead>
+              <thead><tr><th scope="col">Measure</th><th scope="col">Direct MCP (run 2)</th><th scope="col">Mycel 0.1.6 (run 1)</th><th scope="col" class="vs-m">Mycel 0.1.7 (run 2)</th><th scope="col">Verdict (0.1.7 vs direct)</th></tr></thead>
               <tbody>
-                <tr><th scope="row">💰 CLI cost</th><td>$0.0950</td><td class="vs-m">$0.0221</td><td class="fit-pos">−77% ✅</td></tr>
-                <tr><th scope="row">📦 Tool results in context</th><td>~35.2k tokens</td><td class="vs-m">~6.2k tokens</td><td class="fit-pos">−82% ✅</td></tr>
-                <tr><th scope="row">🎨 Data returned by the 6 generations</th><td>109,879 chars</td><td class="vs-m">2,028 chars</td><td class="fit-pos">−98% ✅</td></tr>
-                <tr><th scope="row">💾 Saving the HTML</th><td>model re-typed 30,509 chars</td><td class="vs-m"><code>ref://</code> handle, 317 chars</td><td class="fit-pos">−99% ✅</td></tr>
-                <tr><th scope="row">✍️ Output tokens</th><td>17,018</td><td class="vs-m">6,950</td><td class="fit-pos">−59% ✅</td></tr>
-                <tr><th scope="row">🧰 Tool definitions</th><td>~15,118 tokens</td><td class="vs-m">~915 tokens</td><td class="fit-pos">−94% ✅</td></tr>
-                <tr><th scope="row">🔁 Turns</th><td>13</td><td class="vs-m">27</td><td class="fit-neg">2× more ❌</td></tr>
-                <tr><th scope="row">⏱️ Wall time</th><td>13.6 min</td><td class="vs-m">16.1 min</td><td class="fit-neg">+18% ❌</td></tr>
-                <tr><th scope="row">✔️ Correct result</th><td>yes</td><td class="vs-m">yes (byte-identical to Stitch's HTML)</td><td class="">equal</td></tr>
+                <tr><th scope="row">💰 CLI cost</th><td>$0.0867</td><td>$0.0221</td><td class="vs-m"><strong>$0.0132</strong></td><td class="fit-pos">−85% ✅</td></tr>
+                <tr><th scope="row">📦 Tool results in context</th><td>147,455 chars (~36.9k tokens)</td><td>24,632 chars</td><td class="vs-m"><strong>18,289 chars (~4.6k tokens)</strong></td><td class="fit-pos">−88% ✅</td></tr>
+                <tr><th scope="row">🎨 Data returned by the 6 generations</th><td>120,584 chars</td><td>2,028 chars</td><td class="vs-m"><strong>8,863 chars</strong> (ref + digest, inline)</td><td class="fit-pos">−93% ✅</td></tr>
+                <tr><th scope="row">💾 Saving the HTML</th><td>model re-typed 26,436 chars</td><td><code>ref://</code> handle, 317 chars</td><td class="vs-m"><strong><code>ref://</code> handle, 318 chars</strong></td><td class="fit-pos">−99% ✅</td></tr>
+                <tr><th scope="row">✍️ Output tokens</th><td>14,899</td><td>6,950</td><td class="vs-m"><strong>4,014</strong></td><td class="fit-pos">−73% ✅</td></tr>
+                <tr><th scope="row">📥 Total input incl. cache</th><td>901,571</td><td>1,212,217</td><td class="vs-m"><strong>549,084</strong></td><td class="fit-pos">−39% ✅</td></tr>
+                <tr><th scope="row">🔁 Turns</th><td>13</td><td>27</td><td class="vs-m"><strong>13</strong></td><td class="fit-pos">equal ✅</td></tr>
+                <tr><th scope="row">⏱️ Wall time</th><td>17.1 min</td><td>16.1 min</td><td class="vs-m"><strong>15.6 min</strong></td><td class="fit-pos">−9% (within noise) ✅</td></tr>
+                <tr><th scope="row">🎯 Oracle: <code>payment.html</code> identical to Stitch's HTML</th><td>❌ <strong>corrupted</strong>: dropped one character (U+F8FF before "Pay") and added a trailing newline while re-typing</td><td>✅ byte-identical</td><td class="vs-m">✅ <strong>byte-identical</strong></td><td class="fit-pos">✅</td></tr>
               </tbody>
             </table>
           </div>
-          <p class="fine">Scripted check of the same 6-screen project (no model): ~48.3k tokens direct vs ~3.0k through Mycel (−94%). Real Stitch, single run per arm, Mycel 0.1.6.</p>
-          <h4>After the turn fix (0.1.7, mock Stitch-like service, n=2)</h4>
+<p class="fine"><strong>The corruption is a concrete reason refs matter:</strong> in run 2 the direct arm's model re-typed ~25 KB of HTML into <code>write_file</code> and silently dropped one private-use glyph (U+F8FF, the Apple-logo glyph before "Pay") and appended a trailing newline, so the saved file no longer matched Stitch's. The Mycel arm passed a 318-char <code>ref://</code> handle and the file was byte-identical. (n=1, but it happened; in run 1 the direct arm's file matched after trimming.)</p>
+          <p class="fine">Variance note: direct run 1 (same task and hints) used 13 turns, 13.6 min, $0.0950, 140,819 chars of tool results and re-typed 30,509 chars; Mycel 0.1.6 run 1 is the middle column. Different designs and call sequences between runs: LLM variance is not controlled.</p>
+          <p class="fine">Scripted check of the same 6-screen project (no model): ~48.3k tokens direct vs ~3.0k through Mycel (−94%); tool definitions: 32 raw tools (~15,118 tokens) vs 6 meta tools (~915).</p>
+          <h4>Secondary: turn fix on a mock service (mock service, n=2)</h4>
           <div class="table-scroll" tabindex="0" role="region" aria-label="Turn fix re-measurement on a mock service">
             <table class="vs fit-table">
               <thead><tr><th scope="col">Run 1 · run 2</th><th scope="col">Direct</th><th scope="col">Mycel 0.1.6</th><th scope="col" class="vs-m">Mycel 0.1.7</th></tr></thead>
@@ -269,10 +272,10 @@
               </tbody>
             </table>
           </div>
-          <p class="fine">Honest limits: a mock service with fixed 22–38 s generations, so wall time is not meaningful; the real Stitch has not yet been re-run with 0.1.7. Small samples (n=1 real, n=2 mock), and the designs differed between arms: not a quality comparison.</p>
+          <p class="fine">Honest limits: the mock table uses a mock service with fixed 22–38 s generations, so its wall time is not meaningful. Real-service tables are n=1 per arm, the designs differed between arms (not a quality comparison), and 0.1.7 results are returned as ref + digest (~1.5 KB each) inline, so its gain over 0.1.6 is mainly fewer turns, not smaller payloads.</p>
           <ul class="fit-list">
-            <li><strong>Gained:</strong> real run: cost −77%, tool results in context −82%, output tokens −59%, the HTML saved by handle instead of re-typed. Mock: the 0.1.7 turn fix brings turns back to the direct count while keeping the cost and output savings.</li>
-            <li><strong>Lost:</strong> real run (0.1.6): 2× the turns and +18% wall time; total input including cache reads was also higher (mostly cached). Not yet shown on the real service with 0.1.7.</li>
+            <li><strong>Gained:</strong> real run 2 vs direct: cost −85%, tool results in context −88%, output tokens −73%, total input −39%, turns equal (13 vs 13), and the HTML saved by handle, byte-identical, where the direct arm's re-typed copy was corrupted. Versus Mycel 0.1.6: turns 27 → 13, no job polling.</li>
+            <li><strong>Lost:</strong> nothing measurable against direct in run 2. The remaining avoidable cost is one verification read after the write (minimum for this task is about 10 calls; run 2 used 12). Wall time is dominated by Stitch generation latency.</li>
           </ul>
           <p class="fine"><a href="https://github.com/SpeakQuery/mycel/blob/main/docs/case-studies/stitch-ui-design.md" rel="noopener">Case study</a>.</p>
         </div>
@@ -564,7 +567,7 @@
               <p><strong>Who:</strong> Product designers, UI/UX designers and design-minded developers using AI design tools from an agent.</p>
               <p><strong>Typical MCP servers:</strong> Google Stitch or another design-generation service, a filesystem server, design-system and asset storage.</p>
               <p><strong>Pain:</strong> Each generated screen returns its full HTML and metadata into the prompt, and saving a file means the model re-types it into a write tool.</p>
-              <p><strong>Evidence (real Google Stitch MCP, <code>claude-haiku-5-5</code>, n=1 per arm, 2026-11-27):</strong> 6 mobile screens, then the checkout HTML saved to <code>payment.html</code>. CLI cost estimate $0.0950 vs $0.0221 (−77%); tool results in context ~35.2k vs ~6.2k tokens; output tokens 17,018 vs 6,950; the file was passed as a 317-character <code>ref://</code> handle instead of re-typing 30,509 characters. Honest costs: 27 turns vs 13 and 16.1 vs 13.6 min, and total input including cache reads was higher (mostly cached). Designs differed between arms, so this is not a quality comparison. <a href="https://github.com/SpeakQuery/mycel/blob/main/docs/case-studies/stitch-ui-design.md" rel="noopener">Case study</a>.</p>
+              <p><strong>Evidence (real Google Stitch MCP, <code>claude-haiku-5-5</code>, n=1 per arm, 2026-11-27):</strong> 6 mobile screens, then the checkout HTML saved to <code>payment.html</code>. Mycel 0.1.7 (run 2) vs direct: CLI cost estimate $0.0132 vs $0.0867 (−85%); tool results in context ~18k vs ~147k chars; output tokens 4,014 vs 14,899; the file was passed as a 318-character <code>ref://</code> handle (byte-identical to Stitch's HTML) instead of re-typing 26,436 characters, which in the direct arm lost one character (U+F8FF) and added a trailing newline. Turns were equal (13 vs 13); the remaining avoidable cost is one verification read. Designs differed between arms, so this is not a quality comparison. <a href="https://github.com/SpeakQuery/mycel/blob/main/docs/case-studies/stitch-ui-design.md" rel="noopener">Case study</a>.</p>
               <ol class="who-steps">
                 <li>Each generate result stays local; the model sees a short ref and digest instead of the HTML.</li>
                 <li>The filesystem tool writes the file from the ref: no re-typing, no corruption risk.</li>
@@ -782,8 +785,48 @@
     <section class="section" id="how" aria-labelledby="how-title">
       <div class="wrap">
         <p class="kicker">How it works</p>
-        <h2 id="how-title">Configure once. Let the model write the glue.</h2>
-        <div class="how">
+        <h2 id="how-title">Install it like an extension. One line, Enter, done.</h2>
+        <ol class="easy">
+          <li class="easy-step">
+            <span class="easy-n" aria-hidden="true">1</span>
+            <div class="easy-body">
+              <h3>Paste one line</h3>
+              <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>npx -y @speakquery/mycel setup</code><button class="copy copy-sm" type="button" data-copy="npx -y @speakquery/mycel setup" aria-label="Copy: npx -y @speakquery/mycel setup">Copy</button></div>
+              <p>Works on macOS, Linux and Windows (Node 20+).</p>
+            </div>
+          </li>
+          <li class="easy-step">
+            <span class="easy-n" aria-hidden="true">2</span>
+            <div class="easy-body">
+              <h3>Say yes</h3>
+              <p>Mycel finds the MCP servers you already use in Claude Desktop, Claude Code, Cursor, Windsurf and Gemini CLI, shows exactly what it will change, backs everything up, and connects them through Mycel.</p>
+            </div>
+          </li>
+          <li class="easy-step">
+            <span class="easy-n" aria-hidden="true">3</span>
+            <div class="easy-body">
+              <h3>Restart your app</h3>
+              <p>That's it. Your agent now finds tools on demand, keeps big results out of the chat, and asks before risky actions.</p>
+            </div>
+          </li>
+          <li class="easy-step">
+            <span class="easy-n easy-n-alt" aria-hidden="true">+</span>
+            <div class="easy-body">
+              <h3>See what you save</h3>
+              <div class="term" role="img" aria-label="Example output of the mycel stats command">
+                <div class="term-head"><span>mycel stats</span></div>
+<pre><code><span class="t-p">$</span> mycel stats
+today: <span class="t-g">−48,300 tokens</span> (measured result size, tokens ≈ chars/4)
+       · tool definitions <span class="t-g">~−202k/turn</span> (estimated)</code></pre>
+              </div>
+              <p>Changed your mind? <code>mycel undo</code> restores your original settings.</p>
+              <p class="fine">Verified with test configs for each app; tell us if your setup looks different.</p>
+            </div>
+          </li>
+        </ol>
+        <details class="adv">
+          <summary>Advanced: configure policies, budgets and Code Mode</summary>
+          <div class="how">
           <article class="how-step">
             <h3><span class="step-n">1</span> Declare servers, policy and budgets</h3>
             <p>One file. Secrets stay placeholders; servers imported over HTTP are marked untrusted (hand-configured servers default to trusted unless you set <code>trust: untrusted</code>); large results become refs.</p>
@@ -837,6 +880,7 @@
             </div>
           </article>
         </div>
+        </details>
       </div>
     </section>
 
@@ -876,24 +920,18 @@
         <h2 id="qs-title">Running in under a minute.</h2>
         <ol class="qs">
           <li>
-            <h3>Install</h3>
-            <p>macOS, Linux or Windows, Node 20+. The command is <code>mycel</code>.</p>
-            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>npm install -g @speakquery/mycel</code><button class="copy copy-sm" type="button" data-copy="npm install -g @speakquery/mycel" aria-label="Copy: npm install -g @speakquery/mycel">Copy</button></div>
+            <h3>Paste one line</h3>
+            <p>macOS, Linux or Windows, Node 20+.</p>
+            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>npx -y @speakquery/mycel setup</code><button class="copy copy-sm" type="button" data-copy="npx -y @speakquery/mycel setup" aria-label="Copy: npx -y @speakquery/mycel setup">Copy</button></div>
+            <p class="fine qs-alt">Or install globally: <code>npm i -g @speakquery/mycel</code>, then <code>mycel setup</code>.</p>
           </li>
           <li>
-            <h3>Import your setup</h3>
-            <p>Finds your Claude, Cursor, VS Code and Windsurf MCP configs and writes <code>mycel.yaml</code>. Then run <code>mycel doctor</code>.</p>
-            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>mycel init</code><button class="copy copy-sm" type="button" data-copy="mycel init" aria-label="Copy: mycel init">Copy</button></div>
+            <h3>Say yes</h3>
+            <p>Mycel shows exactly what it will change in Claude Desktop, Claude Code, Cursor, Windsurf and Gemini CLI, backs everything up, then connects your servers through Mycel.</p>
           </li>
           <li>
-            <h3>Sign in to remote servers</h3>
-            <p>Only for servers that use OAuth (Canva, Notion, Linear…). Your browser opens; Mycel never sees your password.</p>
-            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>mycel login canva</code><button class="copy copy-sm" type="button" data-copy="mycel login canva" aria-label="Copy: mycel login canva">Copy</button></div>
-          </li>
-          <li>
-            <h3>Point your client at Mycel</h3>
-            <p>Replace your server list with one entry. Dashboard at <code>localhost:4747</code>.</p>
-            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>mycel serve</code><button class="copy copy-sm" type="button" data-copy="mycel serve" aria-label="Copy: mycel serve">Copy</button></div>
+            <h3>Restart your app</h3>
+            <p>Done. Check savings any time with <code>mycel stats</code>. Changed your mind? <code>mycel undo</code> restores your original settings. Servers that need a sign-in: <code>mycel login canva</code>.</p>
           </li>
         </ol>
       </div>
@@ -915,11 +953,11 @@
           </details>
           <details>
             <summary>Does it run on Windows?</summary>
-            <p>Yes. Mycel is plain Node.js and is tested on Linux, macOS and Windows in CI. Install with <code>npm install -g @speakquery/mycel</code>. The servers you put behind it bring their own needs; Python servers, for example, need <code>uv</code>.</p>
+            <p>Yes. Mycel is plain Node.js and is tested on Linux, macOS and Windows in CI. Install with <code>npx -y @speakquery/mycel setup</code>. The servers you put behind it bring their own needs; Python servers, for example, need <code>uv</code>.</p>
           </details>
           <details>
             <summary>Does it work with Canva, Notion and other servers that need a sign-in?</summary>
-            <p>Yes. Run <code>mycel login canva</code> once. Mycel follows the MCP authorization spec (OAuth with PKCE), stores the tokens only on your machine and refreshes them automatically.</p>
+            <p>Yes. Run <code>mycel login canva</code> once, after setup. Mycel follows the MCP authorization spec (OAuth with PKCE), stores the tokens only on your machine and refreshes them automatically.</p>
           </details>
           <details>
             <summary>Does it send my data anywhere?</summary>
@@ -958,8 +996,8 @@
         <p class="section-lede">Star the repo, open an issue, or write an adapter in 50 lines.</p>
         <div class="hero-cta center">
           <div class="cmd" role="group" aria-label="Install command">
-            <span class="cmd-prompt" aria-hidden="true">$</span><code>npm install -g @speakquery/mycel</code>
-            <button class="copy" type="button" data-copy="npm install -g @speakquery/mycel" aria-label="Copy install command to clipboard"><span class="copy-label">Copy</span></button>
+            <span class="cmd-prompt" aria-hidden="true">$</span><code>npx -y @speakquery/mycel setup</code>
+            <button class="copy" type="button" data-copy="npx -y @speakquery/mycel setup" aria-label="Copy install command to clipboard"><span class="copy-label">Copy</span></button>
           </div>
           <a class="btn btn-primary" href="https://github.com/SpeakQuery/mycel" rel="noopener">View on GitHub</a>
         </div>
@@ -975,7 +1013,7 @@
     </div>
   </footer>
 
-  <script src="main.js?v=17" defer></script>
+  <script src="main.js?v=19" defer></script>
   <script type="module" src="assets/scene.js?v=4"></script>
 </body>
 </html>

@@ -25,14 +25,14 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 
 <div align="center">
 
-<img src="media/before-after.svg" alt="Same job, normally versus with Mycel: four measured examples. Find one bad row in a 20,000-row spreadsheet, about 130k to 26k tokens (-81% cost). Design 6 app screens with Google Stitch, $0.095 to $0.022 (-77%). Check 50,000 rows for 3 hidden errors, 583,980 to 602 tokens (~970x less). Connect 15 MCP servers, ~204k to 1,338 tokens of tool descriptions (-99.3%)." width="860">
+<img src="media/before-after.svg" alt="Same job, normally versus with Mycel: four measured examples. Find one bad row in a 20,000-row spreadsheet, about 130k to 26k tokens (-81% cost). Design 6 app screens with Google Stitch, $0.087 to $0.013 (-85%). Check 50,000 rows for 3 hidden errors, 583,980 to 602 tokens (~970x less). Connect 15 MCP servers, ~204k to 1,338 tokens of tool descriptions (-99.3%)." width="860">
 
 </div>
 
 | Same job | Normally | With Mycel | Change | Conditions |
 |---|---:|---:|:---:|:---|
 | Find one bad row in a 20,000-row spreadsheet | 12 turns · 34.5 s · ~130k tokens read · $0.0151 | 4 turns · 6.6 s · ~26k tokens · $0.0029 | **−81%** | Claude Code, Haiku, cache off, single run (n=1). [Details](#measured-in-a-real-claude-code-session-single-run-n1) |
-| Design 6 app screens with Google Stitch and save one to your project | $0.095 · ~35k tokens of results · model re-types 30 KB of HTML | $0.022 · ~6k tokens · passes a 317-char reference | **−77%** | Real Stitch, Claude Code Haiku, n=1, Mycel 0.1.6; re-run with 0.1.7 in progress. [Details](#second-real-session-ui-design-with-google-stitch-single-run-per-arm-n1) <!-- STITCH-0.1.7 --> |
+| Design 6 app screens with Google Stitch and save one to your project | $0.087 · ~147k chars of results · model re-typed 26 KB of HTML (and corrupted it) | $0.013 · ~18k chars · passed a 318-char reference · same 13 turns | **−85%** | Real Stitch, Claude Code Haiku, n=1, Mycel 0.1.7. [Details](#second-real-session-ui-design-with-google-stitch-single-run-per-arm-n1) <!-- STITCH-0.1.7 --> |
 | Check 50,000 rows of data for 3 hidden errors | 583,980 tokens | 602 tokens | **~970× less** | Independent review, mock data, scripted, 3/3 correct both ways. [Details](#-who-is-it-for) |
 | Connect 15 MCP servers (420 tools) | ~204k tokens of tool descriptions before you type (a full 200k window) | 1,338 tokens | **−99.3%** | Clients that send every tool description each turn; Claude Code and recent Cursor load tools on demand. [Reproduce](examples/full-scale) |
 
@@ -41,10 +41,10 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 ---
 
 ```bash
-mycel init        # finds your Claude / Cursor / VS Code / Windsurf MCP servers and imports them
+npx -y @speakquery/mycel setup   # finds your MCP servers, shows what changes, backs up, connects them
 ```
 
-<sub>Install first: `npm install -g @speakquery/mycel` (macOS, Linux, Windows, Node 20+). The command is `mycel`.</sub>
+<sub>macOS, Linux, Windows, Node 20+. Restart your app afterwards. `mycel undo` restores your original settings.</sub>
 
 > **Is Mycel a new protocol?** No — and that's the point. Mycel speaks plain **MCP** to your client and plain **MCP** to your servers, so nothing has to change on either side. It also speaks **A2A** so other agents can use your tools under the same rules. Think of it as the missing middle layer both protocols assumed someone else would build. Tools work without client changes; resources and prompts parity is not yet verified.
 
@@ -70,23 +70,27 @@ This is one run per cell, not a statistical result. To be fair about the other s
 
 ### Second real session: UI design with Google Stitch (single run per arm, n=1)
 
-Task: with the real Google Stitch MCP, create a project, generate 6 mobile screens for a food-delivery app (login, home, menu, cart, checkout, order tracking), then save the checkout screen's HTML to `payment.html` through the filesystem server. Claude Code, model `claude-haiku-5-5`, 2026-11-27, identical prompts in both arms. Both arms completed, and the saved file matched Stitch's checkout HTML.
+Task: with the real Google Stitch MCP, create a project, generate 6 mobile screens for a food-delivery app (login, home, menu, cart, checkout, order tracking), then save the checkout screen's HTML to `payment.html` through the filesystem server. Claude Code, model `claude-haiku-5-5`, 2026-11-27, identical prompts in both arms. Both arms completed 6 screens; the Mycel arm's saved file is byte-identical to Stitch's checkout HTML, the direct arm's is not (see below).
 
-| | Direct MCP | Through Mycel | Verdict |
-|---|---:|---:|:---|
-| 💰 CLI cost | $0.0950 | **$0.0221** | −77% ✅ |
-| 📦 Tool results in context | ~35.2k tokens | **~6.2k tokens** | −82% ✅ |
-| 🎨 Data returned by the 6 generations | 109,879 chars | **2,028 chars** | −98% ✅ |
-| 💾 Saving the HTML | model re-typed 30,509 chars | **`ref://` handle, 317 chars** | −99% ✅ |
-| ✍️ Output tokens | 17,018 | **6,950** | −59% ✅ |
-| 🧰 Tool definitions | ~15,118 tokens | **~915 tokens** | −94% ✅ |
-| 🔁 Turns | **13** | 27 | 2× more ❌ |
-| ⏱️ Wall time | **13.6 min** | 16.1 min | +18% ❌ |
-| ✔️ Correct result | yes | yes (byte-identical to Stitch's HTML) | equal |
+| | Direct MCP (run 2) | Mycel 0.1.6 (run 1) | Mycel 0.1.7 (run 2) | Verdict (0.1.7 vs direct) |
+|---|---:|---:|---:|:---|
+| 💰 CLI cost | $0.0867 | $0.0221 | **$0.0132** | −85% ✅ |
+| 📦 Tool results in context | 147,455 chars (~36.9k tokens) | 24,632 chars | **18,289 chars (~4.6k tokens)** | −88% ✅ |
+| 🎨 Data returned by the 6 generations | 120,584 chars | 2,028 chars | **8,863 chars** (ref + digest, inline) | −93% ✅ |
+| 💾 Saving the HTML | model re-typed 26,436 chars | `ref://` handle, 317 chars | **`ref://` handle, 318 chars** | −99% ✅ |
+| ✍️ Output tokens | 14,899 | 6,950 | **4,014** | −73% ✅ |
+| 📥 Total input incl. cache | 901,571 | 1,212,217 | **549,084** | −39% ✅ |
+| 🔁 Turns | 13 | 27 | **13** | equal ✅ |
+| ⏱️ Wall time | 17.1 min | 16.1 min | **15.6 min** | −9% (within noise) ✅ |
+| 🎯 Oracle: `payment.html` identical to Stitch's HTML | ❌ **corrupted**: dropped one character (U+F8FF before "Pay") and added a trailing newline while re-typing | ✅ byte-identical | ✅ **byte-identical** | ✅ |
 
-Scripted check of the same 6-screen project (no model): ~48.3k tokens direct vs ~3.0k through Mycel (−94%).
+**The corruption is a concrete reason refs matter:** in run 2 the direct arm's model re-typed ~25 KB of HTML into `write_file` and silently dropped one private-use glyph (U+F8FF, the Apple-logo glyph before "Pay") and appended a trailing newline, so the saved file no longer matched Stitch's. The Mycel arm passed a 318-char `ref://` handle and the file was byte-identical. (n=1, but it happened; in run 1 the direct arm's file matched after trimming.)
 
-#### After the turn fix (0.1.7, mock Stitch-like service, n=2)
+Variance note: direct run 1 (same task and hints) used 13 turns, 13.6 min, $0.0950, 140,819 chars of tool results and re-typed 30,509 chars; Mycel 0.1.6 run 1 is the middle column. Different designs and call sequences between runs: LLM variance is not controlled.
+
+Scripted check of the same 6-screen project (no model): ~48.3k tokens direct vs ~3.0k through Mycel (−94%); tool definitions: 32 raw tools (~15,118 tokens) vs 6 meta tools (~915).
+
+#### Secondary: turn fix on a mock service (mock service, n=2)
 
 | Run 1 · run 2 | Direct | Mycel 0.1.6 | Mycel 0.1.7 |
 |---|---:|---:|---:|
@@ -97,10 +101,10 @@ Scripted check of the same 6-screen project (no model): ~48.3k tokens direct vs 
 | 📥 Total input incl. cache | 1,106k · 892k | 1,353k · 1,126k | **616k · 525k** |
 | ✔️ Oracle (file saved, byte-identical) | 2/2 | 2/2 | 2/2 |
 
-Honest limits: the second table uses a mock service with fixed 22–38 s generations, so wall time is not meaningful, and the real Stitch has not yet been re-run with 0.1.7. Both tables are small samples (n=1 real, n=2 mock) and the designs differed between arms: this is not a quality comparison.
+Honest limits: the mock table uses a mock service with fixed 22–38 s generations, so its wall time is not meaningful. Real-service tables are n=1 per arm, the designs differed between arms (not a quality comparison), and 0.1.7 results are returned as ref + digest (~1.5 KB each) inline, so its gain over 0.1.6 is mainly fewer turns, not smaller payloads.
 
-- **Gained:** in the real run, cost −77%, tool results in context −82%, output tokens −59%, and the HTML saved by handle instead of re-typed. On the mock, the 0.1.7 turn fix brings turns back to the direct count (15 · 13) while keeping the cost and output savings.
-- **Lost:** in the real run (0.1.6), 2× the turns and +18% wall time; total input including cache reads was also higher (mostly cached). Not yet shown on the real service with 0.1.7.
+- **Gained:** real run 2 vs direct: cost −85%, tool results in context −88%, output tokens −73%, total input −39%, turns equal (13 vs 13), and the HTML saved by handle, byte-identical, where the direct arm's re-typed copy was corrupted. Versus Mycel 0.1.6: turns 27 → 13, no job polling.
+- **Lost:** nothing measurable against direct in run 2. The remaining avoidable cost is one verification read after the write (the minimum for this task is about 10 calls; run 2 used 12). Wall time is dominated by Stitch generation latency.
 
 Stitch needs `MCP_TOOL_TIMEOUT=1200000`, and the run used a policy that allows the stitch and filesystem servers and denies `delete_project`, `apply_design_system` and `update_design_system`. Setup, prompt, the full tables and how to reproduce: [docs/case-studies/stitch-ui-design.md](docs/case-studies/stitch-ui-design.md).
 
@@ -164,7 +168,7 @@ Eleven sectors, each with an honest status. The evidence is a mock or scripted s
 | 8 | 📊 Finance & accounting reporting | Big ledger exports stay out of the prompt; paid data lookups are capped and every call is recorded. Evidence (mock services): scripted runs 3/3 found all three issues in 32,000 ledger rows; in every run the two mock provider receipts matched Mycel's ledger; a third call that would exceed the $0.10 budget cap was refused; the flight recorder had 18 of 18 tool calls. Small local model 0/3 (did not call the ledger/FX tools). | PARTIAL |
 | 9 | 🛠️ Data engineering / ETL quality | Row-level checks run in Code Mode over refs, so mislabeled or unflagged records are found without reading the table. Evidence (independent review, mock services, 3 runs each): scripted runs 3/3 found all 3 issues in 50,001 rows, 0 false positives, both direct and through Mycel. Context size for the same 2-turn task: 583,980 tokens direct vs 602 through Mycel (requests + responses, chars/4). Local median latency 37.7 ms direct vs 319.3 ms Mycel. Small local model 0/3 in both arms. | PARTIAL |
 | 10 | 📱 Agencies & social-media teams | Each agent gets its own narrowed token, so a posting agent can’t touch billing, and posts need approval. Evidence (mock pilot): scripted 3/3 and a real local model (Qwen3-4B) 3/3: with a posting-only capability token, billing calls were refused for every client, the analytics report travelled as a ref, and posting waited for approval (3 approval ids matched the queue; 0 unapproved posts). Measured with mock services; real platform APIs not tested. | MEASURED (mock pilot) |
-| 11 | 🎨 UI/UX & product designers | Big design artifacts (generated screens, HTML) stay out of the model context and are saved by ref, not re-typed. Evidence (real Google Stitch MCP, Claude Code with `claude-haiku-5-5`, n=1 per arm): 6 mobile screens, CLI cost estimate $0.0950 → $0.0221 (−77%), tool results in context ~35.2k → ~6.2k tokens; but 13 → 27 turns and 13.6 → 16.1 min. See [the case study](docs/case-studies/stitch-ui-design.md). | **MEASURED (n=1, real service)** |
+| 11 | 🎨 UI/UX & product designers | Big design artifacts (generated screens, HTML) stay out of the model context and are saved by ref, not re-typed. Evidence (real Google Stitch MCP, Claude Code with `claude-haiku-5-5`, n=1 per arm): 6 mobile screens, Mycel 0.1.7, run 2 vs direct: CLI cost estimate $0.0867 → $0.0132 (−85%), tool results in context ~147k → ~18k chars, same 13 turns; the direct arm's re-typed `payment.html` was corrupted (one character dropped), the Mycel one byte-identical. See [the case study](docs/case-studies/stitch-ui-design.md). | **MEASURED (n=1, real service)** |
 
 Also (DESIGNED FOR, not yet tested): education content, and health/biomedical literature review (arXiv/PubMed-style search; a reading aid, no medical-advice claims).
 
@@ -312,7 +316,32 @@ The field test found four real bugs before launch. All are fixed and covered by 
 
 ## 🚀 Quickstart
 
-Works on **macOS, Linux and Windows** (Node 20+). `ffmpeg` is optional (video/audio digests). The servers you bring decide the rest. For example, Python-based servers need [`uv`](https://docs.astral.sh/uv/).
+One line, Enter, done. Works on **macOS, Linux and Windows** (Node 20+).
+
+**1. Paste one line**
+
+```bash
+npx -y @speakquery/mycel setup
+```
+
+Or install globally with `npm i -g @speakquery/mycel`, then run `mycel setup`.
+
+**2. Say yes.** Mycel finds the MCP servers you already use in Claude Desktop, Claude Code, Cursor, Windsurf and Gemini CLI, shows exactly what it will change, backs everything up, and connects them through Mycel.
+
+**3. Restart your app.** That's it. Your agent now finds tools on demand, keeps big results out of the chat, and asks before risky actions.
+
+**See what you save:**
+
+```
+$ mycel stats
+today: −48,300 tokens (measured result size, tokens ≈ chars/4) · tool definitions ~−202k/turn (estimated)
+```
+
+Changed your mind? `mycel undo` restores your original settings. Verified with test configs for each app; tell us if your setup looks different. Full walkthrough: [docs/getting-started.md](docs/getting-started.md).
+
+### Manual setup
+
+Prefer to do it by hand? `ffmpeg` is optional (video/audio digests). The servers you bring decide the rest. For example, Python-based servers need [`uv`](https://docs.astral.sh/uv/).
 
 ```bash
 # Install (the command is `mycel`)

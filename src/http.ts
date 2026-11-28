@@ -11,6 +11,7 @@ import { A2AServer } from "./a2a-server.js";
 import type { CapabilityClaims } from "./tokens.js";
 import type { TraceEvent } from "./recorder.js";
 import type { Job } from "./jobs.js";
+import { VERSION } from "./update.js";
 
 export interface HttpOptions {
   port: number;
@@ -181,7 +182,7 @@ async function api(m: Mycel, req: IncomingMessage, res: ServerResponse, url: URL
   if (p === "/api/overview") {
     const fp = m.contextFootprint();
     return send(res, 200, {
-      version: "0.3.1",
+      version: VERSION,
       session: m.sessionId,
       router: m.routerMode(),
       servers: [...m.upstreams.values()].map((u) => ({ name: u.name, status: u.status, error: u.error, tools: u.tools.length, trust: m.config.servers[u.name]?.trust ?? u.tools[0]?.trust ?? "trusted" })),

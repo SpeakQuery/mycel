@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mycel · Privacy</title>
+<link rel="icon" href="assets/favicon.svg">
+<style>
+  body { font: 16px/1.6 system-ui, -apple-system, Segoe UI, sans-serif; max-width: 760px; margin: 48px auto; padding: 0 20px; color: #1b1f1d; }
+  h1 { font-size: 1.8rem; margin-bottom: .2rem; } h2 { font-size: 1.15rem; margin-top: 2rem; }
+  code { background: #f1f4f2; padding: 1px 5px; border-radius: 4px; } .muted { color: #5d6762; }
+  @media (prefers-color-scheme: dark) { body { background: #0f1412; color: #e6ece9; } code { background: #1d2522; } .muted { color: #9aa6a0; } }
+</style>
+</head>
+<body>
+<h1>Privacy</h1>
+<p class="muted">Mycel, by SpeakQuery · applies to the npm package, the installers and the Claude Desktop extension.</p>
+
+<h2>In short</h2>
+<p>Mycel runs on your computer. It has no account, no analytics and no telemetry. We (SpeakQuery) receive nothing from it.</p>
+
+<h2>What stays on your computer</h2>
+<ul>
+  <li>Your Mycel config (<code>~/.mycel/mycel.yaml</code>), the flight log of tool calls, savings counts, backups of the app settings it changed, and large results kept as <code>ref://</code> files.</li>
+  <li>API keys: in the macOS Keychain or your Linux keyring, otherwise in <code>~/.mycel/secrets.env</code> (readable only by you). The AI model never sees them; Mycel replaces them in anything it returns.</li>
+  <li>Sign-in tokens for services that use OAuth (for example Canva or Notion), stored locally and refreshed automatically.</li>
+</ul>
+
+<h2>When Mycel connects to the internet</h2>
+<ul>
+  <li><strong>To the tools you connect.</strong> Calls go to the MCP servers in your config, as they would without Mycel.</li>
+  <li><strong>Update check.</strong> At most once a day it asks the public npm registry (<code>registry.npmjs.org</code>) for the latest version number, and downloads the new version from npm if there is one. Nothing about you or your usage is sent. Turn it off with <code>update: { auto: false }</code>.</li>
+  <li><strong>Only if you set them up:</strong> an OpenTelemetry endpoint for traces, a model API for <code>mycel_ask</code>, or other agents over A2A.</li>
+  <li><strong>The installers</strong> download Node.js from <code>nodejs.org</code> (checked against its published SHA-256) when you do not have it, and Mycel from npm.</li>
+</ul>
+
+<h2>Removing it</h2>
+<p><code>mycel uninstall</code> restores your apps' settings from before Mycel, removes its keychain entries and deletes <code>~/.mycel</code>. In Claude Desktop you can also ask Claude to undo the Mycel setup, then remove the extension in Settings → Extensions.</p>
+
+<h2>Contact</h2>
+<p>Questions or a security report: <a href="https://github.com/SpeakQuery/mycel/issues">GitHub issues</a>, or see <a href="https://github.com/SpeakQuery/mycel/blob/main/SECURITY.md">SECURITY.md</a> for private reports.</p>
+<p class="muted">Last updated 2026-11-28.</p>
+</body>
+</html>

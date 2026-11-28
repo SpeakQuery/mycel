@@ -3,6 +3,7 @@ import { appendFileSync, mkdirSync, readFileSync, readdirSync, existsSync } from
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import type { EventSavings } from "./savings.js";
+import { VERSION } from "./update.js";
 
 export type EventKind = "session" | "search" | "describe" | "call" | "run" | "ref" | "job" | "approval" | "policy" | "a2a" | "ask" | "drift";
 
@@ -223,7 +224,7 @@ export class Recorder extends EventEmitter {
           resource: { attributes: [attr("service.name", this.opts.serviceName ?? "mycel")] },
           scopeSpans: [
             {
-              scope: { name: "mycel", version: "0.3.1" },
+              scope: { name: "mycel", version: VERSION },
               spans: batch.map((e) => ({
                 traceId: e.traceId.padEnd(32, "0").slice(0, 32),
                 spanId: e.spanId.padEnd(16, "0").slice(0, 16),

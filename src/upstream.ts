@@ -8,6 +8,7 @@ import { hashDefinition, type ToolEntry } from "./catalog.js";
 import { inferContract, type ToolAnnotations } from "./contracts.js";
 import type { SecretVault } from "./secrets.js";
 import { FileOAuthProvider } from "./oauth.js";
+import { VERSION } from "./update.js";
 
 /**
  * Did the provider possibly accept the call?
@@ -173,7 +174,7 @@ export async function connectMcp(name: string, cfg: ServerConfig, vault: SecretV
       authProvider: oauthFor(name, cfg, vault, opts),
     });
   }
-  const client = new Client({ name: `mycel:${name}`, version: "0.3.1" }, { capabilities: {} });
+  const client = new Client({ name: `mycel:${name}`, version: VERSION }, { capabilities: {} });
   await client.connect(transport);
   return new McpProvider(client);
 }

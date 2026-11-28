@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Mycel, CallContext, CallOutcome } from "./core.js";
 import type { A2AMessage, A2ATask, AgentCard, Part, TaskState } from "./a2a-client.js";
+import { VERSION } from "./update.js";
 
 class RpcError extends Error {
   constructor(
@@ -47,11 +48,11 @@ export class A2AServer {
   card(baseUrl: string): AgentCard {
     const ov = this.m.catalog.overview();
     return {
-      protocolVersion: "0.3.1",
+      protocolVersion: "0.3.0" /* A2A protocol version, not Mycel's */,
       name: this.m.config.a2a.name,
       description: this.m.config.a2a.description,
       url: new URL("/a2a", baseUrl).toString(),
-      version: "0.3.1",
+      version: VERSION,
       preferredTransport: "JSONRPC",
       capabilities: { streaming: false, pushNotifications: false },
       defaultInputModes: ["application/json", "text/plain"],

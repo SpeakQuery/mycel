@@ -4,6 +4,10 @@
 
 <sub>The film is a dramatization. Its 500 MB video example with transcript uses illustrative data (video/data.json); today the built-in video digest returns metadata and keyframe refs, no transcript. The film's final frame shows an outdated command; the correct one is <code>npx @speakquery/mycel init</code> (the package is published as @speakquery/mycel).</sub>
 
+<a href="https://mycel.speakquery.ai/#explainer"><img src="media/mycel-explainer-poster.jpg" alt="What is Mycel? Watch the 2-minute explainer" width="640"></a>
+
+<sub><b>New to Mycel?</b> <a href="https://mycel.speakquery.ai/#explainer">Watch the 2-minute explainer</a> (<a href="site/assets/mycel-explainer.mp4">MP4</a>).</sub>
+
 # Mycel
 
 ### One layer between your agents and everything they touch.
@@ -17,7 +21,7 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 [![A2A v0.3](https://img.shields.io/badge/A2A-v0.3-3DFFB0?style=flat-square)](https://a2a-protocol.org)
 [![Tests](https://img.shields.io/badge/tests-104%20passing-3DFFB0?style=flat-square)](tests)
 
-[**▶ Watch the 90-second film**](https://mycel.speakquery.ai/#film) · [Quickstart](#-quickstart) · [Benchmark](#-the-numbers) · [How it works](#-how-it-works) · [All 20 features](#-features) · [Docs](docs/)
+[**▶ Watch the 90-second film**](https://mycel.speakquery.ai/#film) · [**▶ 2-minute explainer**](https://mycel.speakquery.ai/#explainer) · [Quickstart](#-quickstart) · [Benchmark](#-the-numbers) · [How it works](#-how-it-works) · [All 20 features](#-features) · [Docs](docs/)
 
 </div>
 

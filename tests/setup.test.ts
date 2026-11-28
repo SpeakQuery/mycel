@@ -196,7 +196,7 @@ describe("mycel setup / undo", () => {
     process.env.PATH = bin;
     put(desktop(), JSON.stringify({ mcpServers: { x: { command: "x-srv" } } }));
     await runSetup({ yes: true, config: join(home, "custom.yaml"), cwd }, io());
-    expect(JSON.parse(rd(desktop())).mcpServers.mycel).toEqual({ command: "mycel", args: ["serve", "--config", join(home, "custom.yaml")] });
+    expect(JSON.parse(rd(desktop())).mcpServers.mycel).toEqual({ command: process.platform === "win32" ? "mycel" : join(bin, "mycel"), args: ["serve", "--config", join(home, "custom.yaml")] });
     expect(existsSync(join(home, "custom.yaml"))).toBe(true);
   });
 
@@ -447,5 +447,20 @@ describe("0.3.0: extension setup tool, uninstall, Turkish, updates", () => {
     expect(compareVersions("0.10.0", "0.9.9")).toBe(1);
     expect(compareVersions("1.0.0-beta.1", "1.0.0")).toBe(-1);
     expect(compareVersions("0.3.0", "0.3.0")).toBe(0);
+  });
+});
+
+describe("apps started from the Dock still find Mycel", () => {
+  it("writes the absolute npx and a PATH with node's folder", () => {
+    if (process.platform === "win32") return;
+    const bin = mkdtempSync(join(tmpdir(), "mycel-npx-"));
+    for (const b of ["npx", "node"]) {
+      writeFileSync(join(bin, b), "#!/bin/sh\n");
+      chmodSync(join(bin, b), 0o755);
+    }
+    process.env.PATH = bin;
+    const e = mycelEntry("/c.yaml");
+    expect(e.command).toBe(join(bin, "npx"));
+    expect(e.env?.PATH).toBe(`${bin}:/usr/bin:/bin`);
   });
 });

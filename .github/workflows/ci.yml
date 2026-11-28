@@ -92,3 +92,58 @@ jobs:
           python-version: "3.11"
       - name: Run Python client tests
         run: python -m unittest discover -s python/tests
+
+  e2e:
+    name: end to end · what a user does · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Setup, apps, search + call, savings, stats, undo, uninstall, and the Claude Desktop extension
+        run: npm run e2e
+
+  installer:
+    name: installer · brings its own Node · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci && npm run build && npm pack
+      - name: install.sh in an empty home, forced Node download, this build
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          T=$(mktemp -d); mkdir -p "$T/home"
+          PKG="$PWD/$(ls speakquery-mycel-*.tgz)"
+          env -i HOME="$T/home" SHELL=/bin/bash PATH=/usr/bin:/bin:/usr/sbin:/sbin MYCEL_PACKAGE="$PKG" MYCEL_FORCE_NODE_DOWNLOAD=1 MYCEL_NO_UPDATE=1 sh site/install.sh </dev/null | tee "$T/out.txt"
+          grep -q "checksum verified" "$T/out.txt"
+          "$T/home/.mycel/bin/mycel" --version
+          "$T/home/.mycel/bin/mycel" doctor || true
+          grep -q ".mycel/bin" "$T/home/.bashrc" || grep -q ".mycel/bin" "$T/home/.bash_profile"
+      - name: install.ps1 in an empty profile, forced Node download, this build
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $T = Join-Path $env:RUNNER_TEMP "mycel-home"; New-Item -ItemType Directory -Force $T | Out-Null
+          $pkg = (Get-ChildItem speakquery-mycel-*.tgz).FullName
+          $env:MYCEL_HOME = Join-Path $T ".mycel"; $env:MYCEL_PACKAGE = $pkg; $env:MYCEL_FORCE_NODE_DOWNLOAD = "1"; $env:MYCEL_YES = "1"; $env:MYCEL_NO_UPDATE = "1"
+          $env:USERPROFILE = $T; $env:APPDATA = Join-Path $T "AppData\Roaming"
+          & ./site/install.ps1 --no-check *>&1 | Tee-Object -FilePath (Join-Path $T "out.txt")
+          if (-not (Select-String -Path (Join-Path $T "out.txt") -Pattern "checksum verified" -Quiet)) { throw "node checksum line missing" }
+          & (Join-Path $T ".mycel\bin\mycel.cmd") --version
+          if ($LASTEXITCODE -ne 0) { throw "mycel.cmd failed" }

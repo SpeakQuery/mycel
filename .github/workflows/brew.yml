@@ -1,0 +1,29 @@
+name: Follow npm releases
+
+on:
+  schedule: [{ cron: "17 * * * *" }] # hourly
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: b
+        run: echo "v=$(sh scripts/brew-bump.sh)" >> "$GITHUB_OUTPUT"
+      - if: steps.b.outputs.v != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "brew: mycel ${{ steps.b.outputs.v }}" && git push
+
+  test:
+    needs: bump
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - run: brew tap speakquery/mycel "$PWD" && brew install --build-from-source speakquery/mycel/mycel && mycel --version && brew test speakquery/mycel/mycel

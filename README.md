@@ -308,7 +308,9 @@ The field test found four real bugs before launch. All are fixed and covered by 
 
 ## 🚀 Quickstart
 
-**Easiest, no terminal (Claude Desktop):** [download Mycel for Claude Desktop](https://mycel.speakquery.ai/mycel.mcpb), double-click it, then ask Claude: *"Set up Mycel"* (or *"Mycel'i kur"*). Claude shows you a plan, asks, and does the rest. Undo: *"Undo the Mycel setup"*.
+**Easiest, no terminal (Claude Desktop):** [download Mycel for Claude Desktop](https://github.com/SpeakQuery/mycel/releases/latest/download/mycel.mcpb), double-click it, then ask Claude: *"Set up Mycel"* (or *"Mycel'i kur"*). Claude shows you a plan, asks, and does the rest. Undo: *"Undo the Mycel setup"*.
+
+The extension comes from this repository's [GitHub Releases](https://github.com/SpeakQuery/mycel/releases), with a SHA-256 checksum next to it. Prefer a package manager? `brew tap speakquery/mycel https://github.com/SpeakQuery/mycel && brew install mycel` (Homebrew, pinned to the npm release by checksum) or `npx -y @speakquery/mycel setup` (npm).
 
 **Or with one line** (also sets up Claude Code, Cursor, VS Code, Windsurf and Gemini CLI). Works on **macOS, Linux and Windows**. No Node.js? The installer brings its own (official build from nodejs.org, checksum verified, into `~/.mycel`, no admin rights). The wizard speaks Turkish when your system does.
 

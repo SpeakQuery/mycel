@@ -19,10 +19,12 @@ function NodeOk($exe) {
 
 Write-Host "`n  Mycel installer`n"
 $Node = $null
+$Package = if ($env:MYCEL_PACKAGE) { $env:MYCEL_PACKAGE } else { "@speakquery/mycel@latest" }
+$force = $env:MYCEL_FORCE_NODE_DOWNLOAD -eq "1"
 $sys = Get-Command node -ErrorAction SilentlyContinue
-if ($sys -and (NodeOk $sys.Source)) {
+if (-not $force -and $sys -and (NodeOk $sys.Source)) {
   $Node = $sys.Source; Say "OK Node.js $(& $Node -v) found"
-} elseif ((Test-Path (Join-Path $NodeDir "node.exe")) -and (NodeOk (Join-Path $NodeDir "node.exe"))) {
+} elseif (-not $force -and (Test-Path (Join-Path $NodeDir "node.exe")) -and (NodeOk (Join-Path $NodeDir "node.exe"))) {
   $Node = Join-Path $NodeDir "node.exe"; Say "OK Node.js $(& $Node -v) found in $NodeDir"
 } else {
   $arch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "x64" }
@@ -52,7 +54,7 @@ if (-not (Test-Path $npm)) { $c = Get-Command npm -ErrorAction SilentlyContinue;
 Say "Installing Mycel into $AppDir..."
 New-Item -ItemType Directory -Force -Path $AppDir | Out-Null
 $env:PATH = (Split-Path $Node) + ";" + $env:PATH
-& $npm install --prefix $AppDir --no-fund --no-audit --loglevel=error "@speakquery/mycel@latest" | Out-Null
+& $npm install --prefix $AppDir --no-fund --no-audit --loglevel=error $Package | Out-Null
 if ($LASTEXITCODE -ne 0) { Fail "npm install failed" }
 $cli = Join-Path $AppDir "node_modules\@speakquery\mycel\dist\cli.js"
 if (-not (Test-Path $cli)) { Fail "Mycel was not installed correctly" }
@@ -65,7 +67,7 @@ Set-Content -Path (Join-Path $BinDir "mycel.cmd") -Value "@echo off`r`n`"$Node`"
 if (-not (Get-Command mycel -ErrorAction SilentlyContinue)) {
   $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
   if (-not ($userPath -split ";" | Where-Object { $_ -eq $BinDir })) {
-    $a = Read-Host "  Add the mycel command to your terminal (your user PATH)? [Y/n]"
+    $a = if ($env:MYCEL_YES -eq "1" -or -not [Environment]::UserInteractive) { "y" } else { Read-Host "  Add the mycel command to your terminal (your user PATH)? [Y/n]" }
     if ($a -notmatch "^(n|no|hayir)$") {
       [Environment]::SetEnvironmentVariable("Path", ($BinDir + ";" + $userPath).TrimEnd(";"), "User")
       Say "OK mycel command added (new terminal windows will have it)"

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 — 2026-11-28
+
+**Works for apps started from the Dock, tested end to end on every change, released from GitHub.**
+- Apps started from the Dock or Start menu (Claude Desktop, Cursor) get a short PATH without Homebrew, nvm or npm's folders, so `npx` / `mycel` and the `node` they need were not found. Setup now writes the absolute command plus a PATH with node's folder (also through `claude mcp add -e`).
+- `npm run e2e`: an end-to-end test of what a user does, in a throwaway home: setup, the app starting Mycel, a real MCP server through it, the savings line, `mycel stats`, undo (byte-for-byte), uninstall, and the Claude Desktop extension's setup from the chat (plan, then apply). `--copy-real` adds copies of your own app configs. CI runs it on macOS, Windows and Linux, and runs both installers (forced Node download, this build) on all three.
+- Releases from GitHub: pushing a version tag runs the tests and the end-to-end test, builds the extension, publishes a GitHub Release with `SHA256SUMS`, and publishes to npm with provenance (trusted publishing). Download links point to GitHub Releases.
+- Homebrew: `brew tap speakquery/mycel https://github.com/SpeakQuery/mycel && brew install mycel`; the formula follows npm releases by itself.
+
 ## 0.3.0 — 2026-11-28
 
 **No terminal needed, keys in the keychain, and Mycel keeps itself up to date.**

@@ -1,0 +1,49 @@
+name: Release
+
+# Push a tag like v0.3.1 → tests, Claude Desktop extension, checksums, GitHub Release, npm (with provenance).
+# npm publishing uses npm "trusted publishing" (OIDC): no token and no one-time password. It needs a one-time
+# setting on npmjs.com: package @speakquery/mycel → Settings → Trusted publishing → GitHub Actions,
+# repository SpeakQuery/mycel, workflow release.yml.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the GitHub Release
+  id-token: write # npm trusted publishing + provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest # trusted publishing needs npm 11.5+
+      - run: npm ci
+      - name: Version in package.json matches the tag
+        run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
+      - run: npm run typecheck
+      - run: npm test
+      - name: End-to-end (builds the extension too)
+        run: npm run e2e
+      - name: Checksums
+        run: |
+          mkdir -p dist-release
+          cp site/mycel.mcpb site/install.sh site/install.ps1 dist-release/
+          cd dist-release && sha256sum mycel.mcpb install.sh install.ps1 > SHA256SUMS && cat SHA256SUMS
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes=$(awk "/^## ${GITHUB_REF_NAME#v} /{f=1;next} /^## /{f=0} f" CHANGELOG.md)
+          gh release create "$GITHUB_REF_NAME" dist-release/* --title "Mycel ${GITHUB_REF_NAME#v}" --notes "$notes"
+      - name: npm (trusted publishing, provenance)
+        run: |
+          if ! npm publish --access public --provenance; then
+            echo "::warning::npm publish failed. If this is the first release from CI, turn on trusted publishing for @speakquery/mycel on npmjs.com (Settings → Trusted publishing → GitHub Actions, SpeakQuery/mycel, release.yml)."
+            exit 1
+          fi

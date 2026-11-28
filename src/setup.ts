@@ -76,13 +76,20 @@ function onPath(bin: string): string | null {
 }
 
 /** The entry clients get: the `mycel` binary when installed, otherwise via npx. */
-export function mycelEntry(configPath: string): { command: string; args: string[] } {
-  // The install script runs setup from a private copy (~/.mycel/app) with an absolute Node path, so apps that
-  // start with a short PATH (Claude Desktop on macOS) still find it.
+export function mycelEntry(configPath: string): { command: string; args: string[]; env?: Record<string, string> } {
+  // The install script runs setup from a private copy (~/.mycel/app) with an absolute Node path.
   if (process.env.MYCEL_ENTRY_ABSOLUTE === "1" && process.argv[1]) return { command: process.execPath, args: [resolve(process.argv[1]), "serve", "--config", configPath] };
-  return onPath("mycel")
-    ? { command: "mycel", args: ["serve", "--config", configPath] }
-    : { command: "npx", args: ["-y", "@speakquery/mycel@latest", "serve", "--config", configPath] };
+  // Apps started from the Dock or Start menu (Claude Desktop, Cursor) get a short PATH without Homebrew, nvm or
+  // npm's folders, so `mycel` / `npx` and the `node` their first line asks for are not found. Write the absolute
+  // command and a PATH with the folder that has node.
+  const win = process.platform === "win32";
+  const mycel = onPath("mycel");
+  const npx = mycel ? null : onPath("npx");
+  const nodeDir = !win && (mycel || npx) ? onPath("node") : null;
+  const env = nodeDir ? { env: { PATH: [dirname(nodeDir), "/usr/bin", "/bin"].join(":") } } : {};
+  return mycel
+    ? { command: win ? "mycel" : mycel, args: ["serve", "--config", configPath], ...env }
+    : { command: npx && !win ? npx : "npx", args: ["-y", "@speakquery/mycel@latest", "serve", "--config", configPath], ...env };
 }
 
 function stripJsonc(s: string): string {
@@ -191,7 +198,7 @@ export interface Manifest {
 
 const backupsDir = () => join(mycelHome(), "backups");
 
-function claudeCliRewrite(p: Plan, entry: { command: string; args: string[] }): boolean {
+function claudeCliRewrite(p: Plan, entry: { command: string; args: string[]; env?: Record<string, string> }): boolean {
   // Only user-scope servers of ~/.claude.json go through the CLI. Failure falls back to JSON editing.
   const cli = onPath("claude");
   if (!cli || p.client !== "Claude Code" || process.env.MYCEL_NO_CLAUDE_CLI) return false;
@@ -204,7 +211,8 @@ function claudeCliRewrite(p: Plan, entry: { command: string; args: string[] }): 
       } catch {
         /* none to remove */
       }
-      execFileSync(cli, ["mcp", "add", "-s", "user", "mycel", "--", entry.command, ...entry.args], { stdio: "ignore", timeout: 30000 });
+      const envArgs = Object.entries(entry.env ?? {}).flatMap(([k, v]) => ["-e", `${k}=${v}`]);
+      execFileSync(cli, ["mcp", "add", "-s", "user", ...envArgs, "mycel", "--", entry.command, ...entry.args], { stdio: "ignore", timeout: 30000 });
     }
     return true;
   } catch {

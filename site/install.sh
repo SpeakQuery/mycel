@@ -27,10 +27,11 @@ node_ok() {
 }
 
 NODE=""
-if command -v node >/dev/null 2>&1 && node_ok "$(command -v node)"; then
+PACKAGE="${MYCEL_PACKAGE:-@speakquery/mycel@latest}"
+if [ "${MYCEL_FORCE_NODE_DOWNLOAD:-}" != "1" ] && command -v node >/dev/null 2>&1 && node_ok "$(command -v node)"; then
   NODE="$(command -v node)"
   say "✓ Node.js $("$NODE" -v) found"
-elif [ -x "$NODE_DIR/bin/node" ] && node_ok "$NODE_DIR/bin/node"; then
+elif [ "${MYCEL_FORCE_NODE_DOWNLOAD:-}" != "1" ] && [ -x "$NODE_DIR/bin/node" ] && node_ok "$NODE_DIR/bin/node"; then
   NODE="$NODE_DIR/bin/node"
   say "✓ Node.js $("$NODE" -v) found in $NODE_DIR"
 else
@@ -67,7 +68,7 @@ NPM="$(dirname "$NODE")/npm"
 [ -n "$NPM" ] || fail "npm was not found next to Node.js"
 say "Installing Mycel into $APP_DIR…"
 mkdir -p "$APP_DIR"
-PATH="$(dirname "$NODE"):$PATH" "$NPM" install --prefix "$APP_DIR" --no-fund --no-audit --loglevel=error @speakquery/mycel@latest >/dev/null || fail "npm install failed"
+PATH="$(dirname "$NODE"):$PATH" "$NPM" install --prefix "$APP_DIR" --no-fund --no-audit --loglevel=error "$PACKAGE" >/dev/null || fail "npm install failed"
 CLI="$APP_DIR/node_modules/@speakquery/mycel/dist/cli.js"
 [ -f "$CLI" ] || fail "Mycel was not installed correctly"
 say "✓ Mycel $("$NODE" "$CLI" --version) installed"

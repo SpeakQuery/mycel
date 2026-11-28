@@ -29,7 +29,7 @@ export async function signIn(loaded: LoadedConfig, name: string, out: (s: string
   const cb = waitForCallback(port, () => provider.expectedState());
   await cb.ready;
   const connect = async () => {
-    const client = new Client({ name: `mycel:${name}`, version: "0.1.9" }, { capabilities: {} });
+    const client = new Client({ name: `mycel:${name}`, version: "0.2.0" }, { capabilities: {} });
     const transport = new StreamableHTTPClientTransport(new URL(cfg.url), { requestInit: { headers: m.vault.inject(cfg.headers) }, authProvider: provider });
     await client.connect(transport);
     return { client, transport };

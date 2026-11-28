@@ -6,7 +6,7 @@ import { estimateTokens, type ToolEntry } from "./catalog.js";
 import { newId, type EventKind } from "./recorder.js";
 import type { SavingsMeta } from "./savings.js";
 
-const VERSION = "0.1.9";
+const VERSION = "0.2.0";
 
 /** MCP tool names must be [a-zA-Z0-9_-]; direct tools are exposed as `server__tool`. */
 export const directName = (t: ToolEntry) => `${t.server}__${t.name}`.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);

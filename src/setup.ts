@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, renameSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, platform as osPlatform } from "node:os";
 import { basename, delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import YAML from "yaml";
@@ -15,6 +15,8 @@ export interface SetupIO {
   out: (s: string) => void;
   /** Ask a yes/no question; an empty answer returns `def`. Only called when `interactive` is true. */
   ask: (q: string, def?: boolean) => Promise<boolean>;
+  /** Read a value without echoing it (API keys). Returns "" when skipped. Only called when `interactive` is true. */
+  secret?: (q: string) => Promise<string>;
   interactive: boolean;
 }
 
@@ -70,6 +72,9 @@ function onPath(bin: string): string | null {
 
 /** The entry clients get: the `mycel` binary when installed, otherwise via npx. */
 export function mycelEntry(configPath: string): { command: string; args: string[] } {
+  // The install script runs setup from a private copy (~/.mycel/app) with an absolute Node path, so apps that
+  // start with a short PATH (Claude Desktop on macOS) still find it.
+  if (process.env.MYCEL_ENTRY_ABSOLUTE === "1" && process.argv[1]) return { command: process.execPath, args: [resolve(process.argv[1]), "serve", "--config", configPath] };
   return onPath("mycel")
     ? { command: "mycel", args: ["serve", "--config", configPath] }
     : { command: "npx", args: ["-y", "@speakquery/mycel", "serve", "--config", configPath] };
@@ -176,7 +181,7 @@ export interface Manifest {
   config: { path: string; createdBySetup: boolean; backup?: string; sha256After?: string };
   /** The secrets file setup moved API keys into (read only by you). */
   secrets?: { path: string; createdBySetup: boolean; backup?: string; sha256After?: string };
-  files: Array<{ client: string; path: string; backup: string; sha256Before: string; sha256After: string; viaClaudeCli?: boolean }>;
+  files: Array<{ client: string; path: string; backup: string; sha256Before: string; sha256After: string; viaClaudeCli?: boolean; createdBySetup?: boolean }>;
 }
 
 const backupsDir = () => join(mycelHome(), "backups");
@@ -200,6 +205,104 @@ function claudeCliRewrite(p: Plan, entry: { command: string; args: string[] }): 
   } catch {
     return false;
   }
+}
+
+/** Claude Desktop's folder: macOS Application Support, Windows %APPDATA%, Linux ~/.config. */
+function claudeDesktopDir(): string {
+  const h = homedir();
+  const p = osPlatform();
+  return p === "darwin" ? join(h, "Library", "Application Support", "Claude") : p === "win32" ? join(process.env.APPDATA ?? join(h, "AppData", "Roaming"), "Claude") : join(h, ".config", "Claude");
+}
+
+export interface DesktopExtension {
+  id: string;
+  name: string;
+  server: Record<string, unknown>;
+  settingsPath: string;
+}
+
+/**
+ * Claude Desktop extensions (one-click .mcpb/.dxt installs) live outside claude_desktop_config.json:
+ * `Claude Extensions/<id>/manifest.json` plus `Claude Extensions Settings/<id>.json` ({ isEnabled, userConfig }).
+ * Enabled ones are imported; setup then turns them off in Claude Desktop (Mycel runs them instead).
+ */
+export function findDesktopExtensions(dir = claudeDesktopDir()): { found: DesktopExtension[]; skipped: string[] } {
+  const found: DesktopExtension[] = [];
+  const skipped: string[] = [];
+  const extDir = join(dir, "Claude Extensions");
+  const setDir = join(dir, "Claude Extensions Settings");
+  if (!existsSync(extDir)) return { found, skipped };
+  for (const id of readdirSync(extDir)) {
+    const mf = join(extDir, id, "manifest.json");
+    const settingsPath = join(setDir, `${id}.json`);
+    if (!existsSync(mf) || !existsSync(settingsPath)) continue;
+    try {
+      const m = JSON.parse(readFileSync(mf, "utf8")) as { name?: string; display_name?: string; server?: { type?: string; mcp_config?: { command?: string; args?: string[]; env?: Record<string, string> } } };
+      const st = JSON.parse(readFileSync(settingsPath, "utf8")) as { isEnabled?: boolean; userConfig?: Record<string, unknown> };
+      if (st.isEnabled === false) continue;
+      const mc = m.server?.mcp_config;
+      const label = m.display_name ?? m.name ?? id;
+      if (!mc?.command) {
+        skipped.push(`${label} (no command in its manifest)`);
+        continue;
+      }
+      if (m.server?.type === "node" && mc.command === "node" && !onPath("node")) {
+        skipped.push(`${label} (needs Node.js on PATH; Claude Desktop uses its own copy)`);
+        continue;
+      }
+      const uc = st.userConfig ?? {};
+      const h = homedir();
+      const vars: Record<string, string> = { __dirname: join(extDir, id), HOME: h, DOCUMENTS: join(h, "Documents"), DESKTOP: join(h, "Desktop"), DOWNLOADS: join(h, "Downloads"), pathSeparator: delimiter === ";" ? "\\" : "/", "/": delimiter === ";" ? "\\" : "/" };
+      const sub = (v: string): string =>
+        v.replace(/\$\{([^}]+)\}/g, (all, k: string) => {
+          if (k.startsWith("user_config.")) {
+            const u = uc[k.slice("user_config.".length)];
+            return u === undefined || u === null ? "" : Array.isArray(u) ? u.join(" ") : String(u);
+          }
+          return vars[k] ?? all;
+        });
+      const args: string[] = [];
+      for (const a of mc.args ?? []) {
+        const whole = /^\$\{user_config\.([^}]+)\}$/.exec(a);
+        const u = whole ? uc[whole[1]] : undefined;
+        if (Array.isArray(u)) args.push(...u.map(String));
+        else args.push(sub(a));
+      }
+      const env: Record<string, string> = {};
+      for (const [k, v] of Object.entries(mc.env ?? {})) env[k] = sub(String(v));
+      found.push({ id, name: label, server: { command: sub(mc.command), args, ...(Object.keys(env).length ? { env } : {}) }, settingsPath });
+    } catch {
+      skipped.push(`${id} (unreadable manifest or settings)`);
+    }
+  }
+  return { found, skipped };
+}
+
+/** MCP servers that Claude Code plugins bring. Plugins manage them, so setup reports them and leaves them alone. */
+export function pluginServers(home = homedir()): string[] {
+  const reg = join(home, ".claude", "plugins", "installed_plugins.json");
+  if (!existsSync(reg)) return [];
+  const names = new Set<string>();
+  try {
+    const j = JSON.parse(readFileSync(reg, "utf8")) as { plugins?: Record<string, Array<{ installPath?: string }>> };
+    for (const installs of Object.values(j.plugins ?? {})) {
+      for (const i of installs ?? []) {
+        if (!i.installPath) continue;
+        for (const f of [join(i.installPath, ".mcp.json"), join(i.installPath, ".claude-plugin", "plugin.json")]) {
+          if (!existsSync(f)) continue;
+          try {
+            const pj = JSON.parse(readFileSync(f, "utf8")) as { mcpServers?: Record<string, unknown> };
+            for (const n of Object.keys(pj.mcpServers ?? {})) names.add(n);
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return [...names];
 }
 
 /** Parse a dotenv-style secrets file (same rules as the Secret Vault). */
@@ -227,8 +330,10 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
   const cwd = o.cwd ?? process.cwd();
   const target = resolve(o.config ?? join(mycelHome(), "mycel.yaml"));
   const { plans: all, skipped } = scan({ ...o, cwd });
+  const exts = findDesktopExtensions();
+  const plugins = pluginServers();
   out("\n  mycel setup\n");
-  if (!all.length && !skipped.length) {
+  if (!all.length && !skipped.length && !exts.found.length) {
     out("  No MCP client configs with servers were found (looked for Claude Desktop, Claude Code, Cursor, VS Code, Windsurf, Gemini CLI).");
     out("  Nothing changed. Add servers to your client first, or write ~/.mycel/mycel.yaml by hand (see mycel init).\n");
     return 0;
@@ -244,7 +349,7 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
     if (io.interactive && !o.yes && (await io.ask(`  ${p.client} file ${short(p.path)} (${p.others.length} server(s)) is shared with your team. Include it too? [y/N] `, false))) plans.push(p);
     else skipped.push({ client: p.client, path: p.path, reason: "project file shared with your team; left alone (add --projects to include it)" });
   }
-  if (!plans.length) {
+  if (!plans.length && !exts.found.length) {
     for (const sk of skipped) out(`    ${sk.client.padEnd(24)} skipped: ${short(sk.path)} ${sk.reason}`);
     out("\n  Nothing to do.\n");
     return 0;
@@ -257,6 +362,24 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
   const secretsPath = secretsPathFor(target, yamlText);
   const storedSecrets = readSecretsFile(secretsPath);
   const found: FoundConfig[] = todo.map((p) => ({ client: p.client, path: p.path, servers: Object.fromEntries(p.others.map((n) => [n, p.servers[n]])) }));
+  // Extensions run through Mycel only if Claude Desktop has a "mycel" entry: add one when its config has none to rewrite.
+  const desktopPath = join(claudeDesktopDir(), "claude_desktop_config.json");
+  const desktopPlan = plans.find((p) => p.client === "Claude Desktop");
+  if (exts.found.length && !desktopPlan && existsSync(desktopPath)) {
+    let readable = true;
+    try {
+      const j = JSON.parse(readFileSync(desktopPath, "utf8"));
+      readable = !!j && typeof j === "object" && !Array.isArray(j);
+    } catch {
+      readable = false;
+    }
+    if (!readable) {
+      // Never overwrite a config we cannot parse (comments, broken JSON): leave the extensions on in Claude Desktop.
+      for (const e of exts.found.splice(0)) exts.skipped.push(`${e.name} (${short(desktopPath)} could not be read as plain JSON, so Claude Desktop keeps running it)`);
+    }
+  }
+  if (exts.found.length) found.push({ client: "Claude Desktop extensions", path: join(claudeDesktopDir(), "Claude Extensions"), servers: Object.fromEntries(exts.found.map((e) => [e.name, e.server])) });
+  const desktopAdd = exts.found.length > 0 && !desktopPlan;
   const gen = toMycelYaml(found, storedSecrets);
   const newSecrets = Object.entries(gen.secretValues).filter(([k]) => storedSecrets[k] === undefined);
   const missingSecrets = gen.secrets.filter((k) => gen.secretValues[k] === undefined && storedSecrets[k] === undefined && process.env[k] === undefined);
@@ -284,8 +407,7 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
     doc.setIn(["secrets", "source"], "file");
     doc.setIn(["secrets", "file"], secretsPath);
   }
-  const yamlNext = String(doc);
-  const yamlChanges = !yamlExists || added > 0 || pointSecrets;
+  let yamlChanges = !yamlExists || added > 0 || pointSecrets;
 
   out("  Found:");
   for (const p of plans) out(`    ${p.client.padEnd(24)} ${String(p.others.length).padStart(2)} server${p.others.length === 1 ? " " : "s"}  ${short(p.path)}`);
@@ -294,13 +416,16 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
   out(`    ${yamlExists ? (added ? `add ${added} server(s) to existing ${short(target)} (existing entries untouched)` : `${short(target)} already has these servers; unchanged`) : `create ${short(target)} with ${added} server(s)`}`);
   for (const n of notes) out(`      note: ${n}`);
   for (const p of plans) out(`    ${short(p.path)}: ${describe(p)}`);
+  if (exts.found.length) out(`    Claude Desktop extensions: run ${exts.found.map((e) => e.name).join(", ")} through Mycel and turn them off in Claude Desktop${desktopAdd ? ` (adds a "mycel" entry to ${short(desktopPath)})` : ""}`);
+  for (const x of exts.skipped) out(`      extension left as is: ${x}`);
+  if (plugins.length) out(`    Claude Code plugins bring ${plugins.length} server(s) of their own (${plugins.slice(0, 6).join(", ")}${plugins.length > 6 ? ", …" : ""}); plugins manage them, so they stay as they are`);
   out(`    clients will start Mycel with: ${entry.command} ${entry.args.join(" ")}`);
   if (newSecrets.length) out(`    move ${newSecrets.length} API key(s) out of client configs into ${short(secretsPath)} (readable only by you; you don't need to set anything)`);
-  if (missingSecrets.length) out(`    note: no value found for ${missingSecrets.join(", ")}; add a line NAME=value to ${short(secretsPath)} if a server needs it`);
+  if (missingSecrets.length)     out(`    ${missingSecrets.length} API key(s) have no value yet (${missingSecrets.join(", ")}); you can paste them in a moment`);
   if (gen.skipped.length) out(`  Skipped: ${gen.skipped.join("; ")}`);
   out(`  Backups of every changed file go to ${short(backupsDir())} (undo any time with: mycel undo)`);
 
-  if (!todo.length) {
+  if (!todo.length && !exts.found.length) {
     out("\n  Everything already points at Mycel. Nothing to do.\n");
     return 0;
   }
@@ -314,6 +439,27 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
       return 0;
     }
   }
+
+  // Missing API keys: ask for each one (hidden input) instead of telling the user to edit a file.
+  if (missingSecrets.length && io.interactive && io.secret && !o.yes) {
+    for (const k of missingSecrets) {
+      const v = (await io.secret(`  ${k}: paste the value (hidden; Enter to skip): `)).trim();
+      if (v) newSecrets.push([k, v]);
+      else out(`    skipped; add later as a line ${k}=… in ${short(secretsPath)}`);
+    }
+  }
+  // Show savings to the user: on unless they say no (or already decided in the config).
+  const ui = (doc.toJS()?.ui ?? {}) as { savingsLine?: boolean };
+  if (ui.savingsLine === undefined) {
+    const wantLine = o.yes || !io.interactive ? true : await io.ask("  Show what Mycel saves (tokens, %, ≈ $ and time) at the end of each answer? [Y/n] ", true);
+    doc.setIn(["ui", "savingsLine"], wantLine);
+    yamlChanges = true;
+  }
+  if (newSecrets.length && !pointSecrets && (doc.toJS()?.secrets?.source ?? "env") !== "file") {
+    doc.setIn(["secrets", "source"], "file");
+    doc.setIn(["secrets", "file"], secretsPath);
+  }
+  const yamlNext = String(doc);
 
   // Apply: back up first, then write.
   const id = new Date().toISOString().replace(/[:.]/g, "-");
@@ -363,28 +509,66 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
     f.sha256After = sha(readFileSync(p.path));
     out(`  ${"✓"} ${f.client}: ${short(p.path)}`);
   }
+  if (desktopAdd) {
+    const existed = existsSync(desktopPath);
+    let j: Record<string, unknown> = {};
+    if (existed) {
+      try {
+        j = JSON.parse(readFileSync(desktopPath, "utf8"));
+      } catch {
+        j = {};
+      }
+    }
+    const before = existed ? sha(readFileSync(desktopPath)) : "";
+    const backup = existed ? save(desktopPath, "desktop") : "";
+    j.mcpServers = { ...((j.mcpServers as Servers | undefined) ?? {}), mycel: entry };
+    mkdirSync(dirname(desktopPath), { recursive: true });
+    writeAtomic(desktopPath, JSON.stringify(j, null, 2) + "\n");
+    manifest.files.push({ client: "Claude Desktop", path: desktopPath, backup, sha256Before: before, sha256After: sha(readFileSync(desktopPath)), ...(existed ? {} : { createdBySetup: true }) });
+    out(`  ✓ Claude Desktop: ${short(desktopPath)}`);
+  }
+  for (const e of exts.found) {
+    const raw = readFileSync(e.settingsPath, "utf8");
+    const backup = save(e.settingsPath, `ext-${e.id}`);
+    const j = JSON.parse(raw) as Record<string, unknown>;
+    j.isEnabled = false;
+    writeAtomic(e.settingsPath, JSON.stringify(j, null, 2) + (raw.endsWith("\n") ? "\n" : ""));
+    manifest.files.push({ client: `Claude Desktop extension ${e.name}`, path: e.settingsPath, backup, sha256Before: sha(raw), sha256After: sha(readFileSync(e.settingsPath)) });
+    out(`  ✓ extension ${e.name}: now runs through Mycel`);
+  }
   if (newSecrets.length) out(`  ✓ API keys: ${short(secretsPath)}`);
   writeFileSync(join(dir, "manifest.json"), JSON.stringify(manifest, null, 2));
-  const clients = [...new Set(todo.map((p) => p.client.replace(/ \(project\)$/, "")))];
+  const clients = [...new Set([...todo.map((p) => p.client.replace(/ \(project\)$/, "")), ...(exts.found.length ? ["Claude Desktop"] : [])])];
 
   if (!o.check) {
     out(`\n  Done. Restart ${clients.join(", ")}. See your savings anytime: mycel stats  ·  Undo: mycel undo\n`);
     return 0;
   }
-  const failed = await checkAndSignIn(target, io, o);
+  const r = await checkAndSignIn(target, io, o);
   await restartClients(clients, io, o);
-  out(
-    failed.length
-      ? `\n  Done, but ${failed.length} server(s) are not working yet: ${failed.join(", ")}. Check later with: mycel doctor  ·  Undo: mycel undo\n`
-      : `\n  Done. Every server works through Mycel. See your savings anytime: mycel stats  ·  Undo: mycel undo\n`,
-  );
+  const pct = r.directTokens > 0 ? Math.round((1 - r.mycelTokens / r.directTokens) * 100) : 0;
+  out("\n  ─────────────────────────────────────────────");
+  out(`  Mycel is set up: ${r.ready} of ${r.total} server(s) working, ${r.tools} tools.`);
+  if (r.directTokens > 0) out(`  Tool definitions: ≈${r.directTokens.toLocaleString("en-US")} → ≈${r.mycelTokens.toLocaleString("en-US")} tokens (−${pct}%, estimated; applies when an app sends every tool definition each turn).`);
+  out("  Your savings show up at the end of answers, and any time with: mycel stats");
+  if (r.failed.length) out(`  Not working yet: ${r.failed.join(", ")}. Check later with: mycel doctor`);
+  out("  Changed your mind? mycel undo\n");
   return 0;
 }
 
 const NEEDS_SIGN_IN = /unauthori[sz]ed|\b401\b|mycel login|invalid_token|oauth/i;
 
 /** Wizard step: start every server through Mycel, offer a browser sign-in where one is needed. Returns servers still failing. */
-async function checkAndSignIn(target: string, io: SetupIO, o: SetupOptions): Promise<string[]> {
+interface CheckResult {
+  failed: string[];
+  ready: number;
+  total: number;
+  tools: number;
+  directTokens: number;
+  mycelTokens: number;
+}
+
+async function checkAndSignIn(target: string, io: SetupIO, o: SetupOptions): Promise<CheckResult> {
   const { out } = io;
   out("\n  Checking each server through Mycel…");
   let loaded;
@@ -392,11 +576,13 @@ async function checkAndSignIn(target: string, io: SetupIO, o: SetupOptions): Pro
     loaded = loadConfig(target);
   } catch (e) {
     out(`  ✗ the Mycel config could not be read: ${(e as Error).message}`);
-    return ["(config)"];
+    return { failed: ["(config)"], ready: 0, total: 0, tools: 0, directTokens: 0, mycelTokens: 0 };
   }
   const m = await new Mycel(loaded, { log: () => {} }).start();
   const results = [...m.upstreams.values()].map((u) => ({ name: u.name, ok: u.status === "ready", tools: u.tools.length, error: u.error ?? "" }));
+  const fp = m.contextFootprint();
   await m.close();
+  let signedInTools = 0;
   const failed: string[] = [];
   for (const r of results) {
     const cfg = loaded.config.servers[r.name];
@@ -416,7 +602,10 @@ async function checkAndSignIn(target: string, io: SetupIO, o: SetupOptions): Pro
         continue;
       }
       const s = await signIn(loaded, r.name, out);
-      if (s.ok) out(`  ✓ ${r.name}: signed in, ${s.tools} tools`);
+      if (s.ok) {
+        out(`  ✓ ${r.name}: signed in, ${s.tools} tools`);
+        signedInTools += s.tools;
+      }
       else {
         out(`  ✗ ${r.name}: sign-in did not finish (${s.reason}). Try again later: mycel login ${r.name}`);
         failed.push(r.name);
@@ -427,7 +616,15 @@ async function checkAndSignIn(target: string, io: SetupIO, o: SetupOptions): Pro
     out(`  ✗ ${r.name}: ${r.error.split("\n")[0].slice(0, 160)}${hint ? `  — add ${hint[1]}=… to the secrets file` : ""}`);
     failed.push(r.name);
   }
-  return failed;
+  const ok = results.filter((x) => x.ok);
+  return {
+    failed,
+    ready: results.length - failed.length,
+    total: results.length,
+    tools: ok.reduce((n, x) => n + x.tools, 0) + signedInTools,
+    directTokens: fp.directTokens,
+    mycelTokens: fp.mycelTokens,
+  };
 }
 
 /** Desktop apps setup can restart for the user (macOS). Bundle ids detect when setup runs inside that app. */
@@ -551,7 +748,21 @@ export async function runUndo(o: { yes?: boolean; list?: boolean; id?: string },
     copyFileSync(src, path);
     restored.push(`${label}: ${short(path)}`);
   };
-  for (const f of m.files) await doRestore(f.client, f.path, f.backup, f.sha256After);
+  for (const f of m.files) {
+    if (f.createdBySetup) {
+      // Setup created this file; emptying its server list keeps any other settings the app wrote since.
+      try {
+        const j = JSON.parse(readFileSync(f.path, "utf8")) as Record<string, unknown>;
+        delete (j.mcpServers as Record<string, unknown> | undefined)?.mycel;
+        writeFileSync(f.path, JSON.stringify(j, null, 2) + "\n");
+        restored.push(`${f.client}: removed the "mycel" entry setup added to ${short(f.path)}`);
+      } catch {
+        kept.push(`${f.client}: ${short(f.path)} could not be read; left as is`);
+      }
+      continue;
+    }
+    await doRestore(f.client, f.path, f.backup, f.sha256After);
+  }
   if (m.secrets?.backup) await doRestore("Secrets file", m.secrets.path, m.secrets.backup, m.secrets.sha256After);
   else if (m.secrets?.createdBySetup) kept.push(`Secrets file ${short(m.secrets.path)} was created by setup and holds your API keys; kept (your restored client configs have them again; delete it if you stop using Mycel)`);
   if (m.config.backup) await doRestore("Mycel config", m.config.path, m.config.backup, m.config.sha256After);

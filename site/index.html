@@ -792,8 +792,10 @@
             <span class="easy-n" aria-hidden="true">1</span>
             <div class="easy-body">
               <h3>Paste one line</h3>
-              <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>npx -y @speakquery/mycel setup</code><button class="copy copy-sm" type="button" data-copy="npx -y @speakquery/mycel setup" aria-label="Copy: npx -y @speakquery/mycel setup">Copy</button></div>
-              <p>Works on macOS, Linux and Windows (Node 20+).</p>
+              <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>curl -fsSL https://mycel.speakquery.ai/install.sh | sh</code><button class="copy copy-sm" type="button" data-copy="curl -fsSL https://mycel.speakquery.ai/install.sh | sh" aria-label="Copy the macOS and Linux install command">Copy</button></div>
+              <p class="fine">Windows (PowerShell):</p>
+              <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">&gt;</span><code>irm https://mycel.speakquery.ai/install.ps1 | iex</code><button class="copy copy-sm" type="button" data-copy="irm https://mycel.speakquery.ai/install.ps1 | iex" aria-label="Copy the Windows install command">Copy</button></div>
+              <p>No Node.js? The installer brings the official build (checksum verified, no admin rights). Already have Node 20+? <code>npx -y @speakquery/mycel setup</code>.</p>
             </div>
           </li>
           <li class="easy-step">
@@ -801,7 +803,7 @@
             <div class="easy-body">
               <h3>Answer yes or no</h3>
               <p>Mycel finds the MCP servers you already use in Claude Desktop, Claude Code, Cursor, VS Code, Windsurf and Gemini CLI, shows exactly what it will change, backs everything up, and connects them through Mycel.</p>
-              <p>The wizard does the rest: moves your API keys into a private file, tests every server, opens your browser for one-time sign-ins and restarts your apps. You never edit a file or set a variable.</p>
+              <p>The wizard does the rest: moves your API keys into a private file (and asks you to paste any it could not find, hidden), brings in Claude Desktop extensions, tests every server, opens your browser for one-time sign-ins, turns on your savings line and restarts your apps. You never edit a file or set a variable.</p>
             </div>
           </li>
           <li class="easy-step">
@@ -923,8 +925,10 @@ today: <span class="t-g">âˆ’48,300 tokens</span> (measured result size, tokens â
         <ol class="qs">
           <li>
             <h3>Paste one line</h3>
-            <p>macOS, Linux or Windows, Node 20+.</p>
-            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>npx -y @speakquery/mycel setup</code><button class="copy copy-sm" type="button" data-copy="npx -y @speakquery/mycel setup" aria-label="Copy: npx -y @speakquery/mycel setup">Copy</button></div>
+            <p>macOS, Linux or Windows. Node.js is installed for you if it is missing.</p>
+            <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>curl -fsSL https://mycel.speakquery.ai/install.sh | sh</code><button class="copy copy-sm" type="button" data-copy="curl -fsSL https://mycel.speakquery.ai/install.sh | sh" aria-label="Copy the macOS and Linux install command">Copy</button></div>
+              <p class="fine">Windows (PowerShell):</p>
+              <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">&gt;</span><code>irm https://mycel.speakquery.ai/install.ps1 | iex</code><button class="copy copy-sm" type="button" data-copy="irm https://mycel.speakquery.ai/install.ps1 | iex" aria-label="Copy the Windows install command">Copy</button></div>
             <p class="fine qs-alt">Or install globally: <code>npm i -g @speakquery/mycel</code>, then <code>mycel setup</code>.</p>
           </li>
           <li>

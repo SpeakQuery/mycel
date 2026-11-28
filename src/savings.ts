@@ -51,6 +51,8 @@ export interface EventSavings {
 export interface SessionSavings {
   /** Calls with a measured result (counted ones only). */
   calls: number;
+  /** Raw upstream size of those calls, in tokens (what the model would have read without Mycel). */
+  rawTokens?: number;
   /** Tokens saved on calls whose result shrank. */
   savedTokens: number;
   /** Tokens added on calls where Mycel returned more than raw. */
@@ -68,23 +70,51 @@ export function fmtSigned(net: number): string {
 }
 
 /**
- * One line, e.g. `Mycel · this call: ≈13,240 → ≈1,710 tokens (−87% size, measured · tokens ≈ chars/4) · session: ≈−48,300 · tool definitions: ~−202k/turn (estimated)`.
- * What is measured is the SIZE (characters); "tokens" are chars/4, which real tokenizers can disagree with by a lot on small or unusual text.
+ * What saved tokens are worth, as an ESTIMATE: input price per million tokens and how fast a model reads input.
+ * Both are configurable (`ui.usdPerMTok`, `ui.tokensPerSecond`) and always labelled "estimated".
  */
-export function formatSavingsLine(m: MeasuredSavings, session: SessionSavings, definitionsPerTurn = 0): string {
-  const change = m.savedTokens > 0 ? `−${m.pct}% size` : m.addedTokens > 0 ? `+${fmtInt(m.addedTokens)}` : "no change";
-  const parts = [
-    "Mycel",
-    `this call: ≈${fmtInt(m.rawTokens)} → ≈${fmtInt(m.returnedTokens)} tokens (${change}, measured · tokens ≈ chars/4)`,
-    `session: ≈${fmtSigned(session.netTokens)}`,
-  ];
-  if (definitionsPerTurn > 0) parts.push(`tool definitions: ~−${fmtCompact(definitionsPerTurn)}/turn (estimated)`);
+export interface ValueRates {
+  usdPerMTok: number;
+  tokensPerSecond: number;
+}
+export const DEFAULT_RATES: ValueRates = { usdPerMTok: 3, tokensPerSecond: 3000 };
+
+export function valueOf(tokens: number, r: ValueRates = DEFAULT_RATES): { usd: number; seconds: number } {
+  const t = Math.max(0, tokens);
+  return { usd: (t / 1_000_000) * r.usdPerMTok, seconds: r.tokensPerSecond > 0 ? t / r.tokensPerSecond : 0 };
+}
+export const fmtUsd = (usd: number): string => (usd >= 0.01 ? `$${usd.toFixed(2)}` : usd > 0 ? "<$0.01" : "$0");
+export function fmtDuration(seconds: number): string {
+  if (seconds < 1) return seconds > 0 ? "<1 s" : "0 s";
+  if (seconds < 90) return `${Math.round(seconds)} s`;
+  if (seconds < 5400) return `${Math.round(seconds / 60)} min`;
+  return `${(seconds / 3600).toFixed(1)} h`;
+}
+/** Percent of the raw size saved over a session (0 when unknown or nothing saved). */
+export function sessionPct(s: SessionSavings): number {
+  return s.rawTokens && s.netTokens > 0 ? Math.round((s.netTokens / s.rawTokens) * 100) : 0;
+}
+
+/**
+ * One line, e.g.
+ * `Mycel · this call −87% (≈13,240 → ≈1,710 tokens, measured) · session −46,600 tokens (−81%) ≈ $0.14 · ≈16 s (estimated) · tool definitions ~−202k/turn (estimated)`.
+ * What is measured is the SIZE (characters); "tokens" are chars/4. Money and time are estimates from `rates`.
+ */
+export function formatSavingsLine(m: MeasuredSavings, session: SessionSavings, definitionsPerTurn = 0, rates: ValueRates = DEFAULT_RATES): string {
+  const change = m.savedTokens > 0 ? `−${m.pct}%` : m.addedTokens > 0 ? `+${fmtInt(m.addedTokens)} tokens` : "no change";
+  const parts = ["Mycel", `this call ${change} (≈${fmtInt(m.rawTokens)} → ≈${fmtInt(m.returnedTokens)} tokens, measured)`];
+  if (session.netTokens > 0) {
+    const v = valueOf(session.netTokens, rates);
+    const pct = sessionPct(session);
+    parts.push(`session −${fmtInt(session.netTokens)} tokens${pct ? ` (−${pct}%)` : ""} ≈ ${fmtUsd(v.usd)} · ≈${fmtDuration(v.seconds)} (estimated)`);
+  } else parts.push(`session ≈${fmtSigned(session.netTokens)} tokens`);
+  if (definitionsPerTurn > 0) parts.push(`tool definitions ~−${fmtCompact(definitionsPerTurn)}/turn (estimated)`);
   return parts.join(" · ");
 }
 
 /** Running totals for one gateway session. */
 export class SavingsTracker {
-  private totals: SessionSavings = { calls: 0, savedTokens: 0, addedTokens: 0, netTokens: 0 };
+  private totals: SessionSavings = { calls: 0, rawTokens: 0, savedTokens: 0, addedTokens: 0, netTokens: 0 };
   private perTurn?: number;
   private lists = 0;
 
@@ -92,6 +122,7 @@ export class SavingsTracker {
   record(m: MeasuredSavings, counted = true): SessionSavings {
     if (counted) {
       this.totals.calls++;
+      this.totals.rawTokens = (this.totals.rawTokens ?? 0) + m.rawTokens;
       this.totals.savedTokens += m.savedTokens;
       this.totals.addedTokens += m.addedTokens;
       this.totals.netTokens = this.totals.savedTokens - this.totals.addedTokens;
@@ -129,10 +160,16 @@ export interface SavingsMeta {
 }
 
 /** Text for `mycel stats`: measured and estimated are printed separately and never summed. */
-export function formatStats(r: { session?: { id: string; start: string; measured: SessionSavings & { calls: number }; estimated: { toolsListServed: number; definitionTokens: number } }; day: { date: string; measured: SessionSavings & { calls: number }; estimated: { toolsListServed: number; definitionTokens: number } } }): string {
+export function formatStats(
+  r: { session?: { id: string; start: string; measured: SessionSavings & { calls: number }; estimated: { toolsListServed: number; definitionTokens: number } }; day: { date: string; measured: SessionSavings & { calls: number }; estimated: { toolsListServed: number; definitionTokens: number } } },
+  rates: ValueRates = DEFAULT_RATES,
+): string {
   const block = (title: string, t: NonNullable<typeof r.session>["measured"], e: { toolsListServed: number; definitionTokens: number }) => [
     title,
-    `  measured    ≈${fmtSigned(t.netTokens)} tokens (chars/4) net over ${fmtInt(t.calls)} call${t.calls === 1 ? "" : "s"} (saved ${fmtInt(t.savedTokens)}, added ${fmtInt(t.addedTokens)})`,
+    `  measured    ≈${fmtSigned(t.netTokens)} tokens (chars/4) net over ${fmtInt(t.calls)} call${t.calls === 1 ? "" : "s"} (saved ${fmtInt(t.savedTokens)}, added ${fmtInt(t.addedTokens)})${sessionPct(t) ? `: −${sessionPct(t)}% of what the tools returned` : ""}`,
+    ...(t.netTokens > 0
+      ? [`  worth       ≈ ${fmtUsd(valueOf(t.netTokens, rates).usd)} and ≈${fmtDuration(valueOf(t.netTokens, rates).seconds)} of model reading (estimated at $${rates.usdPerMTok}/M input tokens and ${fmtInt(rates.tokensPerSecond)} tokens/s; change with ui.usdPerMTok / ui.tokensPerSecond)`]
+      : []),
     `  estimated   ${e.toolsListServed ? `~−${fmtInt(e.definitionTokens)} tokens (chars/4) of tool definitions over ${fmtInt(e.toolsListServed)} tools/list served` : "no tools/list served"}`,
   ];
   return [

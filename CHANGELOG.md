@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-11-28
+
+**For people who have never opened a terminal before: one line, yes or no, and you can see what you save.**
+- **Installer that brings Node.js:** `curl -fsSL https://mycel.speakquery.ai/install.sh | sh` (macOS, Linux) and `irm https://mycel.speakquery.ai/install.ps1 | iex` (Windows). Uses your Node 20+ if present; otherwise downloads the official Node.js 22 build, verifies its SHA-256 against nodejs.org's SHASUMS256.txt and unpacks it into `~/.mycel/node`. Mycel goes into `~/.mycel/app`; apps start it with an absolute Node path, so a short app PATH (Claude Desktop on macOS) no longer breaks it. Adds a `mycel` command on a yes. No admin rights.
+- **Savings you can see:** setup turns on the savings line unless you say no. The line now shows the session's percent and an *estimated* money and time value (`ui.usdPerMTok`, default $3/M input tokens; `ui.tokensPerSecond`, default 3,000), and with `ui.tellUser` (default on) the model ends a finished task with that line for you. `mycel stats` adds the percent and a "worth" line.
+- **Missing API keys are asked for** (hidden input) instead of being left as a note.
+- **Claude Desktop extensions** (one-click .mcpb/.dxt installs) are imported, run through Mycel and turned off in Claude Desktop; `mycel undo` turns them back on. A Claude Desktop config that is not plain JSON is never overwritten.
+- **Claude Code plugin servers** are listed and left alone (plugins manage them).
+- **Setup ends with a summary:** servers working, tools, and the tool-definition reduction (estimated).
+
 ## 0.1.9 — 2026-11-28
 
 **Setup is now a wizard: you only answer yes or no.**

@@ -163,8 +163,14 @@ export const MycelConfig = z.object({
     .prefault({}),
   ui: z
     .object({
-      /** Append the one-line savings summary to each tool result the model sees (costs roughly 30-40 tokens per call). Off by default. */
+      /** Append the one-line savings summary to each tool result the model sees (costs roughly 30-40 tokens per call). Off by default; `mycel setup` offers to turn it on. */
       savingsLine: z.boolean().default(false),
+      /** With savingsLine on: ask the model to end each finished task with one line for the user about Mycel's session savings. */
+      tellUser: z.boolean().default(true),
+      /** ESTIMATE only: input price in USD per million tokens, used to show what saved tokens are worth. */
+      usdPerMTok: z.number().nonnegative().default(3),
+      /** ESTIMATE only: how many input tokens per second a model reads, used to show time saved. */
+      tokensPerSecond: z.number().positive().default(3000),
       /** Log the savings line to stderr in `mycel serve`. */
       savingsLog: z.boolean().default(true),
     })

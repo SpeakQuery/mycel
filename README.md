@@ -317,25 +317,38 @@ The field test found four real bugs before launch. All are fixed and covered by 
 
 ## 🚀 Quickstart
 
-One line, Enter, done. Works on **macOS, Linux and Windows** (Node 20+).
+One line, Enter, done. Works on **macOS, Linux and Windows**. No Node.js? The installer brings its own (official build from nodejs.org, checksum verified, into `~/.mycel`, no admin rights).
 
 **1. Paste one line**
 
+macOS / Linux:
+
 ```bash
-npx -y @speakquery/mycel setup
+curl -fsSL https://mycel.speakquery.ai/install.sh | sh
 ```
 
-Or install globally with `npm i -g @speakquery/mycel`, then run `mycel setup`.
+Windows (PowerShell):
 
-**2. Answer yes or no. The wizard does the rest.** Mycel finds the MCP servers you already use in Claude Desktop, Claude Code, Cursor, VS Code, Windsurf and Gemini CLI, shows exactly what it will change, backs everything up, and connects them through Mycel. You never edit a file or set a variable:
+```powershell
+irm https://mycel.speakquery.ai/install.ps1 | iex
+```
+
+Already have Node.js 20+? `npx -y @speakquery/mycel setup` does the same.
+
+**2. Answer yes or no. The wizard does the rest.** Mycel finds the MCP servers you already use in Claude Desktop (including one-click extensions), Claude Code, Cursor, VS Code, Windsurf and Gemini CLI, shows exactly what it will change, backs everything up, and connects them through Mycel. You never edit a file or set a variable:
 
 | Step | What the wizard does | You |
 |---|---|---|
 | 🔑 API keys | Moves them out of your app configs into `~/.mycel/secrets.env`, readable only by you (Mycel reads it; the model never sees the keys) | nothing |
+| 🗝️ A key it could not find | Asks you to paste it; what you type is hidden | paste, or Enter to skip |
+| 🧩 Claude Desktop extensions | Runs them through Mycel and turns them off in Claude Desktop (undo turns them back on) | nothing |
 | 📁 Team project files (`.mcp.json`) | Asks before touching a file your team shares | yes / no |
 | ✅ Test | Starts every server through Mycel and reports what works | nothing |
 | 🌐 Sign-in (Canva, Notion, Higgsfield…) | Opens your browser for the one-time sign-in; tokens refresh automatically | yes, then "Allow" |
+| 📊 Savings | Turns on a short savings line after each answer: tokens, %, ≈ $ and ≈ time | yes / no |
 | 🔄 Restart | Restarts Claude Desktop / Cursor / Windsurf / VS Code for you on macOS (never the app it is running inside); tells you the one step left elsewhere | yes / no |
+
+It ends with a summary: how many servers work, how many tools, and how much smaller the tool list is through Mycel. Claude Code plugins that bring their own MCP servers are listed and left alone (the plugin manages them).
 
 **3. Done.** Your agent now finds tools on demand, keeps big results out of the chat, and asks before risky actions.
 
@@ -536,7 +549,7 @@ Full reference: [`docs/configuration.md`](docs/configuration.md).
 Mycel can put a one-line summary after each tool call. It keeps two kinds of numbers apart, because only one of them is exact:
 
 ```
-Mycel · this call: ≈13,240 → ≈1,710 tokens (−87% size, measured · tokens ≈ chars/4) · session: ≈−48,300 · tool definitions: ~−202k/turn (estimated)
+Mycel · this call −87% (≈13,240 → ≈1,710 tokens, measured) · session −48,300 tokens (−81%) ≈ $0.14 · ≈16 s (estimated) · tool definitions ~−202k/turn (estimated)
 ```
 
 - **Measured (a size, not a token count).** The size of the raw result the upstream server returned vs the size Mycel actually returned to the model. The size is exact for what Mycel saw; the "tokens" are `chars / 4`, the same approximation used everywhere else, so they are marked `≈`. Real tokenizers differ: on one small body a reviewer saw 143 by this estimate against 223 from the Qwen tokenizer (up to ~55% apart), while on the 420-tool catalog cl100k and o200k agreed within about 2%. Read small figures as rough, large ones as a good guide. `_meta` carries `unit: "chars/4 tokens (approx.)"`. It covers `mycel_call`, direct tool calls in compact mode, and the inner calls of `mycel_run` (counted once, as the run). When Mycel returns *more* than the raw result (a small result plus its metadata) the line says `+N`, and it is subtracted from the session total, never counted as a saving. Calls that return an error, are denied or wait for approval have no measured figure.
@@ -551,9 +564,11 @@ Where it shows (all on by default except the model-visible line):
 | `mycel serve` | the line on stderr (`ui.savingsLog: false` to silence) |
 | `mycel stats` | measured and estimated totals for the latest session and for today, printed separately (`--json` for scripts) |
 | MCP result | `_meta: { "mycel/savings": { line, measured, session, estimated } }`, which most clients do not show to the model |
-| Tool result text | **off by default.** Set `ui: { savingsLine: true }` to append the line as a last text block the model and you can see. It costs about 30-40 tokens per call, so it is a small tax on the very thing it measures. |
+| Tool result text | **on after `mycel setup`** unless you answer no (off when you write the config by hand). Set `ui: { savingsLine: true }` to append the line as a last text block the model and you can see; with `ui.tellUser` (default on) the model also ends a finished task with the session savings for you. It costs about 30-40 tokens per call, so it is a small tax on the very thing it measures. |
 
 The older `tokensSaved` counter (flight log, dashboard "Tokens saved", `mycel traces`, OTLP `mycel.tokens_saved`) now means measured savings only: it is never an estimate and does not double count `mycel_run` inner calls. The tool-definition estimate is reported separately.
+
+**Money and time are estimates.** They convert measured saved tokens at `ui.usdPerMTok` (default $3 per million input tokens) and `ui.tokensPerSecond` (default 3,000 tokens/s of model reading). Set them to your model's price and speed; Mycel cannot see which model your app uses or what the run would have cost without it.
 
 Known limits: results of async tools that outlive a restart have no raw size and show no measured figure; the raw size of image and audio results counts their base64 text, which overstates what a model would be charged for them; `session` means one gateway process.
 

@@ -3,7 +3,8 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync, chmodS
 import { tmpdir, platform } from "node:os";
 import { join, dirname } from "node:path";
 import YAML from "yaml";
-import { runSetup, runUndo, listBackups, restartPlan } from "../src/setup.js";
+import { runSetup, runUndo, listBackups, restartPlan, findDesktopExtensions, pluginServers, mycelEntry } from "../src/setup.js";
+import { formatSavingsLine, formatStats, measure, valueOf } from "../src/savings.js";
 
 let home: string;
 let cwd: string;
@@ -303,5 +304,95 @@ describe("mycel setup wizard: nothing to set by hand", () => {
     const lin = restartPlan(clients, "linux", {});
     expect(lin.auto).toEqual([]);
     expect(lin.manual).toHaveLength(3);
+  });
+});
+
+describe("0.2.0: savings people can see, keys asked for, extensions imported", () => {
+  const mcfg = () => join(home, ".mycel", "mycel.yaml");
+  const claudeDir = () => dirname(desktop());
+  const ext = (id: string, manifest: object, settings: object) => {
+    put(join(claudeDir(), "Claude Extensions", id, "manifest.json"), JSON.stringify(manifest));
+    return put(join(claudeDir(), "Claude Extensions Settings", `${id}.json`), JSON.stringify(settings));
+  };
+  const io2 = (answer = true, secrets: string[] = []) => ({ ...io(true, answer), secret: async () => secrets.shift() ?? "" });
+
+  it("turns the savings line on (yes by default) and keeps an earlier choice", async () => {
+    put(desktop(), JSON.stringify({ mcpServers: { x: { command: "x-srv" } } }));
+    await runSetup({ yes: true, cwd }, io());
+    expect(YAML.parse(rd(mcfg())).ui.savingsLine).toBe(true);
+    put(desktop(), JSON.stringify({ mcpServers: { y: { command: "y-srv" } } }));
+    writeFileSync(mcfg(), rd(mcfg()).replace("savingsLine: true", "savingsLine: false"));
+    await runSetup({ yes: true, cwd }, io());
+    expect(YAML.parse(rd(mcfg())).ui.savingsLine).toBe(false);
+  });
+
+  it("asks for a missing API key with hidden input and stores it privately", async () => {
+    put(desktop(), JSON.stringify({ mcpServers: { svc: { command: "svc", env: { SVC_TOKEN: "${input:token}" } } } }));
+    await runSetup({ cwd }, io2(true, ["pasted-secret-999"]));
+    const env = rd(join(home, ".mycel", "secrets.env"));
+    expect(env).toContain("SVC_TOKEN=pasted-secret-999");
+    expect(lines.join("\n")).not.toContain("pasted-secret-999");
+    expect(YAML.parse(rd(mcfg())).secrets.source).toBe("file");
+  });
+
+  it("imports enabled Claude Desktop extensions, turns them off there, and undo turns them back on", async () => {
+    const s0 = ext(
+      "ant.dir.notes",
+      { name: "notes", display_name: "Notes", server: { type: "binary", mcp_config: { command: "${__dirname}/bin/notes", args: ["--root", "${user_config.root}", "${user_config.dirs}"], env: { NOTES_API_KEY: "${user_config.key}" } } } },
+      { isEnabled: true, userConfig: { root: "/data", dirs: ["/a", "/b"], key: "nk-123456" } },
+    );
+    ext("ant.dir.off", { name: "off", server: { mcp_config: { command: "off" } } }, { isEnabled: false });
+    const found = findDesktopExtensions(claudeDir());
+    expect(found.found.map((e) => e.name)).toEqual(["Notes"]);
+    expect(found.found[0].server).toEqual({ command: join(claudeDir(), "Claude Extensions", "ant.dir.notes") + "/bin/notes", args: ["--root", "/data", "/a", "/b"], env: { NOTES_API_KEY: "nk-123456" } });
+
+    await runSetup({ yes: true, cwd }, io());
+    const y = YAML.parse(rd(mcfg()));
+    expect(y.servers.notes.command).toContain("ant.dir.notes");
+    expect(y.servers.notes.env.NOTES_API_KEY).toBe("{{secret:NOTES_API_KEY}}");
+    expect(rd(join(home, ".mycel", "secrets.env"))).toContain("NOTES_API_KEY=nk-123456");
+    expect(JSON.parse(rd(join(claudeDir(), "Claude Extensions Settings", "ant.dir.notes.json"))).isEnabled).toBe(false);
+    expect(Object.keys(JSON.parse(rd(desktop())).mcpServers)).toEqual(["mycel"]);
+
+    await runUndo({ yes: true }, io());
+    expect(rd(join(claudeDir(), "Claude Extensions Settings", "ant.dir.notes.json"))).toBe(s0);
+    expect(JSON.parse(rd(desktop())).mcpServers.mycel).toBeUndefined();
+  });
+
+  it("never overwrites a Claude Desktop config it cannot parse; the extension stays on", async () => {
+    const bad = put(desktop(), '{ // my comment\n "globalShortcut": "x" }');
+    const s0 = ext("ant.dir.n", { name: "n", server: { mcp_config: { command: "n" } } }, { isEnabled: true });
+    put(join(home, ".gemini", "settings.json"), JSON.stringify({ mcpServers: { g: { command: "g-srv" } } }));
+    await runSetup({ yes: true, cwd }, io());
+    expect(rd(desktop())).toBe(bad);
+    expect(rd(join(claudeDir(), "Claude Extensions Settings", "ant.dir.n.json"))).toBe(s0);
+  });
+
+  it("reports Claude Code plugin servers and leaves them alone", () => {
+    const p = join(home, "plug");
+    put(join(p, ".mcp.json"), JSON.stringify({ mcpServers: { figma: { url: "https://x" } } }));
+    put(join(home, ".claude", "plugins", "installed_plugins.json"), JSON.stringify({ version: 2, plugins: { "f@m": [{ installPath: p }] } }));
+    expect(pluginServers(home)).toEqual(["figma"]);
+  });
+
+  it("can start Mycel with an absolute Node path (installer copy)", () => {
+    process.env.MYCEL_ENTRY_ABSOLUTE = "1";
+    try {
+      const e = mycelEntry("/c.yaml");
+      expect(e.command).toBe(process.execPath);
+      expect(e.args.slice(-3)).toEqual(["serve", "--config", "/c.yaml"]);
+    } finally {
+      delete process.env.MYCEL_ENTRY_ABSOLUTE;
+    }
+  });
+
+  it("the savings line shows percent, money and time, labelled as estimates", () => {
+    const line = formatSavingsLine(measure(13240, 1710), { calls: 3, rawTokens: 60000, savedTokens: 48300, addedTokens: 0, netTokens: 48300 }, 0, { usdPerMTok: 3, tokensPerSecond: 3000 });
+    expect(line).toContain("this call −87%");
+    expect(line).toContain("session −48,300 tokens (−81%) ≈ $0.14 · ≈16 s (estimated)");
+    expect(valueOf(1_000_000, { usdPerMTok: 3, tokensPerSecond: 3000 }).usd).toBe(3);
+    const st = formatStats({ day: { date: "d", measured: { calls: 2, rawTokens: 100000, savedTokens: 90000, addedTokens: 0, netTokens: 90000 }, estimated: { toolsListServed: 0, definitionTokens: 0 } } });
+    expect(st).toMatch(/−90% of what the tools returned/);
+    expect(st).toMatch(/worth +≈ \$0\.27 and ≈30 s .*estimated/);
   });
 });

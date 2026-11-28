@@ -41,9 +41,9 @@ describe("savings computation", () => {
   it("formats the one-line summary", () => {
     const t = new SavingsTracker();
     const s = t.record(measure(13240, 1710));
-    expect(formatSavingsLine(measure(13240, 1710), s, 202_345)).toBe("Mycel · this call: ≈13,240 → ≈1,710 tokens (−87% size, measured · tokens ≈ chars/4) · session: ≈−11,530 · tool definitions: ~−202k/turn (estimated)");
-    expect(formatSavingsLine(measure(40, 66), { calls: 1, savedTokens: 0, addedTokens: 26, netTokens: -26 }, 0)).toBe("Mycel · this call: ≈40 → ≈66 tokens (+26, measured · tokens ≈ chars/4) · session: ≈+26");
-    expect(formatSavingsLine(measure(50, 50), { calls: 1, savedTokens: 0, addedTokens: 0, netTokens: 0 }, 850)).toBe("Mycel · this call: ≈50 → ≈50 tokens (no change, measured · tokens ≈ chars/4) · session: ≈0 · tool definitions: ~−850/turn (estimated)");
+    expect(formatSavingsLine(measure(13240, 1710), s, 202_345)).toBe("Mycel · this call −87% (≈13,240 → ≈1,710 tokens, measured) · session −11,530 tokens (−87%) ≈ $0.03 · ≈4 s (estimated) · tool definitions ~−202k/turn (estimated)");
+    expect(formatSavingsLine(measure(40, 66), { calls: 1, savedTokens: 0, addedTokens: 26, netTokens: -26 }, 0)).toBe("Mycel · this call +26 tokens (≈40 → ≈66 tokens, measured) · session ≈+26 tokens");
+    expect(formatSavingsLine(measure(50, 50), { calls: 1, savedTokens: 0, addedTokens: 0, netTokens: 0 }, 850)).toBe("Mycel · this call no change (≈50 → ≈50 tokens, measured) · session ≈0 tokens · tool definitions ~−850/turn (estimated)");
   });
 
   it("session totals net saved against added, and uncounted calls do not count", () => {
@@ -51,7 +51,7 @@ describe("savings computation", () => {
     t.record(measure(1000, 100));
     t.record(measure(10, 40));
     t.record(measure(5000, 0), false);
-    expect(t.snapshot()).toEqual({ calls: 2, savedTokens: 900, addedTokens: 30, netTokens: 870 });
+    expect(t.snapshot()).toEqual({ calls: 2, rawTokens: 1010, savedTokens: 900, addedTokens: 30, netTokens: 870 });
     t.noteToolsList(500);
     t.noteToolsList(500);
     expect(t.toolsListServed()).toBe(2);
@@ -77,7 +77,7 @@ describe("savings through the gateway", () => {
     expect(meta.measured.pct).toBeGreaterThan(90);
     expect(meta.session.netTokens).toBe(meta.measured.savedTokens);
     expect(meta.estimated.label).toBe(ESTIMATE_CAVEAT);
-    expect(meta.line).toMatch(/^Mycel · this call: ≈.* → ≈.* tokens \(−\d+% size, measured · tokens ≈ chars\/4\) · session: ≈−/)
+    expect(meta.line).toMatch(/^Mycel · this call −\d+% \(≈.* → ≈.* tokens, measured\) · session −[\d,]+ tokens \(−\d+%\) ≈ (\$[\d.]+|<\$0\.01) · ≈.* \(estimated\)/)
     expect((r._meta as Record<string, { unit: string }>)["mycel/savings"].unit).toBe("chars/4 tokens (approx.)");
     console.log("sample line:", meta.line);
     const ev = m.recorder.load({ days: 1 }).filter((e) => e.savings?.measured);
@@ -93,8 +93,8 @@ describe("savings through the gateway", () => {
     expect(meta.measured.savedTokens).toBe(0);
     expect(meta.measured.addedTokens).toBeGreaterThan(0);
     expect(meta.session.netTokens).toBe(-meta.measured.addedTokens);
-    expect(meta.line).toContain(`(+${meta.measured.addedTokens}, measured · tokens ≈ chars/4)`);
-    expect(meta.line).toContain(`session: ≈+${meta.measured.addedTokens}`);
+    expect(meta.line).toContain(`this call +${meta.measured.addedTokens} tokens`);
+    expect(meta.line).toContain(`session ≈+${meta.measured.addedTokens} tokens`);
     const ev = m.recorder.load({ days: 1 }).filter((e) => e.savings?.measured);
     expect(ev.map((e) => e.kind)).toEqual(["call"]);
     expect(ev[0].savings!.measured).toEqual(meta.measured);

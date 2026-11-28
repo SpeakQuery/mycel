@@ -42,7 +42,7 @@ const program = new Command();
 program
   .name("mycel")
   .description("The connective layer for AI agents — MCP gateway + A2A mesh.")
-  .version("0.1.9")
+  .version("0.2.0")
   .option("-c, --config <path>", "path to mycel.yaml");
 
 program
@@ -80,7 +80,37 @@ async function ask(q: string, def = false): Promise<boolean> {
     rl.close();
   }
 }
-const sio = () => ({ out, ask, interactive: !!process.stdin.isTTY && !!process.stdout.isTTY });
+/** Read a line without echoing it (API keys). Paste works; Backspace edits; Ctrl-C quits. */
+function secret(q: string): Promise<string> {
+  const stdin = process.stdin;
+  process.stdout.write(q);
+  return new Promise((done) => {
+    let buf = "";
+    const finish = () => {
+      stdin.removeListener("data", onData);
+      stdin.setRawMode?.(false);
+      stdin.pause();
+      process.stdout.write("\n");
+      done(buf);
+    };
+    const onData = (chunk: Buffer | string) => {
+      for (const ch of String(chunk)) {
+        if (ch === "\r" || ch === "\n") return finish();
+        if (ch === "\u0003") {
+          stdin.setRawMode?.(false);
+          process.stdout.write("\n");
+          process.exit(130);
+        }
+        if (ch === "\u007f" || ch === "\b") buf = buf.slice(0, -1);
+        else if (ch >= " ") buf += ch;
+      }
+    };
+    stdin.setRawMode?.(true);
+    stdin.resume();
+    stdin.on("data", onData);
+  });
+}
+const sio = () => ({ out, ask, secret, interactive: !!process.stdin.isTTY && !!process.stdout.isTTY });
 
 program
   .command("setup")
@@ -355,7 +385,7 @@ program
     const rec = new Recorder(join(loaded.home, "traces"), { enabled: false, redact: true });
     const r = rec.savingsReport();
     if (o.json) return out(JSON.stringify(r, null, 2));
-    out(formatStats(r));
+    out(formatStats(r, { usdPerMTok: loaded.config.ui.usdPerMTok, tokensPerSecond: loaded.config.ui.tokensPerSecond }));
   });
 
 program

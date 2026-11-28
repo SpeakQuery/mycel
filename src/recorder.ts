@@ -220,7 +220,7 @@ export class Recorder extends EventEmitter {
           resource: { attributes: [attr("service.name", this.opts.serviceName ?? "mycel")] },
           scopeSpans: [
             {
-              scope: { name: "mycel", version: "0.1.9" },
+              scope: { name: "mycel", version: "0.2.0" },
               spans: batch.map((e) => ({
                 traceId: e.traceId.padEnd(32, "0").slice(0, 32),
                 spanId: e.spanId.padEnd(16, "0").slice(0, 16),
@@ -256,16 +256,17 @@ export class Recorder extends EventEmitter {
 }
 
 export interface SavingsTotals {
-  measured: { calls: number; savedTokens: number; addedTokens: number; netTokens: number };
+  measured: { calls: number; rawTokens: number; savedTokens: number; addedTokens: number; netTokens: number };
   estimated: { toolsListServed: number; definitionTokens: number };
 }
 
 function sumSavings(events: TraceEvent[]): SavingsTotals {
-  const t: SavingsTotals = { measured: { calls: 0, savedTokens: 0, addedTokens: 0, netTokens: 0 }, estimated: { toolsListServed: 0, definitionTokens: 0 } };
+  const t: SavingsTotals = { measured: { calls: 0, rawTokens: 0, savedTokens: 0, addedTokens: 0, netTokens: 0 }, estimated: { toolsListServed: 0, definitionTokens: 0 } };
   for (const e of events) {
     const sv = e.savings;
     if (sv?.measured && sv.counted !== false) {
       t.measured.calls++;
+      t.measured.rawTokens += sv.measured.rawTokens ?? 0;
       t.measured.savedTokens += sv.measured.savedTokens;
       t.measured.addedTokens += sv.measured.addedTokens;
     }

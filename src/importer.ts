@@ -95,7 +95,7 @@ export function toMycelYaml(
   const skipped: string[] = [];
   const envName = (s: string) => s.toUpperCase().replace(/[^A-Z0-9_]/g, "_");
   const claim = (base: string, alt: string, value: string): string => {
-    const usable = value !== "" && !/[\r\n]/.test(value) && !/^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$/.test(value);
+    const usable = value !== "" && !/[\r\n]/.test(value) && !/^\$(\{[^}]*\}|[A-Za-z_][A-Za-z0-9_]*)$/.test(value);
     for (const n of [base, alt, ...[2, 3, 4, 5, 6, 7, 8, 9].map((i) => `${alt}_${i}`)]) {
       const cur = secretValues[n] ?? reserved[n];
       if (!usable) {

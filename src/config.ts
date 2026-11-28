@@ -148,7 +148,7 @@ export const MycelConfig = z.object({
   secrets: z
     .object({
       /** Where secret values come from. env = process env; file = a dotenv-style file. */
-      source: z.enum(["env", "file"]).default("env"),
+      source: z.enum(["env", "file", "keychain"]).default("env"),
       file: z.string().optional(),
       allow: z.array(z.string()).optional(),
     })
@@ -176,6 +176,8 @@ export const MycelConfig = z.object({
     })
     .prefault({}),
   dashboard: z.object({ port: z.number().int().default(4747), host: z.string().default("127.0.0.1") }).prefault({}),
+  /** Updates: check npm at most once a day; a private install (~/.mycel/app) updates itself in the background. */
+  update: z.object({ auto: z.boolean().default(true) }).prefault({}),
   a2a: z
     .object({
       name: z.string().default("mycel"),

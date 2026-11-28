@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 — 2026-11-28
+
+**No terminal needed, keys in the keychain, and Mycel keeps itself up to date.**
+- **Claude Desktop extension** (`mycel.mcpb`, download from the site): double-click to install, then ask Claude "Set up Mycel". A new `mycel_setup` tool shows the plan, applies it after the user's yes (Claude Desktop also asks before the tool runs) and can undo it. Claude Desktop's own servers move under the extension; other apps are set up as before. API keys are never asked for in chat.
+- **Automatic updates:** once a day Mycel checks npm; a private install (`~/.mycel/app`, used by the installer and the extension) updates itself in the background and runs the new version from the next start. `mycel update` updates now; `mycel doctor` shows when a newer version exists; `update.auto: false` turns it off. Apps set up through `npx` now start `@speakquery/mycel@latest`.
+- **API keys in the system keychain:** macOS Keychain or the Linux Secret Service (`secrets.source: keychain`); values never appear on a command line. Windows, and anything the keychain refuses, keep the private file.
+- **`mycel uninstall`:** restores every app to its settings from before Mycel, removes the installer's PATH line and Mycel's keychain entries, deletes `~/.mycel`. Asks first.
+- **Turkish wizard:** setup, undo and uninstall speak Turkish when the system does (`MYCEL_LANG=tr|en` to choose).
+- **"Mycel is active"** once at the start of a conversation, and `mycel stats` adds the last 7 days.
+- Docs show only current results (no comparisons between Mycel versions); history stays here.
+
 ## 0.2.0 — 2026-11-28
 
 **For people who have never opened a terminal before: one line, yes or no, and you can see what you save.**

@@ -8,3 +8,4 @@ python/**/*.egg-info/
 video/node_modules/
 video/renders/
 video/.hyperframes/
+build/

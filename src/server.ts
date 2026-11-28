@@ -6,7 +6,8 @@ import { estimateTokens, type ToolEntry } from "./catalog.js";
 import { newId, type EventKind } from "./recorder.js";
 import type { SavingsMeta } from "./savings.js";
 
-const VERSION = "0.2.0";
+import { VERSION } from "./update.js";
+import { setupTool } from "./setup-tool.js";
 
 /** MCP tool names must be [a-zA-Z0-9_-]; direct tools are exposed as `server__tool`. */
 export const directName = (t: ToolEntry) => `${t.server}__${t.name}`.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
@@ -40,7 +41,9 @@ export function createMcpServer(m: Mycel, session: { capability?: CallContext["c
     const mode = m.routerMode();
     if (mode === "passthrough") return [];
     const all = META_TOOLS(m);
-    return mode === "compact" ? all.filter((t) => ["mycel_run", "mycel_ref", "mycel_job"].includes(t.name)) : all;
+    const shown = mode === "compact" ? all.filter((t) => ["mycel_run", "mycel_ref", "mycel_job"].includes(t.name)) : all;
+    // In the Claude Desktop extension the setup tool is always there, whatever the router mode (a fresh install has no servers yet).
+    return process.env.MYCEL_EXTENSION === "1" ? [...shown, setupTool()] : shown;
   };
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {

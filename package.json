@@ -1,6 +1,6 @@
 {
   "name": "@speakquery/mycel",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The connective layer for AI agents: a drop-in MCP gateway (smart tool router, code mode, ref store, jobs, policy firewall, flight recorder) plus an A2A agent mesh.",
   "type": "module",
   "bin": {
@@ -27,6 +27,7 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "bench": "node dist/cli.js bench",
+    "build:mcpb": "npm run build && node scripts/build-mcpb.mjs",
     "prepare": "npm run build"
   },
   "keywords": [

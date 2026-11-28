@@ -1,5 +1,6 @@
 import { readFileSync, existsSync } from "node:fs";
 import type { MycelConfig } from "./config.js";
+import { keychainGet } from "./keychain.js";
 
 const PLACEHOLDER = /\{\{\s*secret:([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g;
 
@@ -13,7 +14,8 @@ export class SecretVault {
 
   constructor(cfg: MycelConfig["secrets"], env: NodeJS.ProcessEnv = process.env) {
     this.allow = cfg.allow ? new Set(cfg.allow) : null;
-    if (cfg.source === "file" && cfg.file && existsSync(cfg.file)) {
+    this.keychain = cfg.source === "keychain";
+    if ((cfg.source === "file" || cfg.source === "keychain") && cfg.file && existsSync(cfg.file)) {
       for (const line of readFileSync(cfg.file, "utf8").split(/\r?\n/)) {
         const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
         if (m) this.values.set(m[1], m[2].replace(/^["']|["']$/g, ""));
@@ -22,10 +24,20 @@ export class SecretVault {
     this.env = env;
   }
   private env: NodeJS.ProcessEnv;
+  private keychain = false;
 
   get(name: string): string | undefined {
     if (this.allow && !this.allow.has(name)) return undefined;
-    return this.values.get(name) ?? this.env[name];
+    const v = this.values.get(name);
+    if (v !== undefined) return v;
+    if (this.keychain) {
+      const k = keychainGet(name);
+      if (k !== undefined) {
+        this.values.set(name, k); // cached, and scrubbed from output like file values
+        return k;
+      }
+    }
+    return this.env[name];
   }
 
   /** Names referenced by a value (deep). */

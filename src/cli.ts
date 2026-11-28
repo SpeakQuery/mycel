@@ -9,8 +9,11 @@ import { Mycel } from "./core.js";
 import { createMcpServer } from "./server.js";
 import { startHttp } from "./http.js";
 import { discover, toMycelYaml, clientSnippet } from "./importer.js";
-import { runSetup, runUndo } from "./setup.js";
+import { runSetup, runUndo, runUninstall } from "./setup.js";
+import { keychainKind, keychainRemoveAll } from "./keychain.js";
 import { signIn } from "./login.js";
+import { detectLang, translate } from "./i18n.js";
+import { VERSION, autoUpdate, runUpdate, readUpdateState, compareVersions } from "./update.js";
 import { runBench, formatBench } from "./bench.js";
 import { mint, attenuate, inspect, newRootKey, parseDuration, type Caveat } from "./tokens.js";
 import { ApprovalQueue } from "./policy.js";
@@ -42,7 +45,7 @@ const program = new Command();
 program
   .name("mycel")
   .description("The connective layer for AI agents — MCP gateway + A2A mesh.")
-  .version("0.2.0")
+  .version(VERSION)
   .option("-c, --config <path>", "path to mycel.yaml");
 
 program
@@ -110,7 +113,15 @@ function secret(q: string): Promise<string> {
     stdin.on("data", onData);
   });
 }
-const sio = () => ({ out, ask, secret, interactive: !!process.stdin.isTTY && !!process.stdout.isTTY });
+const sio = () => {
+  const lang = detectLang();
+  return {
+    out: (s: string) => out(translate(s, lang)),
+    ask: (q: string, def?: boolean) => ask(translate(q, lang), def),
+    secret: (q: string) => secret(translate(q, lang)),
+    interactive: !!process.stdin.isTTY && !!process.stdout.isTTY,
+  };
+};
 
 program
   .command("setup")
@@ -121,6 +132,22 @@ program
   .option("--no-check", "skip the wizard's last steps: testing each server, browser sign-ins and restarting apps")
   .action(async (o: { yes?: boolean; out?: string; projects?: boolean; check: boolean }) => {
     process.exitCode = await runSetup({ yes: o.yes, config: o.out ?? program.opts().config, projects: o.projects, check: o.check }, sio());
+  });
+
+program
+  .command("uninstall")
+  .description("Remove Mycel: restore your apps' original settings, remove its keys and delete ~/.mycel")
+  .option("-y, --yes", "do it without asking")
+  .option("--keep-data", "restore apps but keep ~/.mycel")
+  .action(async (o: { yes?: boolean; keepData?: boolean }) => {
+    process.exitCode = await runUninstall(o, sio(), keychainKind() ? { removeKeychain: keychainRemoveAll } : {});
+  });
+
+program
+  .command("update")
+  .description("Update Mycel now (it also updates itself once a day; turn that off with update.auto: false)")
+  .action(async () => {
+    process.exitCode = await runUpdate(out);
   });
 
 program
@@ -142,6 +169,7 @@ program
   .option("--no-dashboard", "do not start the local dashboard (stdio mode)")
   .action(async (o: { http?: boolean; port?: number; host?: string; dashboard: boolean }) => {
     const m = await boot(program.opts().config);
+    void autoUpdate({ enabled: m.config.update.auto, log: err }).catch(() => {});
     const shutdown = async () => {
       await m.close();
       process.exit(0);
@@ -199,6 +227,8 @@ program
     const ok = (b: boolean, s: string, hint = "") => out(`  ${b ? c.g("✓") : c.y("✗")} ${s}${!b && hint ? c.d(`  — ${hint}`) : ""}`);
     out(c.b("\n  mycel doctor\n"));
     ok(Number(process.versions.node.split(".")[0]) >= 20, `Node ${process.versions.node}`, "Node 20+ required");
+    const us = readUpdateState();
+    ok(!us.latest || compareVersions(VERSION, us.latest) >= 0, `Mycel ${VERSION}${us.latest && compareVersions(VERSION, us.latest) < 0 ? ` (${us.latest} available)` : ""}`, "run: mycel update");
     let ff = false;
     try {
       execFileSync("ffprobe", ["-version"], { stdio: "ignore" });

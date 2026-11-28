@@ -3,7 +3,10 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync, chmodS
 import { tmpdir, platform } from "node:os";
 import { join, dirname } from "node:path";
 import YAML from "yaml";
-import { runSetup, runUndo, listBackups, restartPlan, findDesktopExtensions, pluginServers, mycelEntry } from "../src/setup.js";
+import { runSetup, runUndo, listBackups, restartPlan, findDesktopExtensions, pluginServers, mycelEntry, runUninstall } from "../src/setup.js";
+import { setupTool } from "../src/setup-tool.js";
+import { translate, detectLang } from "../src/i18n.js";
+import { compareVersions } from "../src/update.js";
 import { formatSavingsLine, formatStats, measure, valueOf } from "../src/savings.js";
 
 let home: string;
@@ -40,13 +43,14 @@ function fixtures() {
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "mycel-home-"));
   cwd = mkdtempSync(join(tmpdir(), "mycel-cwd-"));
-  saved = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, MYCEL_HOME: process.env.MYCEL_HOME, PATH: process.env.PATH, MYCEL_NO_CLAUDE_CLI: process.env.MYCEL_NO_CLAUDE_CLI, APPDATA: process.env.APPDATA };
+  saved = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, MYCEL_HOME: process.env.MYCEL_HOME, PATH: process.env.PATH, MYCEL_NO_CLAUDE_CLI: process.env.MYCEL_NO_CLAUDE_CLI, APPDATA: process.env.APPDATA, MYCEL_NO_KEYCHAIN: process.env.MYCEL_NO_KEYCHAIN };
   process.env.HOME = home;
   process.env.USERPROFILE = home;
   process.env.APPDATA = join(home, "AppData", "Roaming");
   delete process.env.MYCEL_HOME;
   process.env.PATH = "/nonexistent-bin";
   process.env.MYCEL_NO_CLAUDE_CLI = "1";
+  process.env.MYCEL_NO_KEYCHAIN = "1";
   lines = [];
 });
 afterEach(() => {
@@ -63,7 +67,7 @@ describe("mycel setup / undo", () => {
     expect(rd(mcfg)).not.toContain("SUPERSECRET");
     expect(rd(mcfg)).toContain("{{secret:API_KEY}}");
 
-    const entry = { command: "npx", args: ["-y", "@speakquery/mycel", "serve", "--config", mcfg] };
+    const entry = { command: "npx", args: ["-y", "@speakquery/mycel@latest", "serve", "--config", mcfg] };
     expect(JSON.parse(rd(desktop())).mcpServers).toEqual({ mycel: entry });
     expect(JSON.parse(rd(desktop())).globalShortcut).toBe("Ctrl+Space");
     const cl = JSON.parse(rd(join(home, ".claude.json")));
@@ -217,7 +221,7 @@ describe("mycel setup / undo", () => {
     await runSetup({ yes: true, cwd }, io());
     const calls = rd(log);
     expect(calls).toContain("mcp remove -s user a");
-    expect(calls).toMatch(/mcp add -s user mycel -- npx -y @speakquery\/mycel serve --config/);
+    expect(calls).toMatch(/mcp add -s user mycel -- npx -y @speakquery\/mycel@latest serve --config/);
     const [m] = listBackups();
     expect(m.files[0].viaClaudeCli).toBe(true);
     expect(rd(join(home, ".mycel", "backups", m.id, m.files[0].backup))).toBe(orig);
@@ -394,5 +398,54 @@ describe("0.2.0: savings people can see, keys asked for, extensions imported", (
     const st = formatStats({ day: { date: "d", measured: { calls: 2, rawTokens: 100000, savedTokens: 90000, addedTokens: 0, netTokens: 90000 }, estimated: { toolsListServed: 0, definitionTokens: 0 } } });
     expect(st).toMatch(/−90% of what the tools returned/);
     expect(st).toMatch(/worth +≈ \$0\.27 and ≈30 s .*estimated/);
+  });
+});
+
+describe("0.3.0: extension setup tool, uninstall, Turkish, updates", () => {
+  it("mycel_setup plans without changing anything, then applies without a mycel entry in Claude Desktop", async () => {
+    const before = put(desktop(), JSON.stringify({ mcpServers: { x: { command: "x-srv" } } }));
+    const plan = (await setupTool().handler({ action: "plan" }, {} as never)) as { report: string; next: string };
+    expect(plan.report).toMatch(/What will change|Neler değişecek/);
+    expect(rd(desktop())).toBe(before);
+    await setupTool().handler({ action: "apply" }, {} as never);
+    expect(JSON.parse(rd(desktop())).mcpServers).toEqual({});
+    expect(YAML.parse(rd(join(home, ".mycel", "mycel.yaml"))).servers.x.command).toBe("x-srv");
+  });
+
+  it("uninstall restores the original app settings, removes the PATH line and deletes ~/.mycel", async () => {
+    const orig = put(desktop(), JSON.stringify({ mcpServers: { x: { command: "x-srv" } } }));
+    await runSetup({ yes: true, cwd }, io());
+    await runSetup({ yes: true, cwd }, io());
+    const rc = put(join(home, ".zshrc"), `alias ll=ls\n\n# Mycel\nexport PATH="${join(home, ".mycel", "bin")}:$PATH"\n`);
+    expect(rc).toContain(".mycel");
+    await runUninstall({ yes: true }, io());
+    expect(rd(desktop())).toBe(orig);
+    expect(rd(join(home, ".zshrc"))).not.toContain(".mycel");
+    expect(rd(join(home, ".zshrc"))).toContain("alias ll=ls");
+    expect(existsSync(join(home, ".mycel"))).toBe(false);
+  });
+
+  it("uninstall asks first and does nothing without a yes", async () => {
+    put(desktop(), JSON.stringify({ mcpServers: { x: { command: "x-srv" } } }));
+    await runSetup({ yes: true, cwd }, io());
+    await runUninstall({}, io(true, false));
+    expect(existsSync(join(home, ".mycel"))).toBe(true);
+  });
+
+  it("speaks Turkish when asked and leaves unknown text alone", () => {
+    expect(detectLang({ LANG: "tr_TR.UTF-8" })).toBe("tr");
+    expect(detectLang({ MYCEL_LANG: "en", LANG: "tr_TR.UTF-8" })).toBe("en");
+    expect(translate("\n  Apply these changes? [Y/n] ", "tr")).toBe("\n  Bu değişiklikleri uygulayayım mı? [E/h] ");
+    expect(translate("  Mycel is set up: 5 of 6 server(s) working, 270 tools.", "tr")).toBe("  Mycel kuruldu: 6 sunucudan 5 tanesi çalışıyor, 270 araç.");
+    expect(translate("    ~/.claude.json: replace 2 servers in \"mcpServers\" with one \"mycel\" entry", "tr")).toBe("    ~/.claude.json: \"mcpServers\" içindeki 2 sunucuyu tek bir \"mycel\" kaydıyla değiştir");
+    expect(translate("something new", "tr")).toBe("something new");
+    expect(translate("  Apply these changes? [Y/n] ", "en")).toBe("  Apply these changes? [Y/n] ");
+  });
+
+  it("compares versions for updates", () => {
+    expect(compareVersions("0.2.0", "0.3.0")).toBe(-1);
+    expect(compareVersions("0.10.0", "0.9.9")).toBe(1);
+    expect(compareVersions("1.0.0-beta.1", "1.0.0")).toBe(-1);
+    expect(compareVersions("0.3.0", "0.3.0")).toBe(0);
   });
 });

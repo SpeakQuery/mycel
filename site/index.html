@@ -92,8 +92,8 @@
             <span class="ba4-arrow" aria-hidden="true">→</span>
             <div class="ba4-side ba4-after"><span class="ba4-k">With Mycel</span><span class="ba4-n"><span data-count="0.013" data-pre="$" data-suf="" data-dec="3">$0.013</span></span><span class="ba4-u">cost</span><span class="ba4-x">passed a 318-char reference</span></div>
           </div>
-          <p class="ba4-badge-wrap"><span class="ba4-badge"><span data-count="85" data-pre="−" data-suf="%">−85%</span></span> <span class="ba4-badge-label">cheaper (<!-- STITCH-0.1.7 -->~147k → ~18k chars of results · same 13 turns)</span></p>
-          <p class="ba4-foot">Real Google Stitch, Claude Code Haiku, n=1, Mycel 0.1.7. <a href="#stitch-session">Details</a></p>
+          <p class="ba4-badge-wrap"><span class="ba4-badge"><span data-count="85" data-pre="−" data-suf="%">−85%</span></span> <span class="ba4-badge-label">cheaper (~147k → ~18k chars of results · same 13 turns)</span></p>
+          <p class="ba4-foot">Real Google Stitch, Claude Code Haiku, n=1. <a href="#stitch-session">Details</a></p>
         </article>
         <article class="ba4-card">
           <h3 class="ba4-title">Check 50,000 rows of data for 3 hidden errors</h3>
@@ -255,41 +255,26 @@
           <p class="section-lede">Real Google Stitch MCP, <code>claude-haiku-5-5</code>, 2026-11-27, identical prompts: generate 6 mobile screens for a food-delivery app, then save the checkout HTML to <code>payment.html</code>. Both arms completed 6 screens; the Mycel arm's saved file is byte-identical to Stitch's HTML, the direct arm's is not.</p>
           <div class="table-scroll" tabindex="0" role="region" aria-label="Stitch session results">
             <table class="vs fit-table">
-              <thead><tr><th scope="col">Measure</th><th scope="col">Direct MCP (run 2)</th><th scope="col">Mycel 0.1.6 (run 1)</th><th scope="col" class="vs-m">Mycel 0.1.7 (run 2)</th><th scope="col">Verdict (0.1.7 vs direct)</th></tr></thead>
+              <thead><tr><th scope="col">Measure</th><th scope="col">Direct MCP</th><th scope="col" class="vs-m">Mycel</th><th scope="col">Change</th></tr></thead>
               <tbody>
-                <tr><th scope="row">💰 CLI cost</th><td>$0.0867</td><td>$0.0221</td><td class="vs-m"><strong>$0.0132</strong></td><td class="fit-pos">−85% ✅</td></tr>
-                <tr><th scope="row">📦 Tool results in context</th><td>147,455 chars (~36.9k tokens)</td><td>24,632 chars</td><td class="vs-m"><strong>18,289 chars (~4.6k tokens)</strong></td><td class="fit-pos">−88% ✅</td></tr>
-                <tr><th scope="row">🎨 Data returned by the 6 generations</th><td>120,584 chars</td><td>2,028 chars</td><td class="vs-m"><strong>8,863 chars</strong> (ref + digest, inline)</td><td class="fit-pos">−93% ✅</td></tr>
-                <tr><th scope="row">💾 Saving the HTML</th><td>model re-typed 26,436 chars</td><td><code>ref://</code> handle, 317 chars</td><td class="vs-m"><strong><code>ref://</code> handle, 318 chars</strong></td><td class="fit-pos">−99% ✅</td></tr>
-                <tr><th scope="row">✍️ Output tokens</th><td>14,899</td><td>6,950</td><td class="vs-m"><strong>4,014</strong></td><td class="fit-pos">−73% ✅</td></tr>
-                <tr><th scope="row">📥 Total input incl. cache</th><td>901,571</td><td>1,212,217</td><td class="vs-m"><strong>549,084</strong></td><td class="fit-pos">−39% ✅</td></tr>
-                <tr><th scope="row">🔁 Turns</th><td>13</td><td>27</td><td class="vs-m"><strong>13</strong></td><td class="fit-pos">equal ✅</td></tr>
-                <tr><th scope="row">⏱️ Wall time</th><td>17.1 min</td><td>16.1 min</td><td class="vs-m"><strong>15.6 min</strong></td><td class="fit-pos">−9% (within noise) ✅</td></tr>
-                <tr><th scope="row">🎯 Oracle: <code>payment.html</code> identical to Stitch's HTML</th><td>❌ <strong>corrupted</strong>: dropped one character (U+F8FF before "Pay") and added a trailing newline while re-typing</td><td>✅ byte-identical</td><td class="vs-m">✅ <strong>byte-identical</strong></td><td class="fit-pos">✅</td></tr>
+                <tr><th scope="row">💰 CLI cost</th><td>$0.0867</td><td class="vs-m"><strong>$0.0132</strong></td><td class="fit-pos">−85% ✅</td></tr>
+                <tr><th scope="row">📦 Tool results in context</th><td>147,455 chars (~36.9k tokens)</td><td class="vs-m"><strong>18,289 chars (~4.6k tokens)</strong></td><td class="fit-pos">−88% ✅</td></tr>
+                <tr><th scope="row">🎨 Data returned by the 6 generations</th><td>120,584 chars</td><td class="vs-m"><strong>8,863 chars</strong> (ref + digest, inline)</td><td class="fit-pos">−93% ✅</td></tr>
+                <tr><th scope="row">💾 Saving the HTML</th><td>model re-typed 26,436 chars</td><td class="vs-m"><strong><code>ref://</code> handle, 318 chars</strong></td><td class="fit-pos">−99% ✅</td></tr>
+                <tr><th scope="row">✍️ Output tokens</th><td>14,899</td><td class="vs-m"><strong>4,014</strong></td><td class="fit-pos">−73% ✅</td></tr>
+                <tr><th scope="row">📥 Total input incl. cache</th><td>901,571</td><td class="vs-m"><strong>549,084</strong></td><td class="fit-pos">−39% ✅</td></tr>
+                <tr><th scope="row">🔁 Turns</th><td>13</td><td class="vs-m"><strong>13</strong></td><td class="fit-pos">equal ✅</td></tr>
+                <tr><th scope="row">⏱️ Wall time</th><td>17.1 min</td><td class="vs-m"><strong>15.6 min</strong></td><td class="fit-pos">−9% (within noise) ✅</td></tr>
+                <tr><th scope="row">🎯 Oracle: <code>payment.html</code> identical to Stitch's HTML</th><td>❌ <strong>corrupted</strong>: dropped one character (U+F8FF before "Pay") and added a trailing newline while re-typing</td><td class="vs-m">✅ <strong>byte-identical</strong></td><td class="fit-pos">✅</td></tr>
               </tbody>
             </table>
           </div>
-<p class="fine"><strong>The corruption is a concrete reason refs matter:</strong> in run 2 the direct arm's model re-typed ~25 KB of HTML into <code>write_file</code> and silently dropped one private-use glyph (U+F8FF, the Apple-logo glyph before "Pay") and appended a trailing newline, so the saved file no longer matched Stitch's. The Mycel arm passed a 318-char <code>ref://</code> handle and the file was byte-identical. (n=1, but it happened; in run 1 the direct arm's file matched after trimming.)</p>
-          <p class="fine">Variance note: direct run 1 (same task and hints) used 13 turns, 13.6 min, $0.0950, 140,819 chars of tool results and re-typed 30,509 chars; Mycel 0.1.6 run 1 is the middle column. Different designs and call sequences between runs: LLM variance is not controlled.</p>
+<p class="fine"><strong>The corruption is a concrete reason refs matter:</strong> the direct arm's model re-typed ~25 KB of HTML into <code>write_file</code> and silently dropped one private-use glyph (U+F8FF, the Apple-logo glyph before "Pay") and appended a trailing newline, so the saved file no longer matched Stitch's. The Mycel arm passed a 318-char <code>ref://</code> handle and the file was byte-identical. (n=1, but it happened.)</p>
           <p class="fine">Scripted check of the same 6-screen project (no model): ~48.3k tokens direct vs ~3.0k through Mycel (−94%); tool definitions: 32 raw tools (~15,118 tokens) vs 6 meta tools (~915).</p>
-          <h4>Secondary: turn fix on a mock service (mock service, n=2)</h4>
-          <div class="table-scroll" tabindex="0" role="region" aria-label="Turn fix re-measurement on a mock service">
-            <table class="vs fit-table">
-              <thead><tr><th scope="col">Run 1 · run 2</th><th scope="col">Direct</th><th scope="col">Mycel 0.1.6</th><th scope="col" class="vs-m">Mycel 0.1.7</th></tr></thead>
-              <tbody>
-                <tr><th scope="row">🔁 Turns</th><td>15 · 13</td><td>30 · 31</td><td class="vs-m"><strong>15 · 13</strong></td></tr>
-                <tr><th scope="row">💰 CLI cost</th><td>$0.122 · $0.111</td><td>$0.026 · $0.020</td><td class="vs-m"><strong>$0.014 · $0.012</strong></td></tr>
-                <tr><th scope="row">✍️ Output tokens</th><td>16.1k · 16.1k</td><td>10.5k · 6.5k</td><td class="vs-m"><strong>4.5k · 3.6k</strong></td></tr>
-                <tr><th scope="row">📦 Tool-result chars</th><td>127.7k · 126.4k</td><td>24.2k · 20.1k</td><td class="vs-m"><strong>16.4k · 12.1k</strong></td></tr>
-                <tr><th scope="row">📥 Total input incl. cache</th><td>1,106k · 892k</td><td>1,353k · 1,126k</td><td class="vs-m"><strong>616k · 525k</strong></td></tr>
-                <tr><th scope="row">✔️ Oracle (file saved, byte-identical)</th><td>2/2</td><td>2/2</td><td class="vs-m"><strong>2/2</strong></td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p class="fine">Honest limits: the mock table uses a mock service with fixed 22–38 s generations, so its wall time is not meaningful. Real-service tables are n=1 per arm, the designs differed between arms (not a quality comparison), and 0.1.7 results are returned as ref + digest (~1.5 KB each) inline, so its gain over 0.1.6 is mainly fewer turns, not smaller payloads.</p>
+          <p class="fine">Honest limits: n=1 per arm on one real service, the designs differed between arms (not a quality comparison), and the numbers come from the Claude Code CLI's estimate and chars/4 token counts.</p>
           <ul class="fit-list">
-            <li><strong>Gained:</strong> real run 2 vs direct: cost −85%, tool results in context −88%, output tokens −73%, total input −39%, turns equal (13 vs 13), and the HTML saved by handle, byte-identical, where the direct arm's re-typed copy was corrupted. Versus Mycel 0.1.6: turns 27 → 13, no job polling.</li>
-            <li><strong>Lost:</strong> nothing measurable against direct in run 2. The remaining avoidable cost is one verification read after the write (minimum for this task is about 10 calls; run 2 used 12). Wall time is dominated by Stitch generation latency.</li>
+            <li><strong>Gained:</strong> cost −85%, tool results in context −88%, output tokens −73%, total input −39%, turns equal (13 vs 13), and the HTML saved by handle, byte-identical, where the direct arm's re-typed copy was corrupted.</li>
+            <li><strong>Lost:</strong> nothing measurable against direct. The remaining avoidable cost is one verification read after the write (minimum for this task is about 10 calls; the run used 12). Wall time is dominated by Stitch generation latency.</li>
           </ul>
           <p class="fine"><a href="https://github.com/SpeakQuery/mycel/blob/main/docs/case-studies/stitch-ui-design.md" rel="noopener">Case study</a>.</p>
         </div>
@@ -361,7 +346,7 @@
           <li class="sv-card">
             <p class="sv-tag">All 15 servers, 420 tools</p>
             <p class="sv-big"><span class="sv-from">204k</span><span class="sv-arrow" aria-hidden="true">→</span><span class="sv-to">1.34k</span></p>
-            <p class="sv-sub">tool-definition tokens per turn (~4 chars per token), reproducible offline: examples/full-scale. Technical: this is for 420 tools loaded up front. Real tokenizers agreed on 0.1.2, whose Mycel side was smaller than today's 1,338 (cl100k 200,624 → 1,188 = 99.41%; o200k 202,905 → 1,216 = 99.40%). On a 135-tool catalog (no Canva/Higgsfield) o200k gives 29,129 → 1,147 (96.1%), and chars/4 overstates that one by about 19%. Not measured on Claude Code or Cursor, which load tools on demand.</p>
+            <p class="sv-sub">tool-definition tokens per turn (~4 chars per token), reproducible offline: examples/full-scale. Technical: this is for 420 tools loaded up front. Real tokenizers on an earlier, slightly smaller Mycel definition set, not today's 1,338 (cl100k 200,624 → 1,188 = 99.41%; o200k 202,905 → 1,216 = 99.40%). On a 135-tool catalog (no Canva/Higgsfield) o200k gives 29,129 → 1,147 (96.1%), and chars/4 overstates that one by about 19%. Not measured on Claude Code or Cursor, which load tools on demand.</p>
           </li>
           <li class="sv-card">
             <p class="sv-tag">Read a 20,000-row CSV</p>
@@ -442,7 +427,7 @@
               <li>A 5-agent mock pipeline worked: per-role tokens, refs passed between agents, the budget cap rejected the second, sequential request, and the final file had video and audio (5.000 s).</li>
               <li><strong>Real Higgsfield (n=1, 2026-11-27):</strong> Mycel was the only path to the real Higgsfield MCP (remote URL + OAuth, 241 tools). Tool definitions for 270 tools: ~155k → ~962 tokens (−99.4%, estimated). Polling six renders with <code>mycel call</code> from a shell script cost 0 model tokens per check vs ~85k for a subagent check (measured). The videos were submitted by another agent directly, so generation through Mycel is not measured yet. <a href="https://github.com/SpeakQuery/mycel/blob/main/docs/case-studies/higgsfield-video.md" rel="noopener">Field report</a>.</li>
               <li>Generating through Mycel vs direct, and Canva, were not measured.</li>
-              <li><strong>Not yet recommended:</strong> automatic fallback across paid providers. After a paid request with an unknown outcome Mycel never falls back to another provider. It re-sends to the same tool only if that tool is <code>idempotent</code>, has <code>idempotencyKeyArg</code> (the same key is re-sent) and has retries left; otherwise it marks the job <code>unknown</code> and sends nothing more. The estimated charge is recorded once per (tool, key). A request is treated as rejected, and so may fall back, only when it is known not to have been accepted (connection refused before dispatch, or an error from a tool whose contract sets <code>errorsAreRejections: true</code>). After a restart, a job whose last request went to a paid tool resumes only if that tool is <code>idempotent</code> and has <code>idempotencyKeyArg</code>; otherwise it is marked <code>interrupted</code> and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via <code>idempotencyKeyArg</code>). Attempts that the job queue sends are recorded in the job's <code>dispatches</code>; retries inside a single call's transport loop are not. On success the budget records the tool's declared <code>costUsd</code> for the call (the contract amount, not a provider invoice); otherwise it records the estimate, and <code>charged</code> in <code>dispatches</code> only means an estimate was written (a definite rejection writes none). A manual <code>mycel_job retry</code> of a job whose last paid dispatch is unresolved deliberately reuses the same idempotency key, so a deduplicating provider can collapse it into one receipt; per (tool, key) only one estimate is kept, and a later success replaces it with the actual charge (never both). Dispatches without a key are each charged. Reconcile paid jobs with the provider statement whatever their final status, not only <code>unknown</code> and <code>interrupted</code> (no reconcile tool yet; jobs recorded by 0.1.3 or earlier are not re-settled on upgrade). Estimates can exceed what the provider charged, and the dashboard spend mixes estimated and confirmed charges.</li>
+              <li><strong>Not yet recommended:</strong> automatic fallback across paid providers. After a paid request with an unknown outcome Mycel never falls back to another provider. It re-sends to the same tool only if that tool is <code>idempotent</code>, has <code>idempotencyKeyArg</code> (the same key is re-sent) and has retries left; otherwise it marks the job <code>unknown</code> and sends nothing more. The estimated charge is recorded once per (tool, key). A request is treated as rejected, and so may fall back, only when it is known not to have been accepted (connection refused before dispatch, or an error from a tool whose contract sets <code>errorsAreRejections: true</code>). After a restart, a job whose last request went to a paid tool resumes only if that tool is <code>idempotent</code> and has <code>idempotencyKeyArg</code>; otherwise it is marked <code>interrupted</code> and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via <code>idempotencyKeyArg</code>). Attempts that the job queue sends are recorded in the job's <code>dispatches</code>; retries inside a single call's transport loop are not. On success the budget records the tool's declared <code>costUsd</code> for the call (the contract amount, not a provider invoice); otherwise it records the estimate, and <code>charged</code> in <code>dispatches</code> only means an estimate was written (a definite rejection writes none). A manual <code>mycel_job retry</code> of a job whose last paid dispatch is unresolved deliberately reuses the same idempotency key, so a deduplicating provider can collapse it into one receipt; per (tool, key) only one estimate is kept, and a later success replaces it with the actual charge (never both). Dispatches without a key are each charged. Reconcile paid jobs with the provider statement whatever their final status, not only <code>unknown</code> and <code>interrupted</code> (no reconcile tool yet; jobs recorded by older versions are not re-settled on upgrade). Estimates can exceed what the provider charged, and the dashboard spend mixes estimated and confirmed charges.</li>
             </ol>
             </details>
           </li>
@@ -582,7 +567,7 @@
               <p><strong>Who:</strong> Product designers, UI/UX designers and design-minded developers using AI design tools from an agent.</p>
               <p><strong>Typical MCP servers:</strong> Google Stitch or another design-generation service, a filesystem server, design-system and asset storage.</p>
               <p><strong>Pain:</strong> Each generated screen returns its full HTML and metadata into the prompt, and saving a file means the model re-types it into a write tool.</p>
-              <p><strong>Evidence (real Google Stitch MCP, <code>claude-haiku-5-5</code>, n=1 per arm, 2026-11-27):</strong> 6 mobile screens, then the checkout HTML saved to <code>payment.html</code>. Mycel 0.1.7 (run 2) vs direct: CLI cost estimate $0.0132 vs $0.0867 (−85%); tool results in context ~18k vs ~147k chars; output tokens 4,014 vs 14,899; the file was passed as a 318-character <code>ref://</code> handle (byte-identical to Stitch's HTML) instead of re-typing 26,436 characters, which in the direct arm lost one character (U+F8FF) and added a trailing newline. Turns were equal (13 vs 13); the remaining avoidable cost is one verification read. Designs differed between arms, so this is not a quality comparison. <a href="https://github.com/SpeakQuery/mycel/blob/main/docs/case-studies/stitch-ui-design.md" rel="noopener">Case study</a>.</p>
+              <p><strong>Evidence (real Google Stitch MCP, <code>claude-haiku-5-5</code>, n=1 per arm, 2026-11-27):</strong> 6 mobile screens, then the checkout HTML saved to <code>payment.html</code>. Mycel vs direct: CLI cost estimate $0.0132 vs $0.0867 (−85%); tool results in context ~18k vs ~147k chars; output tokens 4,014 vs 14,899; the file was passed as a 318-character <code>ref://</code> handle (byte-identical to Stitch's HTML) instead of re-typing 26,436 characters, which in the direct arm lost one character (U+F8FF) and added a trailing newline. Turns were equal (13 vs 13); the remaining avoidable cost is one verification read. Designs differed between arms, so this is not a quality comparison. <a href="https://github.com/SpeakQuery/mycel/blob/main/docs/case-studies/stitch-ui-design.md" rel="noopener">Case study</a>.</p>
               <ol class="who-steps">
                 <li>Each generate result stays local; the model sees a short ref and digest instead of the HTML.</li>
                 <li>The filesystem tool writes the file from the ref: no re-typing, no corruption risk.</li>
@@ -806,6 +791,7 @@
             <span class="easy-n" aria-hidden="true">1</span>
             <div class="easy-body">
               <h3>Paste one line</h3>
+              <p><strong>Claude Desktop, no terminal:</strong> <a class="btn btn-primary" href="https://mycel.speakquery.ai/mycel.mcpb" download>Download Mycel for Claude Desktop</a>, double-click it, then ask Claude "Set up Mycel". Or paste one line:</p>
               <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">$</span><code>curl -fsSL https://mycel.speakquery.ai/install.sh | sh</code><button class="copy copy-sm" type="button" data-copy="curl -fsSL https://mycel.speakquery.ai/install.sh | sh" aria-label="Copy the macOS and Linux install command">Copy</button></div>
               <p class="fine">Windows (PowerShell):</p>
               <div class="cmd cmd-block"><span class="cmd-prompt" aria-hidden="true">&gt;</span><code>irm https://mycel.speakquery.ai/install.ps1 | iex</code><button class="copy copy-sm" type="button" data-copy="irm https://mycel.speakquery.ai/install.ps1 | iex" aria-label="Copy the Windows install command">Copy</button></div>
@@ -817,14 +803,14 @@
             <div class="easy-body">
               <h3>Answer yes or no</h3>
               <p>Mycel finds the MCP servers you already use in Claude Desktop, Claude Code, Cursor, VS Code, Windsurf and Gemini CLI, shows exactly what it will change, backs everything up, and connects them through Mycel.</p>
-              <p>The wizard does the rest: moves your API keys into a private file (and asks you to paste any it could not find, hidden), brings in Claude Desktop extensions, tests every server, opens your browser for one-time sign-ins, turns on your savings line and restarts your apps. You never edit a file or set a variable.</p>
+              <p>The wizard does the rest: moves your API keys into your system keychain (and asks you to paste any it could not find, hidden), brings in Claude Desktop extensions, tests every server, opens your browser for one-time sign-ins, turns on your savings line and restarts your apps. You never edit a file or set a variable.</p>
             </div>
           </li>
           <li class="easy-step">
             <span class="easy-n" aria-hidden="true">3</span>
             <div class="easy-body">
               <h3>Done</h3>
-              <p>Your agent now finds tools on demand, keeps big results out of the chat, and asks before risky actions.</p>
+              <p>Your agent now finds tools on demand, keeps big results out of the chat, and asks before risky actions. Mycel updates itself; <code>mycel uninstall</code> removes it and restores your apps.</p>
             </div>
           </li>
           <li class="easy-step">

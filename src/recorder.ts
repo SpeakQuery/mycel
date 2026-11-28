@@ -134,15 +134,18 @@ export class Recorder extends EventEmitter {
    * Savings totals for `mycel stats`: the most recent gateway session in the log, and everything recorded today (UTC).
    * Measured and estimated are kept apart; the estimate is per tools/list served, not per model turn.
    */
-  savingsReport(now = new Date()): { session?: SavingsTotals & { id: string; start: string }; day: SavingsTotals & { date: string } } {
+  savingsReport(now = new Date()): { session?: SavingsTotals & { id: string; start: string }; day: SavingsTotals & { date: string }; week: SavingsTotals & { since: string } } {
     const date = now.toISOString().slice(0, 10);
-    const events = this.load({ days: 2 }).filter((e) => e.savings);
+    const since = new Date(now.getTime() - 6 * 86400_000).toISOString().slice(0, 10);
+    const all = this.load({ days: 7 }).filter((e) => e.savings);
+    const events = all.filter((e) => e.ts.slice(0, 10) >= new Date(now.getTime() - 86400_000).toISOString().slice(0, 10));
     const today = events.filter((e) => e.ts.slice(0, 10) === date);
     const lastId = events.length ? events[events.length - 1].savings!.session : undefined;
     const mine = lastId ? events.filter((e) => e.savings!.session === lastId) : [];
     return {
       session: lastId ? { id: lastId, start: mine[0].ts, ...sumSavings(mine) } : undefined,
       day: { date, ...sumSavings(today) },
+      week: { since, ...sumSavings(all.filter((e) => e.ts.slice(0, 10) >= since)) },
     };
   }
 
@@ -220,7 +223,7 @@ export class Recorder extends EventEmitter {
           resource: { attributes: [attr("service.name", this.opts.serviceName ?? "mycel")] },
           scopeSpans: [
             {
-              scope: { name: "mycel", version: "0.2.0" },
+              scope: { name: "mycel", version: "0.3.0" },
               spans: batch.map((e) => ({
                 traceId: e.traceId.padEnd(32, "0").slice(0, 32),
                 spanId: e.spanId.padEnd(16, "0").slice(0, 16),

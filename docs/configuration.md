@@ -100,7 +100,7 @@ Money safety for jobs: every money decision uses the contract of the tool that w
 
 - Every attempt is recorded on the job (`dispatches`: tool, `estCostUsd` in force at dispatch, `outcome` = `succeeded` / `rejected` / `unknown` / `interrupted`, `charged`) and shown in the job view. A paid attempt whose result never arrived (unknown, interrupted by a restart, or cancelled after dispatch) is charged its stored estimate exactly once (marked `costEstimated`), including when a later attempt succeeds. The estimate stays on the ledger until you reconcile with the provider; Mycel cannot tell "accepted" from "never reached the provider" for these.
 - After an unknown outcome Mycel never falls back. It re-sends to the same tool only if that tool is `idempotent: true` and, when `costUsd` > 0, also has `idempotencyKeyArg` (the same key is re-sent).
-- After a restart, a job whose last request to a paid tool has no recorded outcome is resumed only if that tool has `idempotent: true` and `idempotencyKeyArg` (it continues at that tool with the same key). Otherwise nothing is re-dispatched, the job is `interrupted` and the estimate is charged once; check the provider before re-submitting. A manual `mycel_job retry` after a possibly accepted request deliberately reuses the same key, so a deduplicating provider can collapse it into the original request. Mycel keeps one estimate per (tool, key): a later success replaces the earlier estimate with the actual charge (never both), and a later unknown adds nothing. A provider that ignores the key may bill again. Dispatches without a key are each charged. Jobs recorded by 0.1.3 or earlier are not re-settled on upgrade.
+- After a restart, a job whose last request to a paid tool has no recorded outcome is resumed only if that tool has `idempotent: true` and `idempotencyKeyArg` (it continues at that tool with the same key). Otherwise nothing is re-dispatched, the job is `interrupted` and the estimate is charged once; check the provider before re-submitting. A manual `mycel_job retry` after a possibly accepted request deliberately reuses the same key, so a deduplicating provider can collapse it into the original request. Mycel keeps one estimate per (tool, key): a later success replaces the earlier estimate with the actual charge (never both), and a later unknown adds nothing. A provider that ignores the key may bill again. Dispatches without a key are each charged. Jobs recorded by much older versions are not re-settled on upgrade.
 
 ## `policy`
 
@@ -163,7 +163,7 @@ Limits for Code Mode scripts (QuickJS/WASM).
 | Field | Type | Default | Meaning |
 |---|---|---|---|
 | `inlineWaitMs` | integer >= 0 | `120000` | How long `mycel_call` waits inline for an async tool before it returns a job id (which costs the model a `mycel_job` turn). While waiting, Mycel sends an MCP progress notification every `heartbeatMs`. A call can override it with `wait` (seconds; `0` = return the job at once). Clients that give up after ~60 s and do not reset their timeout on progress need a smaller value (e.g. `50000`), or raise their tool timeout (Claude Code: `MCP_TOOL_TIMEOUT`). |
-| `asyncThresholdMs` | positive integer | unset | Deprecated alias of `inlineWaitMs`, used only when `inlineWaitMs` is not set. (Before 0.1.7 the default was `20000`.) |
+| `asyncThresholdMs` | positive integer | unset | Deprecated alias of `inlineWaitMs`, used only when `inlineWaitMs` is not set. |
 | `heartbeatMs` | positive integer | `10000` | Interval of the progress notifications sent while a call waits inline (only when the client asked for progress). |
 | `concurrency` | positive integer | `4` | Jobs running at the same time. |
 
@@ -171,7 +171,7 @@ Limits for Code Mode scripts (QuickJS/WASM).
 
 | Field | Type | Default | Meaning |
 |---|---|---|---|
-| `source` | `env` or `file` | `env` | `env` reads from the process environment; `file` also reads a dotenv-style file (`NAME=value` per line; values may be quoted). Process env is still used as a fallback. |
+| `source` | `env`, `file` or `keychain` | `env` | `env` reads from the process environment; `file` also reads a dotenv-style file (`NAME=value` per line; values may be quoted); `keychain` reads the macOS Keychain or the Linux Secret Service (service `mycel`, account = secret name), plus `file` if set. Process env is still used as a fallback. `mycel setup` picks `keychain` when one is available. |
 | `file` | string | none | Path of the dotenv-style file when `source: file`. |
 | `allow` | string[] | none (all names) | If set, only these secret names can be resolved. |
 
@@ -196,6 +196,9 @@ Limits for Code Mode scripts (QuickJS/WASM).
 |---|---|---|---|
 | `savingsLine` | boolean | `false` | Append the one-line savings summary (`Mycel · this call: ≈13,240 → ≈1,710 tokens (−87% size, measured · tokens ≈ chars/4) · session: ≈−48,300 · tool definitions: ~−202k/turn (estimated)`) to each tool result as a final text block, so the model and you can see it. It costs about 30-40 tokens per call. The same data is always attached to MCP results as `_meta["mycel/savings"]` and recorded in the flight log. See [See what you save](../README.md#-see-what-you-save). |
 | `savingsLog` | boolean | `true` | Log the same line to stderr in `mycel serve`. |
+| `tellUser` | boolean | `true` | With `savingsLine` on: the model says "Mycel is active" once and ends a finished task with the session savings. |
+| `usdPerMTok` | number | `3` | Estimate only: input price per million tokens used to show what saved tokens are worth. |
+| `tokensPerSecond` | number | `3000` | Estimate only: model reading speed used to show time saved. |
 
 ## `dashboard`
 
@@ -304,3 +307,9 @@ models:
   fast: { provider: openai, baseUrl: "http://localhost:11434/v1", model: llama3.2 }
   balanced: { provider: anthropic, model: claude-haiku-5-5, apiKey: "{{secret:ANTHROPIC_API_KEY}}" }
 ```
+
+## update
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `auto` | boolean | `true` | Once a day, check npm for a newer Mycel. A private install (`~/.mycel/app`, from the installer or the Claude Desktop extension) updates itself in the background and uses the new version from the next start; other installs print a notice. `MYCEL_NO_UPDATE=1` turns it off for one process. |

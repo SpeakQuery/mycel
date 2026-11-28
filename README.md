@@ -36,7 +36,7 @@ Your existing MCP setup — minus the context bloat, the round-trip storms and t
 | Same job | Normally | With Mycel | Change | Conditions |
 |---|---:|---:|:---:|:---|
 | Find one bad row in a 20,000-row spreadsheet | 12 turns · 34.5 s · ~130k tokens read · $0.0151 | 4 turns · 6.6 s · ~26k tokens · $0.0029 | **−81%** | Claude Code, Haiku, cache off, single run (n=1). [Details](#measured-in-a-real-claude-code-session-single-run-n1) |
-| Design 6 app screens with Google Stitch and save one to your project | $0.087 · ~147k chars of results · model re-typed 26 KB of HTML (and corrupted it) | $0.013 · ~18k chars · passed a 318-char reference · same 13 turns | **−85%** | Real Stitch, Claude Code Haiku, n=1, Mycel 0.1.7. [Details](#second-real-session-ui-design-with-google-stitch-single-run-per-arm-n1) <!-- STITCH-0.1.7 --> |
+| Design 6 app screens with Google Stitch and save one to your project | $0.087 · ~147k chars of results · model re-typed 26 KB of HTML (and corrupted it) | $0.013 · ~18k chars · passed a 318-char reference · same 13 turns | **−85%** | Real Stitch, Claude Code Haiku, n=1. [Details](#second-real-session-ui-design-with-google-stitch-single-run-per-arm-n1) |
 | Check 50,000 rows of data for 3 hidden errors | 583,980 tokens | 602 tokens | **~970× less** | Independent review, mock data, scripted, 3/3 correct both ways. [Details](#-who-is-it-for) |
 | Connect 15 MCP servers (420 tools) | ~204k tokens of tool descriptions before you type (a full 200k window) | 1,338 tokens | **−99.3%** | Clients that send every tool description each turn; Claude Code and recent Cursor load tools on demand. [Reproduce](examples/full-scale) |
 
@@ -76,39 +76,26 @@ This is one run per cell, not a statistical result. To be fair about the other s
 
 Task: with the real Google Stitch MCP, create a project, generate 6 mobile screens for a food-delivery app (login, home, menu, cart, checkout, order tracking), then save the checkout screen's HTML to `payment.html` through the filesystem server. Claude Code, model `claude-haiku-5-5`, 2026-11-27, identical prompts in both arms. Both arms completed 6 screens; the Mycel arm's saved file is byte-identical to Stitch's checkout HTML, the direct arm's is not (see below).
 
-| | Direct MCP (run 2) | Mycel 0.1.6 (run 1) | Mycel 0.1.7 (run 2) | Verdict (0.1.7 vs direct) |
-|---|---:|---:|---:|:---|
-| 💰 CLI cost | $0.0867 | $0.0221 | **$0.0132** | −85% ✅ |
-| 📦 Tool results in context | 147,455 chars (~36.9k tokens) | 24,632 chars | **18,289 chars (~4.6k tokens)** | −88% ✅ |
-| 🎨 Data returned by the 6 generations | 120,584 chars | 2,028 chars | **8,863 chars** (ref + digest, inline) | −93% ✅ |
-| 💾 Saving the HTML | model re-typed 26,436 chars | `ref://` handle, 317 chars | **`ref://` handle, 318 chars** | −99% ✅ |
-| ✍️ Output tokens | 14,899 | 6,950 | **4,014** | −73% ✅ |
-| 📥 Total input incl. cache | 901,571 | 1,212,217 | **549,084** | −39% ✅ |
-| 🔁 Turns | 13 | 27 | **13** | equal ✅ |
-| ⏱️ Wall time | 17.1 min | 16.1 min | **15.6 min** | −9% (within noise) ✅ |
-| 🎯 Oracle: `payment.html` identical to Stitch's HTML | ❌ **corrupted**: dropped one character (U+F8FF before "Pay") and added a trailing newline while re-typing | ✅ byte-identical | ✅ **byte-identical** | ✅ |
+| | Direct MCP | Mycel | Change |
+|---|---:|---:|:---|
+| 💰 CLI cost | $0.0867 | **$0.0132** | −85% ✅ |
+| 📦 Tool results in context | 147,455 chars (~36.9k tokens) | **18,289 chars (~4.6k tokens)** | −88% ✅ |
+| 🎨 Data returned by the 6 generations | 120,584 chars | **8,863 chars** (ref + digest, inline) | −93% ✅ |
+| 💾 Saving the HTML | model re-typed 26,436 chars | **`ref://` handle, 318 chars** | −99% ✅ |
+| ✍️ Output tokens | 14,899 | **4,014** | −73% ✅ |
+| 📥 Total input incl. cache | 901,571 | **549,084** | −39% ✅ |
+| 🔁 Turns | 13 | **13** | equal ✅ |
+| ⏱️ Wall time | 17.1 min | **15.6 min** | −9% (within noise) ✅ |
+| 🎯 Oracle: `payment.html` identical to Stitch's HTML | ❌ **corrupted**: dropped one character (U+F8FF before "Pay") and added a trailing newline while re-typing | ✅ **byte-identical** | ✅ |
 
-**The corruption is a concrete reason refs matter:** in run 2 the direct arm's model re-typed ~25 KB of HTML into `write_file` and silently dropped one private-use glyph (U+F8FF, the Apple-logo glyph before "Pay") and appended a trailing newline, so the saved file no longer matched Stitch's. The Mycel arm passed a 318-char `ref://` handle and the file was byte-identical. (n=1, but it happened; in run 1 the direct arm's file matched after trimming.)
-
-Variance note: direct run 1 (same task and hints) used 13 turns, 13.6 min, $0.0950, 140,819 chars of tool results and re-typed 30,509 chars; Mycel 0.1.6 run 1 is the middle column. Different designs and call sequences between runs: LLM variance is not controlled.
+**The corruption is a concrete reason refs matter:** the direct arm's model re-typed ~25 KB of HTML into `write_file` and silently dropped one private-use glyph (U+F8FF, the Apple-logo glyph before "Pay") and appended a trailing newline, so the saved file no longer matched Stitch's. The Mycel arm passed a 318-char `ref://` handle and the file was byte-identical. (n=1, but it happened.)
 
 Scripted check of the same 6-screen project (no model): ~48.3k tokens direct vs ~3.0k through Mycel (−94%); tool definitions: 32 raw tools (~15,118 tokens) vs 6 meta tools (~915).
 
-#### Secondary: turn fix on a mock service (mock service, n=2)
+Honest limits: n=1 per arm on one real service, the designs differed between arms (not a quality comparison), and the numbers come from the Claude Code CLI's estimate and chars/4 token counts.
 
-| Run 1 · run 2 | Direct | Mycel 0.1.6 | Mycel 0.1.7 |
-|---|---:|---:|---:|
-| 🔁 Turns | 15 · 13 | 30 · 31 | **15 · 13** |
-| 💰 CLI cost | $0.122 · $0.111 | $0.026 · $0.020 | **$0.014 · $0.012** |
-| ✍️ Output tokens | 16.1k · 16.1k | 10.5k · 6.5k | **4.5k · 3.6k** |
-| 📦 Tool-result chars | 127.7k · 126.4k | 24.2k · 20.1k | **16.4k · 12.1k** |
-| 📥 Total input incl. cache | 1,106k · 892k | 1,353k · 1,126k | **616k · 525k** |
-| ✔️ Oracle (file saved, byte-identical) | 2/2 | 2/2 | 2/2 |
-
-Honest limits: the mock table uses a mock service with fixed 22–38 s generations, so its wall time is not meaningful. Real-service tables are n=1 per arm, the designs differed between arms (not a quality comparison), and 0.1.7 results are returned as ref + digest (~1.5 KB each) inline, so its gain over 0.1.6 is mainly fewer turns, not smaller payloads.
-
-- **Gained:** real run 2 vs direct: cost −85%, tool results in context −88%, output tokens −73%, total input −39%, turns equal (13 vs 13), and the HTML saved by handle, byte-identical, where the direct arm's re-typed copy was corrupted. Versus Mycel 0.1.6: turns 27 → 13, no job polling.
-- **Lost:** nothing measurable against direct in run 2. The remaining avoidable cost is one verification read after the write (the minimum for this task is about 10 calls; run 2 used 12). Wall time is dominated by Stitch generation latency.
+- **Gained:** cost −85%, tool results in context −88%, output tokens −73%, total input −39%, turns equal (13 vs 13), and the HTML saved by handle, byte-identical, where the direct arm's re-typed copy was corrupted.
+- **Lost:** nothing measurable against direct. The remaining avoidable cost is one verification read after the write (the minimum for this task is about 10 calls; the run used 12). Wall time is dominated by Stitch generation latency.
 
 Stitch needs `MCP_TOOL_TIMEOUT=1200000`, and the run used a policy that allows the stitch and filesystem servers and denies `delete_project`, `apply_design_system` and `update_design_system`. Setup, prompt, the full tables and how to reproduce: [docs/case-studies/stitch-ui-design.md](docs/case-studies/stitch-ui-design.md).
 
@@ -172,7 +159,7 @@ Eleven sectors, each with an honest status. The evidence is a mock or scripted s
 | 8 | 📊 Finance & accounting reporting | Big ledger exports stay out of the prompt; paid data lookups are capped and every call is recorded. Evidence (mock services): scripted runs 3/3 found all three issues in 32,000 ledger rows; in every run the two mock provider receipts matched Mycel's ledger; a third call that would exceed the $0.10 budget cap was refused; the flight recorder had 18 of 18 tool calls. Small local model 0/3 (did not call the ledger/FX tools). | PARTIAL |
 | 9 | 🛠️ Data engineering / ETL quality | Row-level checks run in Code Mode over refs, so mislabeled or unflagged records are found without reading the table. Evidence (independent review, mock services, 3 runs each): scripted runs 3/3 found all 3 issues in 50,001 rows, 0 false positives, both direct and through Mycel. Context size for the same 2-turn task: 583,980 tokens direct vs 602 through Mycel (requests + responses, chars/4). Local median latency 37.7 ms direct vs 319.3 ms Mycel. Small local model 0/3 in both arms. | PARTIAL |
 | 10 | 📱 Agencies & social-media teams | Each agent gets its own narrowed token, so a posting agent can’t touch billing, and posts need approval. Evidence (mock pilot): scripted 3/3 and a real local model (Qwen3-4B) 3/3: with a posting-only capability token, billing calls were refused for every client, the analytics report travelled as a ref, and posting waited for approval (3 approval ids matched the queue; 0 unapproved posts). Measured with mock services; real platform APIs not tested. | MEASURED (mock pilot) |
-| 11 | 🎨 UI/UX & product designers | Big design artifacts (generated screens, HTML) stay out of the model context and are saved by ref, not re-typed. Evidence (real Google Stitch MCP, Claude Code with `claude-haiku-5-5`, n=1 per arm): 6 mobile screens, Mycel 0.1.7, run 2 vs direct: CLI cost estimate $0.0867 → $0.0132 (−85%), tool results in context ~147k → ~18k chars, same 13 turns; the direct arm's re-typed `payment.html` was corrupted (one character dropped), the Mycel one byte-identical. See [the case study](docs/case-studies/stitch-ui-design.md). | **MEASURED (n=1, real service)** |
+| 11 | 🎨 UI/UX & product designers | Big design artifacts (generated screens, HTML) stay out of the model context and are saved by ref, not re-typed. Evidence (real Google Stitch MCP, Claude Code with `claude-haiku-5-5`, n=1 per arm): 6 mobile screens, Mycel vs direct: CLI cost estimate $0.0867 → $0.0132 (−85%), tool results in context ~147k → ~18k chars, same 13 turns; the direct arm's re-typed `payment.html` was corrupted (one character dropped), the Mycel one byte-identical. See [the case study](docs/case-studies/stitch-ui-design.md). | **MEASURED (n=1, real service)** |
 
 Also (DESIGNED FOR, not yet tested): education content, and health/biomedical literature review (arXiv/PubMed-style search; a reading aid, no medical-advice claims).
 
@@ -206,7 +193,7 @@ Detail and evidence for the four sectors that have been tested:
 - **Measured (mock pipeline):** a 5-agent mock pipeline worked: per-role tokens, refs passed between agents, the budget cap rejected the second, sequential request, and the final file had video and audio (5.000 s).
 - **Real Higgsfield field report (n=1, 2026-11-27):** Mycel was the only path to the real Higgsfield MCP (remote URL + OAuth, 241 tools). Tool definitions for 270 tools: ~155k → ~962 tokens (−99.4%, *estimated*). Polling six renders with `mycel call` from a shell script cost **0 model tokens** per check vs ~85k for a subagent check (*measured*). The videos were submitted by another agent directly, so generation through Mycel is **not** measured yet. [Field report](docs/case-studies/higgsfield-video.md).
 - **Not measured:** generating through Mycel vs direct, and Canva.
-- **Not yet recommended:** automatic fallback across paid providers. After a paid request with an unknown outcome Mycel never falls back to another provider. It re-sends to the same tool only if that tool is `idempotent`, has `idempotencyKeyArg` (the same key is re-sent) and has retries left; otherwise it marks the job `unknown` and sends nothing more. The estimated charge is recorded once per (tool, key). A request is treated as rejected, and so may fall back, only when it is known not to have been accepted (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). After a restart, a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; otherwise it is marked `interrupted` and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Attempts that the job queue sends are recorded in the job's `dispatches`; retries inside a single call's transport loop are not. On success the budget records the tool's declared `costUsd` for the call (the contract amount, not a provider invoice); otherwise it records the estimate, and `charged` in `dispatches` only means an estimate was written (a definite rejection writes none). A manual `mycel_job retry` of a job whose last paid dispatch is unresolved deliberately reuses the same idempotency key, so a deduplicating provider can collapse it into one receipt; per (tool, key) only one estimate is kept, and a later success replaces it with the actual charge (never both). Dispatches without a key are each charged. Reconcile paid jobs with the provider statement whatever their final status (not only `unknown` and `interrupted`; jobs recorded by 0.1.3 or earlier are not re-settled on upgrade) (there is no reconcile tool yet).
+- **Not yet recommended:** automatic fallback across paid providers. After a paid request with an unknown outcome Mycel never falls back to another provider. It re-sends to the same tool only if that tool is `idempotent`, has `idempotencyKeyArg` (the same key is re-sent) and has retries left; otherwise it marks the job `unknown` and sends nothing more. The estimated charge is recorded once per (tool, key). A request is treated as rejected, and so may fall back, only when it is known not to have been accepted (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). After a restart, a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; otherwise it is marked `interrupted` and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Attempts that the job queue sends are recorded in the job's `dispatches`; retries inside a single call's transport loop are not. On success the budget records the tool's declared `costUsd` for the call (the contract amount, not a provider invoice); otherwise it records the estimate, and `charged` in `dispatches` only means an estimate was written (a definite rejection writes none). A manual `mycel_job retry` of a job whose last paid dispatch is unresolved deliberately reuses the same idempotency key, so a deduplicating provider can collapse it into one receipt; per (tool, key) only one estimate is kept, and a later success replaces it with the actual charge (never both). Dispatches without a key are each charged. Reconcile paid jobs with the provider statement whatever their final status (not only `unknown` and `interrupted`) (there is no reconcile tool yet).
 
 > **Pilot:** we're looking for 5 users (data analyst, data-quality engineer, developer with 5+ MCP servers, content editor, video/voice producer) — 45 minutes, your machine, paid actions mocked. [Open an issue](https://github.com/SpeakQuery/mycel/issues/new) to join.
 
@@ -234,7 +221,7 @@ In a client that sends every tool definition on every turn, direct MCP re-sends 
 
 ### 🖱️ Example 1: A client that sends every tool definition each turn: 8 servers, 30 turns
 
-You connect 8 servers (80 tools). A client that sends all 80 definitions (**17.9k tokens**) with every turn spends **17.9k × 30 = 536k tokens** on definitions alone over 30 turns. Through Mycel the model sees ~1.16k tokens per turn (0.1.7): **1.16k × 30 ≈ 35k**. This is arithmetic (17.9k × 30), not a recorded session. Clients that load tools on demand spend less; see [Do you need Mycel?](#-do-you-need-mycel).
+You connect 8 servers (80 tools). A client that sends all 80 definitions (**17.9k tokens**) with every turn spends **17.9k × 30 = 536k tokens** on definitions alone over 30 turns. Through Mycel the model sees ~1.16k tokens per turn **1.16k × 30 ≈ 35k**. This is arithmetic (17.9k × 30), not a recorded session. Clients that load tools on demand spend less; see [Do you need Mycel?](#-do-you-need-mycel).
 
 <p align="center"><img src="media/chart-conversation.svg" alt="Cumulative tokens over a 30-turn conversation with 8 servers: 536k direct versus 35k through Mycel" width="860"></p>
 
@@ -311,7 +298,7 @@ On the 16-query English field test, top-3 is 15/16 (CI and local) and top-1 is 1
 
 ### At full scale: 420 tools (technical)
 
-**Conditions:** 15 servers including Canva and Higgsfield (241 tools on its own), 420 tools loaded up front (eager loading). The tool definitions cost about **204k tokens direct and 1.34k through Mycel (−99.3%)** (203,547 → 1,338 on the current build, chars/4, see examples/full-scale; the earlier 0.1.6 figure was 1.2k, −99.4%). Real tokenizers agreed on 0.1.2, before the Mycel side grew to 1,338: cl100k 200,624 → 1,188 (99.41%), o200k 202,905 → 1,216 (99.40%). On a 135-tool catalog (no Canva/Higgsfield), o200k gives 29,129 → 1,147 (96.1%), and chars/4 overstates that one by about 19%. Claude Code and recent Cursor load tools on demand, and this is not measured there. Direct, that would fill most of a model's context window before the first message. These are tool-definition tokens (~4 chars per token), reproducible offline: [examples/full-scale](examples/full-scale). Counted the way clients send tools to the model: name, description and input schema. Canva and Higgsfield also ship output schemas; counting everything `tools/list` returns gives ~400k direct.
+**Conditions:** 15 servers including Canva and Higgsfield (241 tools on its own), 420 tools loaded up front (eager loading). The tool definitions cost about **204k tokens direct and 1.34k through Mycel (−99.3%)** (203,547 → 1,338, chars/4, see examples/full-scale). Real tokenizers on an earlier, slightly smaller Mycel definition set (before it grew to 1,338): cl100k 200,624 → 1,188 (99.41%), o200k 202,905 → 1,216 (99.40%). On a 135-tool catalog (no Canva/Higgsfield), o200k gives 29,129 → 1,147 (96.1%), and chars/4 overstates that one by about 19%. Claude Code and recent Cursor load tools on demand, and this is not measured there. Direct, that would fill most of a model's context window before the first message. These are tool-definition tokens (~4 chars per token), reproducible offline: [examples/full-scale](examples/full-scale). Counted the way clients send tools to the model: name, description and input schema. Canva and Higgsfield also ship output schemas; counting everything `tools/list` returns gives ~400k direct.
 
 The field test found four real bugs before launch. All are fixed and covered by tests:
 - Playwright marks even `hover` as destructive. Mycel now cross-checks that label against the tool's name (`annotations: strict` opts out).
@@ -321,7 +308,9 @@ The field test found four real bugs before launch. All are fixed and covered by 
 
 ## 🚀 Quickstart
 
-One line, Enter, done. Works on **macOS, Linux and Windows**. No Node.js? The installer brings its own (official build from nodejs.org, checksum verified, into `~/.mycel`, no admin rights).
+**Easiest, no terminal (Claude Desktop):** [download Mycel for Claude Desktop](https://mycel.speakquery.ai/mycel.mcpb), double-click it, then ask Claude: *"Set up Mycel"* (or *"Mycel'i kur"*). Claude shows you a plan, asks, and does the rest. Undo: *"Undo the Mycel setup"*.
+
+**Or with one line** (also sets up Claude Code, Cursor, VS Code, Windsurf and Gemini CLI). Works on **macOS, Linux and Windows**. No Node.js? The installer brings its own (official build from nodejs.org, checksum verified, into `~/.mycel`, no admin rights). The wizard speaks Turkish when your system does.
 
 **1. Paste one line**
 
@@ -343,7 +332,7 @@ Already have Node.js 20+? `npx -y @speakquery/mycel setup` does the same.
 
 | Step | What the wizard does | You |
 |---|---|---|
-| 🔑 API keys | Moves them out of your app configs into `~/.mycel/secrets.env`, readable only by you (Mycel reads it; the model never sees the keys) | nothing |
+| 🔑 API keys | Moves them out of your app configs into the **macOS Keychain** or your Linux keyring (Windows, and anything the keychain refuses: `~/.mycel/secrets.env`, readable only by you). Mycel reads them; the model never sees them | nothing |
 | 🗝️ A key it could not find | Asks you to paste it; what you type is hidden | paste, or Enter to skip |
 | 🧩 Claude Desktop extensions | Runs them through Mycel and turns them off in Claude Desktop (undo turns them back on) | nothing |
 | 📁 Team project files (`.mcp.json`) | Asks before touching a file your team shares | yes / no |
@@ -354,7 +343,9 @@ Already have Node.js 20+? `npx -y @speakquery/mycel setup` does the same.
 
 It ends with a summary: how many servers work, how many tools, and how much smaller the tool list is through Mycel. Claude Code plugins that bring their own MCP servers are listed and left alone (the plugin manages them).
 
-**3. Done.** Your agent now finds tools on demand, keeps big results out of the chat, and asks before risky actions.
+**3. Done.** Your agent now finds tools on demand, keeps big results out of the chat, and asks before risky actions. Its first answer tells you "Mycel is active: N tools across M servers".
+
+**Updates are automatic.** Once a day Mycel checks for a new version and updates its private copy in the background; the new version is used from the next start (turn off with `update: { auto: false }`). Update now: `mycel update`. Remove everything: `mycel uninstall` (restores your apps' original settings, removes its keys, deletes `~/.mycel`).
 
 **See what you save:**
 
@@ -461,14 +452,14 @@ All 20 ship in v1. Every one is opt-in beyond the defaults, and a 10-line config
 | **5 · Cost & Budget** | Per-tool cost/latency contracts, `dryRun` estimates, per-task / per-day / per-token budget caps. Budget caps are checked per call; for a job the check runs once, when it is queued, against the primary tool's price, so fallbacks and manual retries get no separate pre-dispatch check and nothing is reserved: concurrent paid jobs can exceed a cap at the provider. Estimated charges count against the cap. Tools without a declared cost count as $0; set `costUsd` (alias `cost`) per tool for budgets to be meaningful. |
 | **15 · Model Router** | `mycel_ask` hands self-contained sub-tasks (summarise, extract, classify) to a `fast`/`balanced`/`deep` tier — any OpenAI-compatible endpoint (Ollama, vLLM, LM Studio, OpenRouter…) or Anthropic. Refs in the prompt are expanded for the sub-model, not your main context. |
 
-> **Paid jobs, honestly — not yet recommended for automatic fallback across paid providers.** After a paid request with an unknown outcome Mycel never falls back to another provider. It re-sends to the same tool only if that tool is `idempotent`, has `idempotencyKeyArg` (the same key is re-sent) and has retries left; otherwise it marks the job `unknown` and sends nothing more. The estimated charge is recorded once per (tool, key). A request is treated as rejected, and so may fall back, only when it is known not to have been accepted (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). After a restart, a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; otherwise it is marked `interrupted` and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Attempts that the job queue sends are recorded in the job's `dispatches`; retries inside a single call's transport loop are not. On success the budget records the tool's declared `costUsd` for the call (the contract amount, not a provider invoice); otherwise it records the estimate, and `charged` in `dispatches` only means an estimate was written (a definite rejection writes none). A manual `mycel_job retry` of a job whose last paid dispatch is unresolved deliberately reuses the same idempotency key, so a deduplicating provider can collapse it into one receipt; per (tool, key) only one estimate is kept, and a later success replaces it with the actual charge (never both). Dispatches without a key are each charged. Fallback providers are tried automatically only when the failure is known to be a rejection (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). If you cancel after dispatch, Mycel charges an estimate. Reconcile paid jobs with the provider statement whatever their final status (not only `unknown` and `interrupted`; jobs recorded by 0.1.3 or earlier are not re-settled on upgrade).
+> **Paid jobs, honestly — not yet recommended for automatic fallback across paid providers.** After a paid request with an unknown outcome Mycel never falls back to another provider. It re-sends to the same tool only if that tool is `idempotent`, has `idempotencyKeyArg` (the same key is re-sent) and has retries left; otherwise it marks the job `unknown` and sends nothing more. The estimated charge is recorded once per (tool, key). A request is treated as rejected, and so may fall back, only when it is known not to have been accepted (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). After a restart, a job whose last request went to a paid tool resumes only if that tool is `idempotent` and has `idempotencyKeyArg`; otherwise it is marked `interrupted` and the estimate is charged once. This is not exactly-once: the provider must deduplicate (Mycel can pass a stable per-job key via `idempotencyKeyArg`). Attempts that the job queue sends are recorded in the job's `dispatches`; retries inside a single call's transport loop are not. On success the budget records the tool's declared `costUsd` for the call (the contract amount, not a provider invoice); otherwise it records the estimate, and `charged` in `dispatches` only means an estimate was written (a definite rejection writes none). A manual `mycel_job retry` of a job whose last paid dispatch is unresolved deliberately reuses the same idempotency key, so a deduplicating provider can collapse it into one receipt; per (tool, key) only one estimate is kept, and a later success replaces it with the actual charge (never both). Dispatches without a key are each charged. Fallback providers are tried automatically only when the failure is known to be a rejection (connection refused before dispatch, or an error from a tool whose contract sets `errorsAreRejections: true`). If you cancel after dispatch, Mycel charges an estimate. Reconcile paid jobs with the provider statement whatever their final status (not only `unknown` and `interrupted`).
 >
 > **Known limits for paid jobs:**
 >
 > - Estimates can exceed what the provider charged (for example when the provider never received the request): Mycel cannot tell "never accepted" from "reply lost" unless `errorsAreRejections` is set.
 > - There is no reconcile tool yet (planned).
 > - The dashboard "Spend today" mixes estimated and confirmed charges.
-> - Jobs recorded by 0.1.3 or earlier are not re-settled on upgrade: compare earlier paid jobs, whatever their status, with the provider statement.
+> - Jobs recorded by older versions are not re-settled on upgrade: compare earlier paid jobs, whatever their status, with the provider statement.
 > - No pre-dispatch reservation: Budget caps are checked per call; for a job the check runs once, when it is queued, against the primary tool's price, so fallbacks and manual retries get no separate pre-dispatch check and nothing is reserved: concurrent paid jobs can exceed a cap at the provider. Estimated charges count against the cap.
 
 ### Trust
@@ -646,6 +637,7 @@ export default defineAdapter({
 | Command | |
 |---|---|
 | `mycel setup` · `mycel undo` | one-step install: import servers, point clients at Mycel, with backups · restore them |
+| `mycel update` · `mycel uninstall` | update now (it also updates itself daily) · remove Mycel and restore your apps |
 | `mycel init` | import client configs → `mycel.yaml` |
 | `mycel serve [--http]` | run the gateway (stdio, or HTTP with `/mcp` + `/a2a`) |
 | `mycel dashboard` | open the local dashboard |
@@ -656,7 +648,7 @@ export default defineAdapter({
 | `mycel pin [--accept]` | review / accept tool-definition drift |
 | `mycel token secret / mint / attenuate / inspect` | capability tokens |
 | `mycel traces` · `mycel replay <id>` | flight recorder |
-| `mycel stats [--json]` | measured and estimated token savings for the latest session and today |
+| `mycel stats [--json]` | measured savings (tokens, %, estimated $ and time) for the latest session, today and the last 7 days; estimated tool-definition savings apart |
 | `mycel refs [--gc 7d]` | ref store |
 
 ## 🛡️ Security model — honestly

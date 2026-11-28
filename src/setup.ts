@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, renameSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, renameSync } from "node:fs";
 import { homedir, platform as osPlatform } from "node:os";
 import { basename, delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -8,6 +8,7 @@ import { candidatePaths, isMycelItself, toMycelYaml, type FoundConfig } from "./
 import { loadConfig, isStdio } from "./config.js";
 import { Mycel } from "./core.js";
 import { signIn } from "./login.js";
+import { keychainGet, keychainKind, keychainNames, keychainSet } from "./keychain.js";
 
 type Servers = Record<string, Record<string, unknown>>;
 
@@ -31,6 +32,10 @@ export interface SetupOptions {
   check?: boolean;
   /** Environment used to detect the app setup runs inside (tests). Default: process.env. */
   env?: NodeJS.ProcessEnv;
+  /** Running inside the Mycel Claude Desktop extension: Claude Desktop gets no "mycel" entry (the extension is Mycel). */
+  viaExtension?: boolean;
+  /** Open the browser for sign-ins without asking (the user already approved applying). */
+  autoSignIn?: boolean;
 }
 
 interface Plan {
@@ -77,7 +82,7 @@ export function mycelEntry(configPath: string): { command: string; args: string[
   if (process.env.MYCEL_ENTRY_ABSOLUTE === "1" && process.argv[1]) return { command: process.execPath, args: [resolve(process.argv[1]), "serve", "--config", configPath] };
   return onPath("mycel")
     ? { command: "mycel", args: ["serve", "--config", configPath] }
-    : { command: "npx", args: ["-y", "@speakquery/mycel", "serve", "--config", configPath] };
+    : { command: "npx", args: ["-y", "@speakquery/mycel@latest", "serve", "--config", configPath] };
 }
 
 function stripJsonc(s: string): string {
@@ -150,9 +155,9 @@ function indentOf(raw: string): string | number {
   return m ? (m[1].includes("\t") ? "\t" : m[1].length) : 2;
 }
 
-function rewrite(p: Plan, entry: { command: string; args: string[] }): string {
+function rewrite(p: Plan, entry: { command: string; args: string[] } | null): string {
   const j = JSON.parse(p.raw) as Record<string, unknown>;
-  j[p.key] = { mycel: entry };
+  j[p.key] = entry ? { mycel: entry } : {};
   if (p.client === "Claude Code" && j.projects && typeof j.projects === "object") {
     for (const k of p.projectEntries) {
       const proj = (j.projects as Record<string, Record<string, unknown>>)[k];
@@ -240,6 +245,7 @@ export function findDesktopExtensions(dir = claudeDesktopDir()): { found: Deskto
       const m = JSON.parse(readFileSync(mf, "utf8")) as { name?: string; display_name?: string; server?: { type?: string; mcp_config?: { command?: string; args?: string[]; env?: Record<string, string> } } };
       const st = JSON.parse(readFileSync(settingsPath, "utf8")) as { isEnabled?: boolean; userConfig?: Record<string, unknown> };
       if (st.isEnabled === false) continue;
+      if ((m.name ?? "").toLowerCase() === "mycel") continue; // the Mycel extension itself
       const mc = m.server?.mcp_config;
       const label = m.display_name ?? m.name ?? id;
       if (!mc?.command) {
@@ -320,7 +326,7 @@ function readSecretsFile(path: string): Record<string, string> {
 function secretsPathFor(target: string, yamlText: string | null): string {
   if (yamlText) {
     const s = (YAML.parse(yamlText)?.secrets ?? {}) as { source?: string; file?: string };
-    if (s.source === "file" && s.file) return isAbsolute(s.file) ? s.file : resolve(dirname(target), s.file);
+    if ((s.source === "file" || s.source === "keychain") && s.file) return isAbsolute(s.file) ? s.file : resolve(dirname(target), s.file);
   }
   return join(dirname(target), "secrets.env");
 }
@@ -360,7 +366,18 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
   const yamlExists = existsSync(target);
   const yamlText = yamlExists ? readFileSync(target, "utf8") : null;
   const secretsPath = secretsPathFor(target, yamlText);
-  const storedSecrets = readSecretsFile(secretsPath);
+  const fileSecrets = readSecretsFile(secretsPath);
+  // Keys go to the system keychain when there is one (macOS Keychain, Linux Secret Service), unless this config
+  // already uses a secrets file. Anything the keychain refuses falls back to the private file.
+  const existingSource = yamlText ? ((YAML.parse(yamlText)?.secrets ?? {}) as { source?: string }).source : undefined;
+  const kc = existingSource === "file" ? null : keychainKind();
+  const kcStored: Record<string, string> = {};
+  if (kc) for (const n of keychainNames()) {
+    const v = keychainGet(n);
+    if (v !== undefined) kcStored[n] = v;
+  }
+  const storedSecrets = { ...kcStored, ...fileSecrets };
+  const storeLabel = kc === "macos" ? "the macOS Keychain" : kc === "secret-service" ? "your system keyring" : short(secretsPath);
   const found: FoundConfig[] = todo.map((p) => ({ client: p.client, path: p.path, servers: Object.fromEntries(p.others.map((n) => [n, p.servers[n]])) }));
   // Extensions run through Mycel only if Claude Desktop has a "mycel" entry: add one when its config has none to rewrite.
   const desktopPath = join(claudeDesktopDir(), "claude_desktop_config.json");
@@ -379,7 +396,7 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
     }
   }
   if (exts.found.length) found.push({ client: "Claude Desktop extensions", path: join(claudeDesktopDir(), "Claude Extensions"), servers: Object.fromEntries(exts.found.map((e) => [e.name, e.server])) });
-  const desktopAdd = exts.found.length > 0 && !desktopPlan;
+  const desktopAdd = exts.found.length > 0 && !desktopPlan && !o.viaExtension;
   const gen = toMycelYaml(found, storedSecrets);
   const newSecrets = Object.entries(gen.secretValues).filter(([k]) => storedSecrets[k] === undefined);
   const missingSecrets = gen.secrets.filter((k) => gen.secretValues[k] === undefined && storedSecrets[k] === undefined && process.env[k] === undefined);
@@ -402,9 +419,10 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
     }
   }
   const sec = (doc.toJS()?.secrets ?? {}) as { source?: string };
-  const pointSecrets = gen.secrets.length > 0 && sec.source !== "file";
+  const wantSource = kc ? "keychain" : "file";
+  const pointSecrets = gen.secrets.length > 0 && sec.source !== "file" && sec.source !== "keychain";
   if (pointSecrets) {
-    doc.setIn(["secrets", "source"], "file");
+    doc.setIn(["secrets", "source"], wantSource);
     doc.setIn(["secrets", "file"], secretsPath);
   }
   let yamlChanges = !yamlExists || added > 0 || pointSecrets;
@@ -420,7 +438,7 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
   for (const x of exts.skipped) out(`      extension left as is: ${x}`);
   if (plugins.length) out(`    Claude Code plugins bring ${plugins.length} server(s) of their own (${plugins.slice(0, 6).join(", ")}${plugins.length > 6 ? ", …" : ""}); plugins manage them, so they stay as they are`);
   out(`    clients will start Mycel with: ${entry.command} ${entry.args.join(" ")}`);
-  if (newSecrets.length) out(`    move ${newSecrets.length} API key(s) out of client configs into ${short(secretsPath)} (readable only by you; you don't need to set anything)`);
+  if (newSecrets.length) out(`    move ${newSecrets.length} API key(s) out of client configs into ${storeLabel} (only you can read them; you don't need to set anything)`);
   if (missingSecrets.length)     out(`    ${missingSecrets.length} API key(s) have no value yet (${missingSecrets.join(", ")}); you can paste them in a moment`);
   if (gen.skipped.length) out(`  Skipped: ${gen.skipped.join("; ")}`);
   out(`  Backups of every changed file go to ${short(backupsDir())} (undo any time with: mycel undo)`);
@@ -455,8 +473,8 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
     doc.setIn(["ui", "savingsLine"], wantLine);
     yamlChanges = true;
   }
-  if (newSecrets.length && !pointSecrets && (doc.toJS()?.secrets?.source ?? "env") !== "file") {
-    doc.setIn(["secrets", "source"], "file");
+  if (newSecrets.length && !pointSecrets && !["file", "keychain"].includes(doc.toJS()?.secrets?.source ?? "env")) {
+    doc.setIn(["secrets", "source"], wantSource);
     doc.setIn(["secrets", "file"], secretsPath);
   }
   const yamlNext = String(doc);
@@ -474,14 +492,16 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
   let i = 0;
   for (const p of todo) manifest.files.push({ client: p.client, path: p.path, backup: save(p.path, String(++i)), sha256Before: sha(readFileSync(p.path)), sha256After: "" });
   if (yamlExists && yamlChanges) manifest.config.backup = save(target, "config");
+  const inKeychain = kc ? newSecrets.filter(([k, v]) => keychainSet(k, v)).map(([k]) => k) : [];
+  const toFile = newSecrets.filter(([k]) => !inKeychain.includes(k));
   const secretsExisted = existsSync(secretsPath);
-  if (newSecrets.length) manifest.secrets = { path: secretsPath, createdBySetup: !secretsExisted, ...(secretsExisted ? { backup: save(secretsPath, "secrets") } : {}) };
+  if (toFile.length) manifest.secrets = { path: secretsPath, createdBySetup: !secretsExisted, ...(secretsExisted ? { backup: save(secretsPath, "secrets") } : {}) };
   writeFileSync(join(dir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
-  if (newSecrets.length) {
+  if (toFile.length) {
     mkdirSync(dirname(secretsPath), { recursive: true });
     const prev = secretsExisted ? readFileSync(secretsPath, "utf8") : "# Mycel secrets: API keys moved here by `mycel setup`. Keep this file private.\n";
-    const body = (prev === "" || prev.endsWith("\n") ? prev : prev + "\n") + newSecrets.map(([k, v]) => `${k}=${v}`).join("\n") + "\n";
+    const body = (prev === "" || prev.endsWith("\n") ? prev : prev + "\n") + toFile.map(([k, v]) => `${k}=${v}`).join("\n") + "\n";
     writeAtomic(secretsPath, body);
     try {
       chmodSync(secretsPath, 0o600);
@@ -505,7 +525,7 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
         for (const k of p.projectEntries) if (j.projects?.[k]) j.projects[k].mcpServers = {};
         writeAtomic(p.path, JSON.stringify(j, null, indentOf(p.raw)) + (p.raw.endsWith("\n") ? "\n" : ""));
       }
-    } else writeAtomic(p.path, rewrite(p, entry));
+    } else writeAtomic(p.path, rewrite(p, o.viaExtension && p.client === "Claude Desktop" ? null : entry));
     f.sha256After = sha(readFileSync(p.path));
     out(`  ${"✓"} ${f.client}: ${short(p.path)}`);
   }
@@ -536,7 +556,8 @@ export async function runSetup(o: SetupOptions, io: SetupIO): Promise<number> {
     manifest.files.push({ client: `Claude Desktop extension ${e.name}`, path: e.settingsPath, backup, sha256Before: sha(raw), sha256After: sha(readFileSync(e.settingsPath)) });
     out(`  ✓ extension ${e.name}: now runs through Mycel`);
   }
-  if (newSecrets.length) out(`  ✓ API keys: ${short(secretsPath)}`);
+  if (inKeychain.length) out(`  ✓ ${inKeychain.length} API key(s): ${storeLabel}`);
+  if (toFile.length) out(`  ✓ ${toFile.length} API key(s): ${short(secretsPath)}`);
   writeFileSync(join(dir, "manifest.json"), JSON.stringify(manifest, null, 2));
   const clients = [...new Set([...todo.map((p) => p.client.replace(/ \(project\)$/, "")), ...(exts.found.length ? ["Claude Desktop"] : [])])];
 
@@ -591,12 +612,12 @@ async function checkAndSignIn(target: string, io: SetupIO, o: SetupOptions): Pro
       continue;
     }
     if (cfg && !isStdio(cfg) && NEEDS_SIGN_IN.test(r.error)) {
-      if (!io.interactive) {
+      if (!io.interactive && !o.autoSignIn) {
         out(`  ! ${r.name}: needs a one-time sign-in. Run: mycel login ${r.name}`);
         failed.push(r.name);
         continue;
       }
-      if (!o.yes && !(await io.ask(`  ${r.name} needs a one-time sign-in. Open your browser now? [Y/n] `, true))) {
+      if (!o.yes && !o.autoSignIn && !(await io.ask(`  ${r.name} needs a one-time sign-in. Open your browser now? [Y/n] `, true))) {
         out(`    later: mycel login ${r.name}`);
         failed.push(r.name);
         continue;
@@ -770,5 +791,56 @@ export async function runUndo(o: { yes?: boolean; list?: boolean; id?: string },
   for (const r of restored) out(`  ✓ restored ${r}`);
   for (const k of kept) out(`  - ${k}`);
   out(`\n  Restored ${restored.length} file(s). Restart your clients.\n`);
+  return 0;
+}
+
+/** Shell profile files the installer may have added a PATH line to. */
+function profileFiles(): string[] {
+  const h = homedir();
+  return [".zshrc", ".bashrc", ".bash_profile", ".profile"].map((f) => join(h, f));
+}
+
+/**
+ * `mycel uninstall`: undo every setup (newest first, so apps end with their original settings), remove the
+ * installer's PATH line and keychain entries, then delete ~/.mycel. Asks first unless --yes.
+ */
+export async function runUninstall(o: { yes?: boolean; keepData?: boolean }, io: SetupIO, hooks: { removeKeychain?: () => number } = {}): Promise<number> {
+  const { out } = io;
+  const home = mycelHome();
+  const backups = listBackups();
+  const profiles = profileFiles().filter((f) => existsSync(f) && readFileSync(f, "utf8").includes(join(home, "bin")));
+  out("\n  mycel uninstall\n");
+  out(`    restore your apps from ${backups.length} setup backup(s)${backups.length ? "" : " (none found)"}`);
+  if (profiles.length) out(`    remove the mycel PATH line from ${profiles.map(short).join(", ")}`);
+  if (hooks.removeKeychain) out("    remove Mycel's API keys from the system keychain");
+  if (!o.keepData) out(`    delete ${short(home)} (config, API keys, logs, backups, the private Node.js and Mycel copy)`);
+  if (!o.yes) {
+    if (!io.interactive) {
+      out("\n  Dry run: nothing was changed. Run again with --yes to uninstall.\n");
+      return 0;
+    }
+    if (!(await io.ask("\n  Uninstall Mycel? [y/N] ", false))) {
+      out("  Cancelled. Nothing changed.\n");
+      return 0;
+    }
+  }
+  for (const b of [...backups].reverse()) await runUndo({ id: b.id, yes: true }, { ...io, out: () => {} });
+  if (backups.length) out(`  ✓ apps restored to their settings from before Mycel`);
+  for (const f of profiles) {
+    const s = readFileSync(f, "utf8");
+    const bin = join(home, "bin");
+    const next = s
+      .split("\n")
+      .filter((l, i, a) => !(l.includes(bin) && l.includes("PATH")) && !(l.trim() === "# Mycel" && (a[i + 1] ?? "").includes(bin)))
+      .join("\n");
+    writeFileSync(f, next);
+    out(`  ✓ ${short(f)}: PATH line removed`);
+  }
+  if (hooks.removeKeychain) out(`  ✓ ${hooks.removeKeychain()} key(s) removed from the keychain`);
+  if (!o.keepData && existsSync(home)) {
+    rmSync(home, { recursive: true, force: true });
+    out(`  ✓ ${short(home)} deleted`);
+  }
+  out("\n  Mycel is uninstalled. Restart your apps. Thanks for trying it.\n");
   return 0;
 }

@@ -161,7 +161,11 @@ export interface SavingsMeta {
 
 /** Text for `mycel stats`: measured and estimated are printed separately and never summed. */
 export function formatStats(
-  r: { session?: { id: string; start: string; measured: SessionSavings & { calls: number }; estimated: { toolsListServed: number; definitionTokens: number } }; day: { date: string; measured: SessionSavings & { calls: number }; estimated: { toolsListServed: number; definitionTokens: number } } },
+  r: {
+    session?: { id: string; start: string; measured: SessionSavings & { calls: number }; estimated: { toolsListServed: number; definitionTokens: number } };
+    day: { date: string; measured: SessionSavings & { calls: number }; estimated: { toolsListServed: number; definitionTokens: number } };
+    week?: { since: string; measured: SessionSavings & { calls: number }; estimated: { toolsListServed: number; definitionTokens: number } };
+  },
   rates: ValueRates = DEFAULT_RATES,
 ): string {
   const block = (title: string, t: NonNullable<typeof r.session>["measured"], e: { toolsListServed: number; definitionTokens: number }) => [
@@ -175,6 +179,7 @@ export function formatStats(
   return [
     ...(r.session ? block(`session ${r.session.id} (since ${r.session.start})`, r.session.measured, r.session.estimated) : ["session: nothing recorded yet"]),
     ...block(`today ${r.day.date} (UTC)`, r.day.measured, r.day.estimated),
+    ...(r.week ? block(`last 7 days (since ${r.week.since}, UTC)`, r.week.measured, r.week.estimated) : []),
     `measured = size of the raw upstream result vs what Mycel returned. Tokens are approximated as chars/4; real tokenizers differ (sometimes by tens of percent on a small body). Counted per call; calls inside mycel_run are counted once, as the run.`,
     `${ESTIMATE_CAVEAT}. Counted once per tools/list served, not per model turn.`,
   ].join("\n");

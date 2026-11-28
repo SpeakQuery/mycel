@@ -16,7 +16,7 @@
 
 ## What went wrong (and what we changed or will change)
 
-1. **`mycel setup` did not exist for the user.** The instructions said `npx -y @speakquery/mycel setup`, but 0.1.8 (which adds `setup`) was not yet on npm, so `npx` fetched an older version. The agent fell back to `mycel init`. Lesson: never advertise a command before the package that has it is published.
+1. **`mycel setup` did not exist for the user.** The instructions said `npx -y @speakquery/mycel setup`, but the release with `setup` was not yet on npm, so `npx` fetched an older version. The agent fell back to `mycel init`. Lesson: never advertise a command before the package that has it is published.
 2. **One wasted call on a parameter name.** The first `job_status` call used `job_id`; the tool wants `jobId`. Search results should make exact parameter names easier to see.
 3. **Most tokens went to subagents, not to tool definitions.** Each quality-check or upload subagent used 72k–150k tokens. Mycel does not reduce that; moving repetitive checks into scripts that call `mycel call` did.
 4. **Not Mycel:** the Higgsfield CLI needs a workspace selected before it works, and a browser extension could not pass 18 MB and 9.2 MB uploads (a 4.5 MB re-encode, SSIM 0.988, worked).
